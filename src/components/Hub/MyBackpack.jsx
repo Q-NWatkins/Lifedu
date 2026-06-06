@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
 import { getItemEmoji } from '../../systems/lootSystem.js';
 import { neuBtn, neuCard, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
@@ -35,6 +36,7 @@ function AccessorySlot({ label, item }) {
 
 export default function MyBackpack() {
   const { badges, inventory, equipped, equipItem } = usePlayerProgress();
+  const { activeTheme, setActiveTheme } = useTheme();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -139,8 +141,33 @@ export default function MyBackpack() {
           )}
         </div>
 
-        {/* Right — Parent controls & notifications */}
+        {/* Right — Theme, controls & notifications */}
         <div className="space-y-4">
+          <div className={`${neuCard} bg-amber-100 p-5`}>
+            <h2 className="text-lg font-black text-black">Theme Selector</h2>
+            <p className="mt-1 text-xs font-semibold text-black/60">
+              Change the look of the entire platform instantly!
+            </p>
+            <div className="mt-4 grid gap-2">
+              {Object.values(PLATFORM_THEMES).map((theme) => (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => setActiveTheme(theme.id)}
+                  className={`
+                    neu-btn px-4 py-3 text-left text-sm
+                    ${activeTheme === theme.id ? 'bg-yellow-300 text-black' : 'bg-white text-black hover:bg-lime-50'}
+                  `}
+                >
+                  <span className="font-black">{theme.label}</span>
+                  <span className="mt-0.5 block text-xs font-semibold text-black/60">
+                    {theme.description}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className={`${neuCard} bg-white p-5`}>
             <h2 className="text-lg font-black text-black">Parent Controls</h2>
             <p className="mt-1 text-xs font-semibold text-black/60">

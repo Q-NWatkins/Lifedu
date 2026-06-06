@@ -8,7 +8,107 @@ body {
   font-family: var(--font-display);
   margin: 0;
   min-height: 100vh;
-  background-color: #d9f99d;
+}
+
+/* ── Platform biome themes ───────────────────────────────────────────────── */
+
+.platform-wrapper.theme-default {
+  background: linear-gradient(180deg, #d9f99d 0%, #bef264 50%, #a3e635 100%);
+}
+
+.platform-wrapper.theme-cosmic {
+  background: linear-gradient(160deg, #0f172a 0%, #312e81 45%, #1e1b4b 100%);
+  color: #e2e8f0;
+}
+
+.platform-wrapper.theme-sky {
+  background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 40%, #f0f9ff 100%);
+}
+
+.theme-cosmic header,
+.theme-cosmic .neu-card,
+.theme-cosmic .neu-panel {
+  color: inherit;
+}
+
+.theme-cosmic h1,
+.theme-cosmic h2,
+.theme-cosmic h3,
+.theme-cosmic .text-black {
+  color: #f8fafc !important;
+}
+
+.theme-cosmic .text-black\/60,
+.theme-cosmic .text-black\/70,
+.theme-cosmic .text-black\/50 {
+  color: rgb(203 213 225) !important;
+}
+
+/* ── Sky Kingdom clouds ──────────────────────────────────────────────────── */
+
+.cloud-shape {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    2rem 0.4rem 0 -0.2rem rgba(255, 255, 255, 0.9),
+    -1.5rem 0.6rem 0 -0.3rem rgba(255, 255, 255, 0.8),
+    0.5rem 1rem 0 -0.2rem rgba(255, 255, 255, 0.75);
+}
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(-2deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes float-node {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-6px);
+  }
+}
+
+@keyframes float-cloud {
+  0%,
+  100% {
+    transform: translateX(0) translateY(0);
+  }
+  50% {
+    transform: translateX(12px) translateY(-8px);
+  }
+}
+
+@keyframes drift-star {
+  0%,
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(8px, -12px);
+    opacity: 1;
+  }
+}
+
+.animate-float-node {
+  animation: float-node 3s ease-in-out infinite;
+}
+
+.animate-float-cloud {
+  animation: float-cloud 8s ease-in-out infinite;
+}
+
+.animate-drift-star {
+  animation: drift-star linear infinite;
 }
 
 @layer components {
@@ -30,15 +130,5 @@ body {
 
   .neu-panel {
     @apply rounded-2xl border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)];
-  }
-}
-
-@keyframes wiggle {
-  0%,
-  100% {
-    transform: rotate(-2deg);
-  }
-  50% {
-    transform: rotate(2deg);
   }
 }

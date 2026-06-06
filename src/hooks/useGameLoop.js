@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { rollLoot } from '../systems/lootSystem.js';
+import {
+  buildConstellationLayout,
+  getPathForBranch,
+  stepAtPathIndex,
+} from '../systems/constellationMap.js';
 
 const STEP_DELAY_MS = 350;
 const RETREAT_STEPS = 3;
@@ -9,58 +14,72 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Core game loop: dice rolls, tile-by-tile movement, chest loot, boss encounters.
- */
-export function useGameLoop(
-  pathLength,
-  {
-    initialEnergy = 10,
-    initialTile = 1,
-    chestTiles = [],
-    skipBossEncounter = false,
-  } = {},
-) {
-  const bossTile = pathLength + 1;
-  const chestSet = useRef(new Set(chestTiles));
+function isLootNode(node) {
+  return node?.type === 'chest' || node?.type === 'mysteryChest';
+}
 
-  const [currentTile, setCurrentTile] = useState(initialTile);
-  const [diceRollEnergy, setDiceRollEnergy] = useState(initialEnergy);
+/**
+ * Constellation-aware game loop with movement cards and branching paths.
+ */
+export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = false } = {}) {
+  const layout = buildConstellationLayout(course);
+  const bossStep = layout.bossStep;
+
+  const [pathBranch, setPathBranch] = useState(null);
+  const [pathIndex, setPathIndex] = useState(0);
+  const [energy, setEnergy] = useState(initialEnergy);
   const [isMoving, setIsMoving] = useState(false);
-  const [lastRoll, setLastRoll] = useState(null);
+  const [lastMoveSteps, setLastMoveSteps] = useState(null);
   const [pendingLoot, setPendingLoot] = useState(null);
   const [bossEncounterActive, setBossEncounterActive] = useState(false);
+  const [forkChoicePending, setForkChoicePending] = useState(false);
 
   const movingRef = useRef(false);
-  const currentTileRef = useRef(initialTile);
+  const pathIndexRef = useRef(0);
+  const pathBranchRef = useRef(null);
   const openedChestsRef = useRef(new Set());
   const lootResolveRef = useRef(null);
   const skipBossRef = useRef(skipBossEncounter);
 
-  useEffect(() => {
-    chestSet.current = new Set(chestTiles);
-  }, [chestTiles]);
+  const activePath = getPathForBranch(layout, pathBranch ?? 'short');
+
+  const getNodeAt = useCallback(
+    (index) => {
+      const nodeId = activePath[index];
+      return layout.nodes.find((n) => n.id === nodeId);
+    },
+    [activePath, layout.nodes],
+  );
+
+  const currentStep = stepAtPathIndex(layout, activePath, pathIndex);
 
   useEffect(() => {
     skipBossRef.current = skipBossEncounter;
   }, [skipBossEncounter]);
 
   useEffect(() => {
-    currentTileRef.current = currentTile;
-  }, [currentTile]);
+    pathIndexRef.current = pathIndex;
+  }, [pathIndex]);
 
   useEffect(() => {
-    setCurrentTile(initialTile);
-    setDiceRollEnergy(initialEnergy);
+    pathBranchRef.current = pathBranch;
+  }, [pathBranch]);
+
+  useEffect(() => {
+    setPathBranch(null);
+    setPathIndex(0);
+    setEnergy(initialEnergy);
     setIsMoving(false);
-    setLastRoll(null);
+    setLastMoveSteps(null);
     setPendingLoot(null);
     setBossEncounterActive(false);
+    setForkChoicePending(false);
     movingRef.current = false;
-    currentTileRef.current = initialTile;
+    pathIndexRef.current = 0;
+    pathBranchRef.current = null;
     openedChestsRef.current = new Set();
     lootResolveRef.current = null;
-  }, [pathLength, initialEnergy, initialTile]);
+  }, [course.id, initialEnergy]);
 
   const closeLootReveal = useCallback(() => {
     setPendingLoot(null);
@@ -70,9 +89,9 @@ export function useGameLoop(
 
   const retreatFromBoss = useCallback(() => {
     setBossEncounterActive(false);
-    setCurrentTile((tile) => {
-      const next = Math.max(1, tile - RETREAT_STEPS);
-      currentTileRef.current = next;
+    setPathIndex((idx) => {
+      const next = Math.max(0, idx - RETREAT_STEPS);
+      pathIndexRef.current = next;
       return next;
     });
   }, []);
@@ -82,66 +101,110 @@ export function useGameLoop(
   }, []);
 
   const grantMegaRoll = useCallback(() => {
-    setDiceRollEnergy((energy) => energy + MEGA_ROLL_BONUS);
+    setEnergy((e) => e + MEGA_ROLL_BONUS);
   }, []);
 
-  const rollDice = useCallback(async () => {
-    if (movingRef.current || diceRollEnergy <= 0 || bossEncounterActive || pendingLoot) return;
+  const chooseForkBranch = useCallback((branch) => {
+    setPathBranch(branch);
+    pathBranchRef.current = branch;
+    setForkChoicePending(false);
+  }, []);
 
-    movingRef.current = true;
-    setIsMoving(true);
-    setDiceRollEnergy((energy) => energy - 1);
+  const moveAlongPath = useCallback(
+    async (steps) => {
+      if (movingRef.current || energy <= 0 || bossEncounterActive || pendingLoot) return false;
 
-    const roll = Math.floor(Math.random() * 6) + 1;
-    setLastRoll(roll);
+      let branch = pathBranchRef.current ?? 'short';
+      let path = getPathForBranch(layout, branch);
+      let fromIndex = pathIndexRef.current;
 
-    const startTile = currentTileRef.current;
-    const landingTile = Math.min(startTile + roll, bossTile);
+      const atFork =
+        !pathBranchRef.current &&
+        layout.nodes.find((n) => n.id === path[fromIndex])?.type === 'fork';
 
-    for (let step = startTile + 1; step <= landingTile; step++) {
-      await sleep(STEP_DELAY_MS);
-      setCurrentTile(step);
-      currentTileRef.current = step;
-
-      const isChest = chestSet.current.has(step);
-      const alreadyOpened = openedChestsRef.current.has(step);
-
-      if (isChest && !alreadyOpened) {
-        openedChestsRef.current.add(step);
-        const item = rollLoot();
-
-        await new Promise((resolve) => {
-          lootResolveRef.current = resolve;
-          setPendingLoot({ item, tile: step });
-        });
+      if (atFork) {
+        setForkChoicePending(true);
+        return false;
       }
-    }
 
-    if (landingTile >= bossTile && !skipBossRef.current) {
-      setBossEncounterActive(true);
-    }
+      movingRef.current = true;
+      setIsMoving(true);
+      setEnergy((e) => e - 1);
+      setLastMoveSteps(steps);
 
-    movingRef.current = false;
-    setIsMoving(false);
-  }, [bossEncounterActive, bossTile, diceRollEnergy, pendingLoot]);
+      const targetIndex = Math.min(fromIndex + steps, path.length - 1);
+
+      for (let i = fromIndex + 1; i <= targetIndex; i++) {
+        await sleep(STEP_DELAY_MS);
+
+        branch = pathBranchRef.current ?? 'short';
+        path = getPathForBranch(layout, branch);
+        const node = layout.nodes.find((n) => n.id === path[i]);
+
+        setPathIndex(i);
+        pathIndexRef.current = i;
+
+        if (node?.type === 'fork' && !pathBranchRef.current) {
+          setForkChoicePending(true);
+          movingRef.current = false;
+          setIsMoving(false);
+          return true;
+        }
+
+        const chestKey = `${branch}-${node?.id}`;
+        if (node && isLootNode(node) && !openedChestsRef.current.has(chestKey)) {
+          openedChestsRef.current.add(chestKey);
+          const item = rollLoot();
+          const isMystery = node.type === 'mysteryChest';
+
+          await new Promise((resolve) => {
+            lootResolveRef.current = resolve;
+            setPendingLoot({ item, tile: node.step, isMystery });
+          });
+        }
+      }
+
+      branch = pathBranchRef.current ?? 'short';
+      path = getPathForBranch(layout, branch);
+      const landedIndex = pathIndexRef.current;
+      const landedNode = layout.nodes.find((n) => n.id === path[landedIndex]);
+
+      if (landedNode?.type === 'boss' && !skipBossRef.current) {
+        setBossEncounterActive(true);
+      }
+
+      movingRef.current = false;
+      setIsMoving(false);
+      return true;
+    },
+    [bossEncounterActive, energy, layout, pendingLoot],
+  );
 
   const lootRevealActive = Boolean(pendingLoot);
-  const canRoll = diceRollEnergy > 0 && !isMoving && !bossEncounterActive && !lootRevealActive;
+  const canMove =
+    energy > 0 && !isMoving && !bossEncounterActive && !lootRevealActive && !forkChoicePending;
 
   return {
-    currentTile,
-    diceRollEnergy,
+    layout,
+    pathBranch,
+    pathIndex,
+    currentStep,
+    activePath,
+    energy,
     isMoving,
-    lastRoll,
+    lastMoveSteps,
     pendingLoot,
     lootRevealActive,
-    canRoll,
-    bossTile,
+    canMove,
+    bossStep,
     bossEncounterActive,
-    rollDice,
+    forkChoicePending,
+    moveAlongPath,
+    chooseForkBranch,
     closeLootReveal,
     retreatFromBoss,
     dismissBossEncounter,
     grantMegaRoll,
+    getNodeAt,
   };
 }
