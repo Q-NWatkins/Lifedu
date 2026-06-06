@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'pb-1',
+    prompt: 'Which word rhymes with "cat"?',
+    options: ['Dog', 'Hat', 'Cup', 'Run'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'pb-2',
+    prompt: 'What sound does "sh" make in "ship"?',
+    options: ['/s/', '/sh/', '/ch/', '/th/'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'pb-3',
+    prompt: 'Which word starts with the same sound as "ball"?',
+    options: ['Fish', 'Bat', 'Sun', 'Nest'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+  {
+    id: 'pb-4',
+    prompt: 'How many syllables are in "butterfly"?',
+    options: ['2', '3', '4', '5'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'pb-5',
+    prompt: 'Which vowel is in the word "tree"?',
+    options: ['A', 'E', 'I', 'O'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'pb-6',
+    prompt: 'Which word has a long "a" sound?',
+    options: ['Cat', 'Cake', 'Cup', 'Clip'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'pb-7',
+    prompt: 'What letter does "moon" start with?',
+    options: ['N', 'M', 'W', 'B'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+];

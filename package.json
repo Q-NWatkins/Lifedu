@@ -1,0 +1,22 @@
+{
+  "name": "it-womenintech",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Gamified board-game learning platform for children and teens",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.8",
+    "@vitejs/plugin-react": "^4.5.2",
+    "tailwindcss": "^4.1.8",
+    "vite": "^6.3.5"
+  }
+}

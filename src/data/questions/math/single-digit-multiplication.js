@@ -1,0 +1,58 @@
+export default [
+  {
+    id: 'sdm-1',
+    prompt: 'What is 7 × 8?',
+    options: ['54', '56', '58', '62'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'sdm-2',
+    prompt: 'What is 9 × 6?',
+    options: ['45', '54', '56', '63'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'sdm-3',
+    prompt: 'What is 12 × 3?',
+    options: ['15', '32', '36', '39'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'sdm-4',
+    prompt: 'What is 8 × 8?',
+    options: ['56', '60', '64', '72'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'sdm-5',
+    prompt: 'What is 11 × 4?',
+    options: ['40', '44', '48', '52'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'sdm-6',
+    prompt: 'What is 6 × 7?',
+    options: ['36', '42', '48', '49'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+  {
+    id: 'sdm-7',
+    prompt: 'What is 9 × 9?',
+    options: ['72', '81', '90', '99'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'sdm-8',
+    prompt: 'What is 5 × 12?',
+    options: ['50', '55', '60', '65'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+];

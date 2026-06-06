@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'ss-1',
+    prompt: 'Which planet is known as the Red Planet?',
+    options: ['Venus', 'Mars', 'Jupiter', 'Saturn'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'ss-2',
+    prompt: 'What is the largest planet in our solar system?',
+    options: ['Earth', 'Saturn', 'Jupiter', 'Neptune'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'ss-3',
+    prompt: 'How long does Earth take to orbit the Sun?',
+    options: ['1 day', '1 month', '1 year', '10 years'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'ss-4',
+    prompt: 'Which planet is closest to the Sun?',
+    options: ['Venus', 'Mercury', 'Mars', 'Earth'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'ss-5',
+    prompt: 'What force keeps planets in orbit around the Sun?',
+    options: ['Magnetism', 'Friction', 'Gravity', 'Electricity'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'ss-6',
+    prompt: 'Which planet has the most visible rings?',
+    options: ['Uranus', 'Neptune', 'Saturn', 'Jupiter'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'ss-7',
+    prompt: 'What is the Sun mainly made of?',
+    options: ['Rock and ice', 'Hydrogen and helium', 'Oxygen', 'Iron'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+];

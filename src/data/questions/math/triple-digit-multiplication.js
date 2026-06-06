@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'tdm-1',
+    prompt: 'What is 120 × 4?',
+    options: ['380', '460', '480', '520'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'tdm-2',
+    prompt: 'What is 250 × 3?',
+    options: ['650', '700', '750', '800'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'tdm-3',
+    prompt: 'What is 115 × 6?',
+    options: ['680', '690', '700', '710'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'tdm-4',
+    prompt: 'What is 340 × 2?',
+    options: ['580', '640', '680', '720'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'tdm-5',
+    prompt: 'What is 175 × 4?',
+    options: ['600', '650', '700', '750'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'tdm-6',
+    prompt: 'What is 210 × 5?',
+    options: ['950', '1,000', '1,050', '1,100'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'tdm-7',
+    prompt: 'What is 132 × 3?',
+    options: ['386', '396', '406', '416'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+];
