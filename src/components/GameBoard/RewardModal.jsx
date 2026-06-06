@@ -1,30 +1,30 @@
+import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
+
 export default function RewardModal({ message, onClose, palette }) {
   if (!message) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="reward-title"
     >
-      <div
-        className={`
-          w-full max-w-sm rounded-2xl border-2 p-6 text-center shadow-2xl
-          ${palette.board}
-        `}
-      >
-        <div className="mb-3 text-4xl" aria-hidden="true">
+      <div className={`w-full max-w-sm ${neuCard} ${palette.board} p-6 text-center`}>
+        <div
+          className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-xl border-4 border-black bg-yellow-300 text-4xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          aria-hidden="true"
+        >
           🎁
         </div>
-        <h2 id="reward-title" className={`text-xl font-bold ${palette.title}`}>
+        <h2 id="reward-title" className={`text-xl font-black ${palette.title}`}>
           Reward Found!
         </h2>
-        <p className={`mt-2 text-sm ${palette.subtitle}`}>{message}</p>
+        <p className={`mt-2 text-sm font-semibold ${palette.subtitle}`}>{message}</p>
         <button
           type="button"
           onClick={onClose}
-          className="mt-5 rounded-full bg-white px-6 py-2 text-sm font-bold text-stone-900 transition hover:bg-white/90"
+          className={`neu-btn mt-5 bg-green-400 px-6 py-2.5 text-sm text-black hover:bg-green-300`}
         >
           Awesome!
         </button>

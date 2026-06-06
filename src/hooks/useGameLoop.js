@@ -1,48 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-
-const DUMMY_REWARDS = [
-  'You found a Cool Cap!',
-  'You found Sparkle Shoes!',
-  'You earned a Forest Badge!',
-  'You unlocked a new pawn color!',
-  'You discovered a bonus star!',
-];
+import { rollLoot } from '../systems/lootSystem.js';
 
 const STEP_DELAY_MS = 350;
 const RETREAT_STEPS = 3;
+const MEGA_ROLL_BONUS = 3;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function pickRandomReward() {
-  return DUMMY_REWARDS[Math.floor(Math.random() * DUMMY_REWARDS.length)];
-}
-
 /**
- * Core game loop: dice rolls, tile-by-tile movement, rewards, boss encounters.
+ * Core game loop: dice rolls, tile-by-tile movement, chest loot, boss encounters.
  */
 export function useGameLoop(
   pathLength,
-  { initialEnergy = 10, initialTile = 1, onBossEncounter, skipBossEncounter = false } = {},
+  {
+    initialEnergy = 10,
+    initialTile = 1,
+    chestTiles = [],
+    skipBossEncounter = false,
+  } = {},
 ) {
   const bossTile = pathLength + 1;
+  const chestSet = useRef(new Set(chestTiles));
 
   const [currentTile, setCurrentTile] = useState(initialTile);
   const [diceRollEnergy, setDiceRollEnergy] = useState(initialEnergy);
   const [isMoving, setIsMoving] = useState(false);
   const [lastRoll, setLastRoll] = useState(null);
-  const [reward, setReward] = useState(null);
+  const [pendingLoot, setPendingLoot] = useState(null);
   const [bossEncounterActive, setBossEncounterActive] = useState(false);
 
   const movingRef = useRef(false);
   const currentTileRef = useRef(initialTile);
-  const onBossEncounterRef = useRef(onBossEncounter);
+  const openedChestsRef = useRef(new Set());
+  const lootResolveRef = useRef(null);
   const skipBossRef = useRef(skipBossEncounter);
 
   useEffect(() => {
-    onBossEncounterRef.current = onBossEncounter;
-  }, [onBossEncounter]);
+    chestSet.current = new Set(chestTiles);
+  }, [chestTiles]);
 
   useEffect(() => {
     skipBossRef.current = skipBossEncounter;
@@ -57,13 +54,19 @@ export function useGameLoop(
     setDiceRollEnergy(initialEnergy);
     setIsMoving(false);
     setLastRoll(null);
-    setReward(null);
+    setPendingLoot(null);
     setBossEncounterActive(false);
     movingRef.current = false;
     currentTileRef.current = initialTile;
+    openedChestsRef.current = new Set();
+    lootResolveRef.current = null;
   }, [pathLength, initialEnergy, initialTile]);
 
-  const closeReward = useCallback(() => setReward(null), []);
+  const closeLootReveal = useCallback(() => {
+    setPendingLoot(null);
+    lootResolveRef.current?.();
+    lootResolveRef.current = null;
+  }, []);
 
   const retreatFromBoss = useCallback(() => {
     setBossEncounterActive(false);
@@ -78,8 +81,12 @@ export function useGameLoop(
     setBossEncounterActive(false);
   }, []);
 
+  const grantMegaRoll = useCallback(() => {
+    setDiceRollEnergy((energy) => energy + MEGA_ROLL_BONUS);
+  }, []);
+
   const rollDice = useCallback(async () => {
-    if (movingRef.current || diceRollEnergy <= 0 || bossEncounterActive) return;
+    if (movingRef.current || diceRollEnergy <= 0 || bossEncounterActive || pendingLoot) return;
 
     movingRef.current = true;
     setIsMoving(true);
@@ -95,33 +102,46 @@ export function useGameLoop(
       await sleep(STEP_DELAY_MS);
       setCurrentTile(step);
       currentTileRef.current = step;
+
+      const isChest = chestSet.current.has(step);
+      const alreadyOpened = openedChestsRef.current.has(step);
+
+      if (isChest && !alreadyOpened) {
+        openedChestsRef.current.add(step);
+        const item = rollLoot();
+
+        await new Promise((resolve) => {
+          lootResolveRef.current = resolve;
+          setPendingLoot({ item, tile: step });
+        });
+      }
     }
 
     if (landingTile >= bossTile && !skipBossRef.current) {
       setBossEncounterActive(true);
-      onBossEncounterRef.current?.();
-    } else if (landingTile % 2 === 0) {
-      setReward({ message: pickRandomReward() });
     }
 
     movingRef.current = false;
     setIsMoving(false);
-  }, [bossEncounterActive, bossTile, diceRollEnergy]);
+  }, [bossEncounterActive, bossTile, diceRollEnergy, pendingLoot]);
 
-  const canRoll = diceRollEnergy > 0 && !isMoving && !bossEncounterActive;
+  const lootRevealActive = Boolean(pendingLoot);
+  const canRoll = diceRollEnergy > 0 && !isMoving && !bossEncounterActive && !lootRevealActive;
 
   return {
     currentTile,
     diceRollEnergy,
     isMoving,
     lastRoll,
-    reward,
+    pendingLoot,
+    lootRevealActive,
     canRoll,
     bossTile,
     bossEncounterActive,
     rollDice,
-    closeReward,
+    closeLootReveal,
     retreatFromBoss,
     dismissBossEncounter,
+    grantMegaRoll,
   };
 }

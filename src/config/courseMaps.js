@@ -48,10 +48,19 @@ export const TILE_TYPES = {
   START: 'start',
   LESSON: 'lesson',
   QUIZ: 'quiz',
+  CHEST: 'chest',
   BONUS: 'bonus',
   REST: 'rest',
   BOSS: 'boss',
 };
+
+/**
+ * Default chest tile positions for a path (e.g. tile 5 and 12).
+ * Courses may override with their own `chestTiles` array.
+ */
+export function getChestTilesForPath(pathLength) {
+  return [5, 12, 20, 26].filter((tile) => tile < pathLength);
+}
 
 /**
  * All playable courses.

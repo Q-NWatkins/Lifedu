@@ -5,7 +5,7 @@
  * and prepares a plate the board component can render.
  */
 
-import { COURSE_MAPS, CURRICULUMS, TILE_TYPES } from './courseMaps.js';
+import { COURSE_MAPS, CURRICULUMS, TILE_TYPES, getChestTilesForPath } from './courseMaps.js';
 import { QUESTION_BANKS } from './questionBanks.js';
 import { THEMES } from './themes.js';
 
@@ -24,8 +24,11 @@ export function getCourseDetails(courseId) {
   const course = getCourseById(courseId);
   if (!course) return null;
 
+  const chestTiles = course.chestTiles ?? getChestTilesForPath(course.pathLength);
+
   return {
     ...course,
+    chestTiles,
     curriculum: CURRICULUMS[course.curriculumId],
     theme: THEMES[course.themeId],
     questionBank: QUESTION_BANKS[course.questionBankId],
@@ -45,6 +48,7 @@ export function buildBoardTiles(courseId) {
 
   const tiles = [];
   const milestoneSet = new Set(course.milestones);
+  const chestSet = new Set(course.chestTiles ?? getChestTilesForPath(course.pathLength));
 
   tiles.push({
     index: 0,
@@ -53,13 +57,23 @@ export function buildBoardTiles(courseId) {
   });
 
   for (let i = 1; i <= course.pathLength; i++) {
+    const isChest = chestSet.has(i);
     const isQuiz = milestoneSet.has(i);
     const isLast = i === course.pathLength;
 
+    let type = TILE_TYPES.LESSON;
+    if (isChest) type = TILE_TYPES.CHEST;
+    else if (isQuiz || (isLast && !isChest)) type = TILE_TYPES.QUIZ;
+
     tiles.push({
       index: i,
-      type: isLast && !isQuiz ? TILE_TYPES.QUIZ : isQuiz ? TILE_TYPES.QUIZ : TILE_TYPES.LESSON,
-      label: isQuiz ? `Quiz ${[...milestoneSet].filter((m) => m <= i).length}` : `Tile ${i}`,
+      type,
+      isChestTile: isChest,
+      label: isChest
+        ? 'Treasure'
+        : isQuiz
+          ? `Quiz ${[...milestoneSet].filter((m) => m <= i).length}`
+          : `Tile ${i}`,
       questionBankId: course.questionBankId,
     });
   }

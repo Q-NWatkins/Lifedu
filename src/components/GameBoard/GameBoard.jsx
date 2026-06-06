@@ -1,9 +1,12 @@
+import { useMemo } from 'react';
+import { getChestTilesForPath } from '../../config/courseMaps.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
+import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle } from '../BossBattle/index.js';
+import { LootRevealModal } from '../Loot/index.js';
 import BoardTile from './BoardTile.jsx';
 import DiceControls from './DiceControls.jsx';
-import RewardModal from './RewardModal.jsx';
 import { getBoardTheme } from './boardTheme.js';
 import {
   getColumnsForPathLength,
@@ -13,15 +16,15 @@ import {
 
 function LegendSwatch({ className, label }) {
   return (
-    <span className="flex items-center gap-1.5">
-      <span className={`inline-block h-3 w-3 rounded border-2 ${className}`} />
+    <span className="flex items-center gap-1.5 font-semibold">
+      <span className={`neu-tile inline-block h-4 w-4 rounded-md ${className}`} />
       {label}
     </span>
   );
 }
 
 /**
- * Adaptive board canvas with core game loop and boss encounter gate.
+ * Adaptive board canvas with loot chests, game loop, and turn-based boss battles.
  */
 export default function GameBoard({
   course,
@@ -29,11 +32,18 @@ export default function GameBoard({
   theme,
   bossName = 'Boss',
   milestones = [],
+  chestTiles,
   courseTitle,
   initialEnergy = 10,
+  embedded = false,
 }) {
   const palette = getBoardTheme(theme);
   const milestoneSet = new Set(milestones);
+  const chestTileSet = useMemo(
+    () => new Set(chestTiles ?? getChestTilesForPath(pathLength)),
+    [chestTiles, pathLength],
+  );
+
   const { completedCourses } = usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
 
@@ -42,22 +52,30 @@ export default function GameBoard({
     diceRollEnergy,
     isMoving,
     lastRoll,
-    reward,
+    pendingLoot,
     canRoll,
     bossTile,
     bossEncounterActive,
     rollDice,
-    closeReward,
+    closeLootReveal,
     retreatFromBoss,
     dismissBossEncounter,
-  } = useGameLoop(pathLength, { initialEnergy, skipBossEncounter: isCourseComplete });
+    grantMegaRoll,
+  } = useGameLoop(pathLength, {
+    initialEnergy,
+    chestTiles: [...chestTileSet],
+    skipBossEncounter: isCourseComplete,
+  });
 
   const pathTiles = Array.from({ length: pathLength }, (_, i) => {
     const number = i + 1;
+    const isChest = chestTileSet.has(number);
+
     return {
       number,
-      variant: milestoneSet.has(number) ? 'quiz' : 'lesson',
+      variant: isChest ? 'chest' : milestoneSet.has(number) ? 'quiz' : 'lesson',
       isActive: number === currentTile,
+      isOpenedChest: isChest && number < currentTile,
     };
   });
 
@@ -74,10 +92,12 @@ export default function GameBoard({
 
   return (
     <section
-      className={`relative min-h-screen w-full overflow-hidden px-4 py-8 ${palette.page}`}
+      className={`relative w-full overflow-hidden ${embedded ? 'px-2 py-4' : 'min-h-screen px-4 py-8'} ${palette.page}`}
       aria-label={courseTitle ? `${courseTitle} game board` : 'Course game board'}
     >
-      <RewardModal message={reward?.message} onClose={closeReward} palette={palette} />
+      {pendingLoot && (
+        <LootRevealModal loot={pendingLoot} onClose={closeLootReveal} />
+      )}
 
       {bossEncounterActive && course && (
         <BossBattle
@@ -85,6 +105,7 @@ export default function GameBoard({
           palette={palette}
           onVictoryComplete={dismissBossEncounter}
           onDefeatComplete={retreatFromBoss}
+          onMegaRoll={grantMegaRoll}
         />
       )}
 
@@ -96,20 +117,18 @@ export default function GameBoard({
       >
         {courseTitle && (
           <header className="mb-6 text-center">
-            <h1 className={`text-3xl font-bold tracking-tight ${palette.title}`}>
+            <h1 className={`text-3xl font-black tracking-tight ${palette.title}`}>
               {courseTitle}
             </h1>
-            <p className={`mt-1 text-sm ${palette.subtitle}`}>{palette.label}</p>
+            <p className={`mt-1 text-sm font-bold ${palette.subtitle}`}>{palette.label}</p>
             {isCourseComplete && (
-              <p className="mt-2 inline-block rounded-full bg-yellow-400/20 px-3 py-1 text-xs font-bold text-yellow-200">
-                Course Complete!
-              </p>
+              <p className={`mt-3 inline-block ${neuBadge}`}>Course Complete!</p>
             )}
           </header>
         )}
 
-        <div className={`rounded-3xl border-2 p-6 backdrop-blur-sm ${palette.board}`}>
-          <div className={`relative rounded-2xl bg-gradient-to-br p-4 sm:p-6 ${palette.track}`}>
+        <div className={`${neuCard} ${palette.board} p-6`}>
+          <div className={`rounded-xl border-4 border-black ${palette.track} p-4 sm:p-6`}>
             <div
               className="grid gap-3 sm:gap-4"
               style={{
@@ -131,6 +150,7 @@ export default function GameBoard({
                       variant={tile.variant}
                       isActive={tile.isActive}
                       isMoving={isMoving && tile.isActive}
+                      isOpenedChest={tile.isOpenedChest}
                       palette={palette}
                       label={tile.label ?? bossName}
                     />
@@ -152,10 +172,13 @@ export default function GameBoard({
 
           <footer className={`mt-4 flex flex-wrap justify-center gap-4 text-xs ${palette.subtitle}`}>
             <LegendSwatch className={palette.tile} label="Lesson tile" />
+            <LegendSwatch className="bg-amber-300 text-black" label="Chest tile" />
             <LegendSwatch className={palette.quiz} label="Quiz tile" />
             <LegendSwatch className={palette.boss} label="Boss tile" />
-            <span className="flex items-center gap-1.5">
-              <span className={`inline-block h-4 w-4 rounded-full border-2 ${palette.pawn}`} />
+            <span className="flex items-center gap-1.5 font-semibold">
+              <span
+                className={`inline-block h-4 w-4 rounded-full border-4 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${palette.pawn}`}
+              />
               Your pawn
             </span>
           </footer>

@@ -2,6 +2,13 @@ import { CURRICULUMS } from '../../config/index.js';
 
 const SKILL_ORDER = ['math', 'science', 'reading', 'history'];
 
+const SKILL_COLORS = {
+  math: '#f87171',
+  science: '#4ade80',
+  reading: '#60a5fa',
+  history: '#facc15',
+};
+
 function polarToCartesian(cx, cy, radius, angleDeg) {
   const angleRad = ((angleDeg - 90) * Math.PI) / 180;
   return {
@@ -20,7 +27,7 @@ function buildHexagonPoints(cx, cy, radius, values, max = 100) {
   }).join(' ');
 }
 
-export default function SkillHexagon({ skills, size = 120, className = '' }) {
+export default function SkillHexagon({ skills, size = 120, className = '', compact = false }) {
   const cx = size / 2;
   const cy = size / 2;
   const outerRadius = size * 0.38;
@@ -34,7 +41,6 @@ export default function SkillHexagon({ skills, size = 120, className = '' }) {
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
-        className="drop-shadow-lg"
         aria-label="Skill hexagon chart"
       >
         {gridLevels.map((level) => (
@@ -47,8 +53,9 @@ export default function SkillHexagon({ skills, size = 120, className = '' }) {
               history: 100,
             })}
             fill="none"
-            stroke="rgba(255,255,255,0.15)"
-            strokeWidth="1"
+            stroke="#000"
+            strokeWidth="1.5"
+            opacity="0.2"
           />
         ))}
 
@@ -62,23 +69,24 @@ export default function SkillHexagon({ skills, size = 120, className = '' }) {
               y1={cy}
               x2={outer.x}
               y2={outer.y}
-              stroke="rgba(255,255,255,0.12)"
-              strokeWidth="1"
+              stroke="#000"
+              strokeWidth="1.5"
+              opacity="0.2"
             />
           );
         })}
 
         <polygon
           points={playerPoints}
-          fill="rgba(99, 179, 237, 0.45)"
-          stroke="rgba(147, 197, 253, 0.9)"
-          strokeWidth="2"
+          fill="rgba(74, 222, 128, 0.55)"
+          stroke="#000"
+          strokeWidth="3"
           className="transition-all duration-700 ease-out"
         />
 
         {SKILL_ORDER.map((skillId, i) => {
           const step = 360 / SKILL_ORDER.length;
-          const labelPoint = polarToCartesian(cx, cy, outerRadius + 14, i * step);
+          const labelPoint = polarToCartesian(cx, cy, outerRadius + 12, i * step);
           const curriculum = CURRICULUMS[skillId];
           return (
             <text
@@ -87,7 +95,8 @@ export default function SkillHexagon({ skills, size = 120, className = '' }) {
               y={labelPoint.y}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="fill-white/80 text-[7px] font-bold uppercase"
+              fill={SKILL_COLORS[skillId]}
+              className="text-[7px] font-black uppercase"
             >
               {curriculum.label.slice(0, 3)}
             </text>
@@ -95,14 +104,16 @@ export default function SkillHexagon({ skills, size = 120, className = '' }) {
         })}
       </svg>
 
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px] text-white/70">
-        {SKILL_ORDER.map((skillId) => (
-          <span key={skillId}>
-            {CURRICULUMS[skillId].label}:{' '}
-            <strong className="text-white">{skills[skillId] ?? 0}</strong>
-          </span>
-        ))}
-      </div>
+      {!compact && (
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px] font-bold text-black/70">
+          {SKILL_ORDER.map((skillId) => (
+            <span key={skillId}>
+              {CURRICULUMS[skillId].label}:{' '}
+              <strong className="text-black">{skills[skillId] ?? 0}</strong>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

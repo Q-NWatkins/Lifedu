@@ -1,69 +1,95 @@
 import { useCallback, useMemo, useState } from 'react';
-import { BOSS_PASS_THRESHOLD, BOSS_QUESTION_COUNT, getBossQuestions } from '../../data/questions/index.js';
+import { getBossQuestions } from '../../data/questions/index.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import DefeatScreen from './DefeatScreen.jsx';
 import VictoryScreen from './VictoryScreen.jsx';
 
-const PHASE = {
-  INTRO: 'intro',
-  QUIZ: 'quiz',
-  VICTORY: 'victory',
-  DEFEAT: 'defeat',
-};
+const PHASE = { INTRO: 'intro', BATTLE: 'battle', VICTORY: 'victory', DEFEAT: 'defeat' };
+const BOSS_MAX_HP = 100;
+const BOSS_DAMAGE = 20;
+const STARTING_HEARTS = 3;
+
+function HeartDisplay({ hearts }) {
+  return (
+    <div className="flex gap-1" aria-label={`${hearts} hearts remaining`}>
+      {Array.from({ length: STARTING_HEARTS }, (_, i) => (
+        <span key={i} className={`text-2xl ${i < hearts ? '' : 'opacity-25 grayscale'}`}>
+          ❤️
+        </span>
+      ))}
+    </div>
+  );
+}
 
 export default function BossBattle({
   course,
   palette,
   onVictoryComplete,
   onDefeatComplete,
+  onMegaRoll,
 }) {
   const { completeCourse } = usePlayerProgress();
 
   const questions = useMemo(
-    () => getBossQuestions(course.questionBankId, BOSS_QUESTION_COUNT),
+    () => getBossQuestions(course.questionBankId, 5),
     [course.questionBankId],
   );
 
   const [phase, setPhase] = useState(PHASE.INTRO);
+  const [bossHp, setBossHp] = useState(BOSS_MAX_HP);
+  const [hearts, setHearts] = useState(STARTING_HEARTS);
   const [questionIndex, setQuestionIndex] = useState(0);
-  const [score, setScore] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
+  const [turnCount, setTurnCount] = useState(0);
 
-  const currentQuestion = questions[questionIndex];
+  const currentQuestion = questions[questionIndex % questions.length];
   const boss = course.boss;
-  const badgeLabel = course.rewards?.completionBadge?.replace('badge-', '').replace(/-/g, ' ') ?? 'Course Champion';
+  const badgeLabel =
+    course.rewards?.completionBadge?.replace('badge-', '').replace(/-/g, ' ') ?? 'Course Champion';
+
+  const continueBattle = useCallback(() => {
+    setQuestionIndex((i) => i + 1);
+    setTurnCount((t) => t + 1);
+    setSelectedIndex(null);
+    setIsLocked(false);
+  }, []);
 
   const handleAnswer = useCallback(
     (optionIndex) => {
-      if (isLocked || !currentQuestion) return;
+      if (isLocked || !currentQuestion || phase !== PHASE.BATTLE) return;
 
       setIsLocked(true);
       setSelectedIndex(optionIndex);
 
       const isCorrect = optionIndex === currentQuestion.correctIndex;
-      const isLast = questionIndex >= questions.length - 1;
 
       setTimeout(() => {
-        setScore((prev) => {
-          const nextScore = isCorrect ? prev + 1 : prev;
-
-          if (isLast) {
-            const passed = nextScore / questions.length >= BOSS_PASS_THRESHOLD;
-            setPhase(passed ? PHASE.VICTORY : PHASE.DEFEAT);
-          }
-
-          return nextScore;
-        });
-
-        if (!isLast) {
-          setQuestionIndex((i) => i + 1);
-          setSelectedIndex(null);
-          setIsLocked(false);
+        if (isCorrect) {
+          setBossHp((hp) => {
+            const next = Math.max(0, hp - BOSS_DAMAGE);
+            if (next <= 0) {
+              setPhase(PHASE.VICTORY);
+            } else {
+              continueBattle();
+            }
+            return next;
+          });
+        } else {
+          setHearts((h) => {
+            const next = h - 1;
+            if (next <= 0) {
+              setPhase(PHASE.DEFEAT);
+            } else {
+              continueBattle();
+            }
+            return next;
+          });
         }
-      }, 600);
+      }, 700);
     },
-    [currentQuestion, isLocked, questionIndex, questions.length],
+    [continueBattle, currentQuestion, isLocked, phase],
   );
 
   const handleVictoryContinue = useCallback(() => {
@@ -74,85 +100,96 @@ export default function BossBattle({
       badgeLabel: badgeLabel.replace(/\b\w/g, (c) => c.toUpperCase()),
       skillGain: 15,
     });
+    onMegaRoll?.();
     onVictoryComplete?.();
-  }, [badgeLabel, completeCourse, course, onVictoryComplete]);
+  }, [badgeLabel, completeCourse, course, onMegaRoll, onVictoryComplete]);
+
+  const bossHpPercent = (bossHp / BOSS_MAX_HP) * 100;
 
   return (
     <div
-      className={`
-        fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto
-        bg-gradient-to-br from-black/90 via-stone-950 to-black/95 p-4
-      `}
+      className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto bg-red-200 p-4"
       role="dialog"
       aria-modal="true"
       aria-label={`Boss battle against ${boss.name}`}
     >
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 h-64 w-64 animate-pulse rounded-full bg-red-600/20 blur-3xl" />
-        <div className="absolute right-1/4 bottom-1/4 h-64 w-64 animate-pulse rounded-full bg-orange-500/15 blur-3xl" />
-      </div>
-
-      <div
-        className={`
-          relative w-full max-w-lg rounded-3xl border-2 p-6 shadow-2xl sm:p-8
-          ${palette.board}
-        `}
-      >
+      <div className={`relative w-full max-w-lg ${neuCard} bg-white p-6 sm:p-8`}>
         {phase === PHASE.INTRO && (
           <div className="text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.3em] text-red-300/90">
-              Boss Encounter
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-red-600">
+              Boss Battle
             </p>
-            <div className="mx-auto mt-4 flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-b from-red-500 to-red-900 text-4xl shadow-xl ring-4 ring-red-400/30">
+            <div className="mx-auto mt-4 flex h-28 w-28 items-center justify-center rounded-xl border-4 border-black bg-red-500 text-5xl shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]">
               👹
             </div>
-            <h2 className={`mt-4 text-2xl font-bold ${palette.title}`}>{boss.name}</h2>
-            <p className={`mt-2 text-sm ${palette.subtitle}`}>{boss.description}</p>
-            <p className="mt-4 text-sm text-white/70">
-              Answer <strong className="text-white">{BOSS_QUESTION_COUNT}</strong> rapid-fire
-              questions. Score <strong className="text-white">80%+</strong> to win!
+            <h2 className="mt-4 text-2xl font-black text-black">{boss.name}</h2>
+            <p className="mt-2 text-sm font-semibold text-black/70">{boss.description}</p>
+            <p className="mt-4 text-sm font-semibold text-black/70">
+              Answer questions to deal <strong className="text-black">20 damage</strong> each hit.
+              You have <strong className="text-black">3 hearts</strong>. Defeat the boss to earn a{' '}
+              <strong className="text-black">Mega Roll</strong> bonus!
             </p>
             <button
               type="button"
-              onClick={() => setPhase(PHASE.QUIZ)}
-              className="mt-8 rounded-full bg-red-500 px-8 py-3 font-bold text-white shadow-lg transition hover:scale-105 hover:bg-red-400"
+              onClick={() => setPhase(PHASE.BATTLE)}
+              className={`${neuBtn} mt-8 bg-red-500 px-8 py-3 text-white hover:bg-red-400`}
             >
-              Face the Boss!
+              Start Battle!
             </button>
           </div>
         )}
 
-        {phase === PHASE.QUIZ && currentQuestion && (
+        {phase === PHASE.BATTLE && currentQuestion && (
           <div>
-            <div className="mb-4 flex items-center justify-between text-xs text-white/70">
-              <span>
-                Question {questionIndex + 1} / {questions.length}
-              </span>
-              <span>
-                Score: {score}/{questionIndex + (isLocked ? 1 : 0)}
-              </span>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Boss card */}
+              <div className={`${neuCard} bg-red-100 p-4`}>
+                <p className="text-xs font-black uppercase text-red-700">Boss</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <span className="text-4xl">👹</span>
+                  <div>
+                    <p className="font-black text-black">{boss.name}</p>
+                    <p className="text-xs font-bold text-black/60">HP {bossHp}/{BOSS_MAX_HP}</p>
+                  </div>
+                </div>
+                <div className="mt-3 h-5 overflow-hidden rounded-lg border-4 border-black bg-stone-200">
+                  <div
+                    className="h-full bg-red-500 transition-all duration-500"
+                    style={{ width: `${bossHpPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Player card */}
+              <div className={`${neuCard} bg-sky-100 p-4`}>
+                <p className="text-xs font-black uppercase text-sky-700">You</p>
+                <div className="mt-2 flex items-center gap-3">
+                  <span className="text-4xl">♟️</span>
+                  <div>
+                    <p className="font-black text-black">Hero</p>
+                    <HeartDisplay hearts={hearts} />
+                  </div>
+                </div>
+                <p className="mt-3 text-xs font-bold text-black/60">Turn {turnCount + 1}</p>
+              </div>
             </div>
 
-            <div className="mb-2 h-2 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-red-500 transition-all duration-300"
-                style={{ width: `${((questionIndex + 1) / questions.length) * 100}%` }}
-              />
-            </div>
-
-            <h3 className={`mt-6 text-lg font-bold leading-snug ${palette.title}`}>
+            <h3 className="mt-6 text-lg font-black leading-snug text-black">
               {currentQuestion.prompt}
             </h3>
 
-            <div className="mt-6 grid gap-3">
+            <div className="mt-4 grid gap-3">
               {currentQuestion.options.map((option, index) => {
-                let style =
-                  'border-white/20 bg-white/10 text-white hover:bg-white/20';
+                let style = 'bg-white text-black hover:bg-lime-100';
 
                 if (isLocked && index === currentQuestion.correctIndex) {
-                  style = 'border-green-400 bg-green-500/30 text-green-100';
-                } else if (isLocked && index === selectedIndex && index !== currentQuestion.correctIndex) {
-                  style = 'border-red-400 bg-red-500/30 text-red-100';
+                  style = 'bg-green-400 text-black';
+                } else if (
+                  isLocked &&
+                  index === selectedIndex &&
+                  index !== currentQuestion.correctIndex
+                ) {
+                  style = 'bg-red-400 text-black';
                 }
 
                 return (
@@ -161,7 +198,7 @@ export default function BossBattle({
                     type="button"
                     disabled={isLocked}
                     onClick={() => handleAnswer(index)}
-                    className={`rounded-xl border-2 px-4 py-3 text-left text-sm font-semibold transition ${style}`}
+                    className={`neu-btn px-4 py-3 text-left text-sm ${style} disabled:active:translate-y-0 disabled:active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}
                   >
                     {option}
                   </button>
@@ -176,16 +213,12 @@ export default function BossBattle({
             bossName={boss.name}
             badgeLabel={badgeLabel.replace(/\b\w/g, (c) => c.toUpperCase())}
             onContinue={handleVictoryContinue}
+            megaRollBonus={3}
           />
         )}
 
         {phase === PHASE.DEFEAT && (
-          <DefeatScreen
-            bossName={boss.name}
-            score={score}
-            total={questions.length}
-            onRetry={onDefeatComplete}
-          />
+          <DefeatScreen bossName={boss.name} heartsLost={STARTING_HEARTS} onRetry={onDefeatComplete} />
         )}
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { neuBtnRound, neuPanel } from '../../styles/neubrutalism.js';
+
 export default function DiceControls({
   diceRollEnergy,
   lastRoll,
@@ -8,23 +10,18 @@ export default function DiceControls({
   palette,
 }) {
   return (
-    <div
-      className={`
-        mt-6 flex flex-col items-center gap-4 rounded-2xl border border-white/10
-        bg-black/20 p-4 sm:flex-row sm:justify-between
-      `}
-    >
-      <div className={`flex flex-wrap gap-4 text-sm ${palette.subtitle}`}>
+    <div className={`mt-6 ${neuPanel} bg-white/90 p-4 sm:flex sm:items-center sm:justify-between`}>
+      <div className={`flex flex-wrap gap-4 text-sm font-semibold ${palette.subtitle}`}>
         <span>
-          <strong className={palette.title}>Tile:</strong> {currentTile}
+          <strong className="text-black">Tile:</strong> {currentTile}
         </span>
         <span>
-          <strong className={palette.title}>Rolls left:</strong> {diceRollEnergy}
+          <strong className="text-black">Rolls left:</strong> {diceRollEnergy}
         </span>
         {lastRoll !== null && (
-          <span>
-            <strong className={palette.title}>Last roll:</strong>{' '}
-            <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-white/20 font-bold text-white">
+          <span className="flex items-center gap-1.5">
+            <strong className="text-black">Last roll:</strong>
+            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg border-4 border-black bg-yellow-300 text-sm font-black text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
               {lastRoll}
             </span>
           </span>
@@ -36,12 +33,8 @@ export default function DiceControls({
         onClick={onRoll}
         disabled={!canRoll}
         className={`
-          rounded-full px-6 py-2.5 text-sm font-bold shadow-lg transition
-          ${
-            canRoll
-              ? 'bg-white text-stone-900 hover:scale-105 hover:bg-white/90 active:scale-95'
-              : 'cursor-not-allowed bg-white/20 text-white/50'
-          }
+          neu-btn-round mt-3 px-6 py-2.5 text-sm sm:mt-0
+          ${canRoll ? palette.diceBtn : `${palette.diceBtnDisabled} cursor-not-allowed active:translate-y-0 active:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}
         `}
       >
         {isMoving ? 'Moving…' : diceRollEnergy <= 0 ? 'No rolls left' : '🎲 Roll Dice'}

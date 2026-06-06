@@ -5,7 +5,7 @@
  *   import { COURSE_MAPS, buildBoardTiles } from '@/config';
  */
 
-export { CURRICULUMS, COURSE_MAPS, TILE_TYPES } from './courseMaps.js';
+export { CURRICULUMS, COURSE_MAPS, TILE_TYPES, getChestTilesForPath } from './courseMaps.js';
 export { QUESTION_BANKS } from './questionBanks.js';
 export { THEMES } from './themes.js';
 export {
