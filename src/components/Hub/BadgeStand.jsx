@@ -34,7 +34,7 @@ export default function BadgeStand() {
       {celebrate && <Confetti onDone={() => setCelebrate(false)} />}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black text-black">🏅 Level Up Badge Stand</h3>
+        <h3 className="text-sm font-black">🏅 Level Up Badge Stand</h3>
         {activeMilestone && (
           <span className="rounded-full border-2 border-black bg-yellow-300 px-2 py-0.5 text-[10px] font-black text-black">
             Title: {activeMilestone.title}
@@ -42,7 +42,7 @@ export default function BadgeStand() {
         )}
       </div>
 
-      <p className="mt-1 text-xs font-semibold text-black/60">
+      <p className="mt-1 text-xs font-semibold opacity-70">
         Cross 25 · 50 · 75 · 100 points in a skill to claim glowing badges & avatar titles!
       </p>
 

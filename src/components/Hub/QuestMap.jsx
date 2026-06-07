@@ -78,7 +78,7 @@ export default function QuestMap({ initialRealmId = null }) {
                     rounded-lg border-4 border-black px-3 py-1 text-xs font-black transition-all
                     ${
                       activeCourseId === course.id
-                        ? 'bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                        ? 'bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
                         : unlocked
                           ? 'bg-black/10 hover:bg-black/20'
                           : 'cursor-not-allowed bg-stone-300 text-stone-500'
@@ -134,7 +134,7 @@ export default function QuestMap({ initialRealmId = null }) {
       </div>
 
       <header className="mb-6 text-center">
-        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.contrastText}`}>
+        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.text_main}`}>
           Choose Your Realm
         </h1>
         <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>

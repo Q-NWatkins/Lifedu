@@ -3,17 +3,23 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 const STORAGE_KEY = 'wit-active-theme';
 
 /**
- * Centralized platform theme dictionary.
+ * Centralized platform theme dictionary with a strict SEMANTIC DESIGN TOKEN
+ * system. Every biome theme explicitly dictates its matching architectural
+ * surface pairs so typography contrast can never drift:
  *
- * Each theme explicitly defines BOTH its layout container styling (`wrapper`,
- * which maps to a CSS background rule in index.css) AND an explicit
- * `contrastText` / `contrastMuted` pair — the readable typography color for
- * that background. Components pull ink from these context variables instead of
- * hardcoding Tailwind shades, so lettering stays vividly legible across every
- * theme swap (light themes get dark ink, dark/animated themes get bright ink).
+ *   bg_app       → main page background canvas color
+ *   bg_card      → component container surface color
+ *   text_main    → primary typography color used directly on the app canvas
+ *   text_card    → typography color used inside component cards
+ *   border_color → neubrutalist border stroke color
  *
- * `animated` flags the moving CSS-background themes that are gated behind the
- * Weighted Loot System; `unlockRarity` records the drop tier that grants them.
+ * Dark themes scale their card surface dark (`bg_card`) so the matching
+ * `text_card` (white) stays intensely visible. Components bind to these tokens
+ * instead of hardcoding Tailwind shades.
+ *
+ * `animated` flags the moving-background themes gated behind the Weighted Loot
+ * System; `unlockRarity` records the drop tier that grants them. `contrastMuted`
+ * is a de-emphasized partner to `text_main` for secondary on-canvas text.
  */
 export const PLATFORM_THEMES = {
   default: {
@@ -24,7 +30,11 @@ export const PLATFORM_THEMES = {
     isDark: false,
     animated: false,
     unlockRarity: null,
-    contrastText: 'text-slate-900',
+    bg_app: 'bg-amber-50',
+    bg_card: 'bg-white',
+    text_main: 'text-slate-950',
+    text_card: 'text-slate-900',
+    border_color: 'border-black',
     contrastMuted: 'text-slate-900/60',
     accent: 'bg-lime-400 text-black',
     swatch: 'linear-gradient(135deg,#bef264,#a3e635)',
@@ -37,8 +47,12 @@ export const PLATFORM_THEMES = {
     isDark: true,
     animated: false,
     unlockRarity: null,
-    contrastText: 'text-slate-50',
-    contrastMuted: 'text-slate-300',
+    bg_app: 'bg-indigo-950',
+    bg_card: 'bg-slate-900',
+    text_main: 'text-indigo-100',
+    text_card: 'text-white',
+    border_color: 'border-black',
+    contrastMuted: 'text-indigo-200/70',
     accent: 'bg-violet-500 text-white',
     swatch: 'linear-gradient(135deg,#312e81,#1e1b4b)',
   },
@@ -50,7 +64,11 @@ export const PLATFORM_THEMES = {
     isDark: false,
     animated: false,
     unlockRarity: null,
-    contrastText: 'text-sky-950',
+    bg_app: 'bg-sky-100',
+    bg_card: 'bg-white',
+    text_main: 'text-sky-950',
+    text_card: 'text-slate-900',
+    border_color: 'border-black',
     contrastMuted: 'text-sky-950/60',
     accent: 'bg-sky-400 text-white',
     swatch: 'linear-gradient(135deg,#bae6fd,#e0f2fe)',
@@ -63,7 +81,11 @@ export const PLATFORM_THEMES = {
     isDark: false,
     animated: false,
     unlockRarity: null,
-    contrastText: 'text-emerald-950',
+    bg_app: 'bg-lime-100',
+    bg_card: 'bg-white',
+    text_main: 'text-emerald-950',
+    text_card: 'text-emerald-900',
+    border_color: 'border-black',
     contrastMuted: 'text-emerald-950/60',
     accent: 'bg-amber-500 text-emerald-950',
     swatch: 'linear-gradient(135deg,#a3e635,#fbbf24)',
@@ -76,8 +98,12 @@ export const PLATFORM_THEMES = {
     isDark: true,
     animated: true,
     unlockRarity: 'Epic',
-    contrastText: 'text-cyan-50',
-    contrastMuted: 'text-cyan-200/80',
+    bg_app: 'bg-cyan-950',
+    bg_card: 'bg-slate-900',
+    text_main: 'text-cyan-100',
+    text_card: 'text-white',
+    border_color: 'border-black',
+    contrastMuted: 'text-cyan-200/70',
     accent: 'bg-cyan-400 text-cyan-950',
     swatch: 'linear-gradient(135deg,#0c4a6e,#042f2e)',
   },
@@ -89,7 +115,11 @@ export const PLATFORM_THEMES = {
     isDark: false,
     animated: true,
     unlockRarity: 'Legendary',
-    contrastText: 'text-purple-900',
+    bg_app: 'bg-pink-100',
+    bg_card: 'bg-white',
+    text_main: 'text-purple-950',
+    text_card: 'text-purple-900',
+    border_color: 'border-black',
     contrastMuted: 'text-purple-900/60',
     accent: 'bg-pink-400 text-white',
     swatch: 'linear-gradient(135deg,#f9a8d4,#d8b4fe)',

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle, SkirmishModal } from '../BossBattle/index.js';
@@ -31,6 +32,7 @@ export default function GameBoard({
   replay = false,
 }) {
   const palette = getBoardTheme(theme);
+  const { themeConfig } = useTheme();
   const { completedCourses, addGems, unlockCombatCard, stepCards, consumeStepCards } =
     usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
@@ -134,10 +136,10 @@ export default function GameBoard({
       >
         {courseTitle && (
           <header className="mb-4 text-center">
-            <h1 className={`text-2xl font-black tracking-tight sm:text-3xl ${palette.title}`}>
+            <h1 className={`text-2xl font-black tracking-tight sm:text-3xl ${themeConfig.text_main}`}>
               {courseTitle}
             </h1>
-            <p className={`mt-1 text-sm font-bold ${palette.subtitle}`}>{palette.label}</p>
+            <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>{palette.label}</p>
             <div className="mt-3 flex flex-wrap justify-center gap-2">
               {replay ? (
                 <span className={`inline-block ${neuBadge}`}>Replay Quest — fresh questions!</span>

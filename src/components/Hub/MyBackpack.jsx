@@ -3,7 +3,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
 import { getItemEmoji } from '../../systems/lootSystem.js';
 import { getTitleById } from '../../systems/milestones.js';
-import { neuBtn, neuCard, neuPanel } from '../../styles/neubrutalism.js';
+import { neuBtn, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
 
 const SETTINGS_KEY = 'wit-backpack-settings';
@@ -42,6 +42,9 @@ export default function MyBackpack() {
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
+  // Token-bound card surface: container + ink + border all from the active theme.
+  const cardCls = `rounded-2xl border-4 ${themeConfig.border_color} ${themeConfig.bg_card} ${themeConfig.text_card} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`;
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SETTINGS_KEY);
@@ -66,7 +69,7 @@ export default function MyBackpack() {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.contrastText}`}>My Backpack</h1>
+        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.text_main}`}>My Backpack</h1>
         <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Customize your hero and manage settings!
         </p>
@@ -74,8 +77,8 @@ export default function MyBackpack() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left — Avatar & accessories */}
-        <div className={`${neuCard} bg-lime-100 p-5`}>
-          <h2 className="text-lg font-black text-black">My Hero</h2>
+        <div className={`${cardCls} p-5`}>
+          <h2 className="text-lg font-black">My Hero</h2>
 
           <div className="mt-4 flex flex-col items-center">
             <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border-4 border-black bg-sky-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
@@ -92,14 +95,14 @@ export default function MyBackpack() {
                 Lv. 1
               </span>
             </div>
-            <p className="mt-3 text-sm font-black text-black">Adventure Pawn</p>
+            <p className="mt-3 text-sm font-black">Adventure Pawn</p>
             {activeTitleLabel && (
               <p className="mt-1 rounded-full border-2 border-black bg-yellow-300 px-3 py-0.5 text-xs font-black text-black">
                 ⭐ {activeTitleLabel}
               </p>
             )}
             {equipped.clothing && (
-              <p className="text-xs font-bold text-black/70">Wearing: {equipped.clothing.name}</p>
+              <p className="text-xs font-bold opacity-70">Wearing: {equipped.clothing.name}</p>
             )}
           </div>
 
@@ -111,7 +114,7 @@ export default function MyBackpack() {
 
           {/* Inventory grid */}
           <div className="mt-6">
-            <h3 className="text-sm font-black text-black">
+            <h3 className="text-sm font-black">
               Inventory ({inventory.length} items)
             </h3>
             {inventory.length === 0 ? (
@@ -151,9 +154,9 @@ export default function MyBackpack() {
 
         {/* Right — Theme, controls & notifications */}
         <div className="space-y-4">
-          <div className={`${neuCard} bg-amber-100 p-5`}>
-            <h2 className="text-lg font-black text-black">Theme Selector</h2>
-            <p className="mt-1 text-xs font-semibold text-black/60">
+          <div className={`${cardCls} p-5`}>
+            <h2 className="text-lg font-black">Theme Selector</h2>
+            <p className="mt-1 text-xs font-semibold opacity-70">
               Change the look of the platform — animated themes drop from rare loot!
             </p>
             <div className="mt-4 grid gap-2">
@@ -210,9 +213,9 @@ export default function MyBackpack() {
             </div>
           </div>
 
-          <div className={`${neuCard} bg-white p-5`}>
-            <h2 className="text-lg font-black text-black">Parent Controls</h2>
-            <p className="mt-1 text-xs font-semibold text-black/60">
+          <div className={`${cardCls} p-5`}>
+            <h2 className="text-lg font-black">Parent Controls</h2>
+            <p className="mt-1 text-xs font-semibold opacity-70">
               Grown-ups can manage account preferences here.
             </p>
 
@@ -238,8 +241,8 @@ export default function MyBackpack() {
             </div>
           </div>
 
-          <div className={`${neuCard} bg-violet-100 p-5`}>
-            <h2 className="text-lg font-black text-black">Account & Notifications</h2>
+          <div className={`${cardCls} p-5`}>
+            <h2 className="text-lg font-black">Account &amp; Notifications</h2>
             <div className="mt-4 space-y-3">
               <ToggleSwitch
                 label="Product Updates"

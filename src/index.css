@@ -10,59 +10,17 @@ body {
   min-height: 100vh;
 }
 
-/* ── Platform biome themes ───────────────────────────────────────────────── */
-
-.platform-wrapper.theme-default {
-  background: linear-gradient(180deg, #d9f99d 0%, #bef264 50%, #a3e635 100%);
-}
-
-.platform-wrapper.theme-cosmic {
-  background: linear-gradient(160deg, #0f172a 0%, #312e81 45%, #1e1b4b 100%);
-  color: #e2e8f0;
-}
-
-.platform-wrapper.theme-sky {
-  background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 40%, #f0f9ff 100%);
-}
-
-.platform-wrapper.theme-candy {
-  background: linear-gradient(180deg, #fce7f3 0%, #f5d0fe 45%, #ede9fe 100%);
-}
-
-.platform-wrapper.theme-deepsea {
-  background: linear-gradient(180deg, #0c4a6e 0%, #082f49 45%, #042f2e 100%);
-  color: #cffafe;
-}
-
-.platform-wrapper.theme-dino {
-  background: linear-gradient(180deg, #dcfce7 0%, #d9f99d 45%, #fde68a 100%);
-}
-
-.theme-cosmic header,
-.theme-cosmic .neu-card,
-.theme-cosmic .neu-panel {
-  color: inherit;
-}
-
-.theme-cosmic h1,
-.theme-cosmic h2,
-.theme-cosmic h3,
-.theme-cosmic .text-black {
-  color: #f8fafc !important;
-}
-
-.theme-cosmic .text-black\/60,
-.theme-cosmic .text-black\/70,
-.theme-cosmic .text-black\/50 {
-  color: rgb(203 213 225) !important;
-}
-
 /*
- * Deep Sea Trench is a dark theme, but we deliberately AVOID a blanket
- * `.text-black` override here: neubrutalism cards use light pastel fills, so
- * forcing white ink onto them would re-introduce the contrast bug. Instead,
- * surfaces that float directly on the themed background pull their ink from the
- * theme's dynamic `textColor` class (see useTheme), keeping every layer legible.
+ * ── Platform biome themes ──────────────────────────────────────────────────
+ *
+ * Backgrounds and typography are no longer painted with hardcoded CSS gradients
+ * or brittle `.text-black !important` overrides. Each theme's canvas color and
+ * ink now come exclusively from the semantic design tokens (`bg_app`,
+ * `text_main`, …) defined in ThemeContext and bound in PlatformBackground. This
+ * is the single source of truth that permanently resolves the contrast bugs.
+ *
+ * The animated particle overlays (stars, clouds, bubbles, jellybeans) are layered
+ * on top of the solid token canvas by PlatformBackground.
  */
 
 /* ── Sky Kingdom clouds ──────────────────────────────────────────────────── */

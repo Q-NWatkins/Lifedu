@@ -30,10 +30,13 @@ export default function PowerStats({ onGoToRealm }) {
   const { themeConfig } = useTheme();
   const { strengths, gaps } = useMemo(() => buildInsights(skills), [skills]);
 
+  // Token-bound card surface: container + ink + border all from the active theme.
+  const cardCls = `rounded-2xl border-4 ${themeConfig.border_color} ${themeConfig.bg_card} ${themeConfig.text_card} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`;
+
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.contrastText}`}>Power Stats</h1>
+        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.text_main}`}>Power Stats</h1>
         <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Scan your skills and plan your next quest!
         </p>
@@ -61,15 +64,15 @@ export default function PowerStats({ onGoToRealm }) {
       </div>
 
       {/* Level Up Badge Stand framing the hexagon */}
-      <div className={`${neuCard} bg-white p-5`}>
+      <div className={`${cardCls} p-5`}>
         <BadgeStand />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         {/* Superpowers */}
-        <div className={`${neuCard} bg-amber-100 p-5`}>
-          <h2 className="text-lg font-black text-black">🔥 My Superpowers</h2>
-          <p className="mt-1 text-xs font-semibold text-black/60">Your strongest subjects!</p>
+        <div className={`${cardCls} p-5`}>
+          <h2 className="text-lg font-black">🔥 My Superpowers</h2>
+          <p className="mt-1 text-xs font-semibold opacity-70">Your strongest subjects!</p>
           <ul className="mt-4 space-y-3">
             {strengths.map((skillId) => {
               const realm = getRealmByCurriculum(skillId);
@@ -91,9 +94,9 @@ export default function PowerStats({ onGoToRealm }) {
         </div>
 
         {/* Needs Energy */}
-        <div className={`${neuCard} bg-sky-100 p-5`}>
-          <h2 className="text-lg font-black text-black">⚡ Needs Energy</h2>
-          <p className="mt-1 text-xs font-semibold text-black/60">
+        <div className={`${cardCls} p-5`}>
+          <h2 className="text-lg font-black">⚡ Needs Energy</h2>
+          <p className="mt-1 text-xs font-semibold opacity-70">
             Boost these skills on the Quest Map!
           </p>
           <ul className="mt-4 space-y-3">

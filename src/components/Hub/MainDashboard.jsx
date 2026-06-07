@@ -50,7 +50,7 @@ export default function MainDashboard() {
         </div>
       </header>
 
-      <main className={`mx-auto max-w-4xl px-4 pt-6 pb-32 ${themeConfig.contrastText}`}>
+      <main className={`mx-auto max-w-4xl px-4 pt-6 pb-32 ${themeConfig.text_main}`}>
         {activeTab === 'quest' && (
           <QuestMap key={questRealmId ?? 'realms'} initialRealmId={questRealmId} />
         )}

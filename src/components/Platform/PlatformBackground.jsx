@@ -118,7 +118,9 @@ export default function PlatformBackground({ children }) {
   const { activeTheme, themeConfig } = useTheme();
 
   return (
-    <div className={`platform-wrapper relative min-h-screen ${themeConfig.wrapper}`}>
+    <div
+      className={`platform-wrapper relative min-h-screen ${themeConfig.bg_app} ${themeConfig.text_main}`}
+    >
       {activeTheme === 'cosmic' && <StarParticles />}
       {activeTheme === 'sky' && <CloudShapes />}
       {activeTheme === 'deepsea' && <BubbleShapes />}
