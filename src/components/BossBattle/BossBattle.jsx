@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
-import {
-  getItemEmoji,
-  getThemeUnlockForRarity,
-  RARITY_STYLES,
-  rollLoot,
-} from '../../systems/lootSystem.js';
+import { getThemeUnlockForRarity, RARITY_STYLES, rollLoot } from '../../systems/lootSystem.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
+import {
+  getBossSprite,
+  ItemSprite,
+  StarSprite,
+  TreasureChestSprite,
+} from '../../assets/gameSprites.jsx';
 import DefeatScreen from './DefeatScreen.jsx';
 
 const BOSS_MAX_HP = 100;
@@ -162,7 +163,7 @@ function LootRevealInline({ loot, lootRevealPhase, onEquip, onBackpack }) {
           ${lootRevealPhase === 'chest' ? 'scale-100 animate-[wiggle_0.15s_ease-in-out_infinite]' : 'scale-0 opacity-0 h-0'}
         `}
       >
-        {lootRevealPhase === 'chest' && <span className="text-5xl">📦</span>}
+        {lootRevealPhase === 'chest' && <TreasureChestSprite className="h-16 w-16" />}
       </div>
 
       {lootRevealPhase !== 'chest' && loot && (
@@ -177,7 +178,9 @@ function LootRevealInline({ loot, lootRevealPhase, onEquip, onBackpack }) {
           <p className={`text-xs font-black uppercase tracking-widest ${styles.label}`}>
             {loot.rarity} Loot!
           </p>
-          <div className="mt-2 text-4xl">{getItemEmoji(loot)}</div>
+          <div className="mt-2 flex justify-center">
+            <ItemSprite category={loot.category} className="h-12 w-12" />
+          </div>
           <h3 className="mt-1 text-lg font-black text-black">{loot.name}</h3>
           <p className="text-xs font-bold capitalize text-black/60">{loot.category}</p>
 
@@ -222,6 +225,7 @@ export default function BossBattle({
   const hand = useMemo(() => getPlayerHand(unlockedCombatCards), [unlockedCombatCards]);
 
   const boss = course.boss;
+  const BossSprite = getBossSprite(course.curriculumId);
   const rawBadge = course.rewards?.completionBadge?.replace('badge-', '').replace(/-/g, ' ') ?? 'Course Champion';
   const badgeLabel = rawBadge.replace(/\b\w/g, (c) => c.toUpperCase());
   const curriculumId = course.curriculumId;
@@ -396,14 +400,14 @@ export default function BossBattle({
       {phase === PHASE.INTRO && (
         <div className="flex h-full flex-col items-center justify-center gap-6 p-6 text-center">
           <p className="text-xs font-black uppercase tracking-[0.35em] text-red-400">
-            ⚡ Boss Encounter ⚡
+            Boss Encounter
           </p>
 
           <div
-            className="flex h-32 w-32 animate-[wiggle_1.5s_ease-in-out_infinite] items-center justify-center rounded-2xl border-4 border-black text-6xl"
-            style={{ background: 'linear-gradient(135deg,#7f1d1d,#450a0a)', boxShadow: '6px 6px 0 rgba(0,0,0,1), 0 0 30px rgba(239,68,68,0.6)' }}
+            className="animate-boss-entrance flex h-36 w-36 items-center justify-center rounded-2xl border-4 border-black"
+            style={{ background: 'linear-gradient(135deg,#7f1d1d,#450a0a)', boxShadow: '6px 6px 0 rgba(0,0,0,1), 0 0 36px rgba(239,68,68,0.7)' }}
           >
-            👹
+            <BossSprite className="animate-boss-idle h-28 w-28 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
           </div>
 
           <div>
@@ -452,10 +456,10 @@ export default function BossBattle({
               style={{ background: 'linear-gradient(135deg,#1c0000,#3b0000)', boxShadow: '4px 4px 0 rgba(0,0,0,1), 0 0 20px rgba(239,68,68,0.3)' }}
             >
               <div
-                className="flex h-16 w-16 flex-none items-center justify-center rounded-xl border-4 border-black text-4xl"
+                className="flex h-16 w-16 flex-none items-center justify-center rounded-xl border-4 border-black"
                 style={{ background: 'linear-gradient(135deg,#7f1d1d,#450a0a)' }}
               >
-                👹
+                <BossSprite className="animate-boss-idle h-12 w-12" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -554,7 +558,9 @@ export default function BossBattle({
             </div>
           )}
 
-          <p className="mt-4 text-sm font-black text-yellow-300">✨ Boss Reward!</p>
+          <p className="mt-4 flex items-center justify-center gap-2 text-sm font-black text-yellow-300">
+            <StarSprite className="h-5 w-5" /> Boss Reward!
+          </p>
 
           <LootRevealInline
             loot={victoryLoot}

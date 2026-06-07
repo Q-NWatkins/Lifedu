@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { PLATFORM_THEMES } from '../../context/ThemeContext.jsx';
-import {
-  RARITY_STYLES,
-  getItemEmoji,
-  getThemeUnlockForRarity,
-} from '../../systems/lootSystem.js';
+import { RARITY_STYLES, getThemeUnlockForRarity } from '../../systems/lootSystem.js';
+import { ItemSprite } from '../../assets/gameSprites.jsx';
 import { neuBtn } from '../../styles/neubrutalism.js';
 
 /**
@@ -126,7 +123,9 @@ export default function ChestModal({ loot, onClose }) {
             <p className={`text-xs font-black uppercase tracking-widest ${styles.label}`}>
               {item.rarity}
             </p>
-            <div className="mt-3 text-5xl">{getItemEmoji(item)}</div>
+            <div className="mt-3 flex justify-center">
+              <ItemSprite category={item.category} className="h-14 w-14" />
+            </div>
             <h2 className="mt-2 text-xl font-black text-black">{item.name}</h2>
             <p className="mt-1 text-xs font-bold capitalize text-black/60">{item.category}</p>
 

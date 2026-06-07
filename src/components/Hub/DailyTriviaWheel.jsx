@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { getRandomQuestion } from '../../data/questions/multiSubject.js';
-import { getItemEmoji, rollLoot } from '../../systems/lootSystem.js';
+import { rollLoot } from '../../systems/lootSystem.js';
+import { ItemSprite } from '../../assets/gameSprites.jsx';
 import {
   WHEEL_SEGMENTS,
   SEGMENT_ANGLE,
@@ -271,7 +272,13 @@ export default function DailyTriviaWheel() {
               <p className="text-[10px] font-black uppercase tracking-widest text-fuchsia-700">
                 You won!
               </p>
-              <p className="mt-1 text-2xl">{reward.item ? getItemEmoji(reward.item) : reward.emoji}</p>
+              <p className="mt-1 flex justify-center text-2xl">
+                {reward.item ? (
+                  <ItemSprite category={reward.item.category} className="h-10 w-10" />
+                ) : (
+                  reward.emoji
+                )}
+              </p>
               <p className="text-base font-black text-black">{reward.label}</p>
               <p className="text-xs font-bold text-black/60">{reward.detail}</p>
               <button

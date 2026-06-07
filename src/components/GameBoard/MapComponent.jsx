@@ -1,5 +1,34 @@
 import { useMemo } from 'react';
 import AvatarPawn from './AvatarPawn.jsx';
+import {
+  ForkSignSprite,
+  HazardSpikeSprite,
+  MonsterNodeSprite,
+  StarSprite,
+  TreasureChestSprite,
+} from '../../assets/gameSprites.jsx';
+
+/** Resolve the inline SVG sprite for a board node (emoji-free). */
+function NodeGlyph({ node, opened }) {
+  switch (node.type) {
+    case 'mysteryChest':
+      return <StarSprite className="h-7 w-7" title="Mystery reward" />;
+    case 'chest':
+      return <TreasureChestSprite className="h-7 w-7" open={opened} />;
+    case 'boss':
+      return <MonsterNodeSprite className="h-8 w-8" variant="boss" title="Boss" />;
+    case 'miniBoss':
+      return <MonsterNodeSprite className="h-7 w-7" variant="miniBoss" title="Mini-Boss" />;
+    case 'sideBoss':
+      return <MonsterNodeSprite className="h-7 w-7" variant="sideBoss" title="Side-Boss" />;
+    case 'hazard':
+      return <HazardSpikeSprite className="h-7 w-7" />;
+    case 'fork':
+      return <ForkSignSprite className="h-7 w-7" />;
+    default:
+      return <span className="text-[10px] font-black">{node.label}</span>;
+  }
+}
 
 const NODE_COLORS = {
   lesson: 'bg-green-400',
@@ -75,23 +104,7 @@ function MapNode({ node, isActive, isPassed, isOnPath, isCleared, palette }) {
           ${isObstacle && !isCleared ? 'animate-pulse ring-4 ring-black/30' : ''}
         `}
       >
-        {node.type === 'mysteryChest' ? (
-          <span className="text-lg">✨</span>
-        ) : node.type === 'chest' ? (
-          <span className="text-sm">📦</span>
-        ) : node.type === 'boss' ? (
-          <span className="text-xs">👹</span>
-        ) : node.type === 'miniBoss' ? (
-          <span className="text-sm">👺</span>
-        ) : node.type === 'sideBoss' ? (
-          <span className="text-sm">🗡️</span>
-        ) : node.type === 'hazard' ? (
-          <span className="text-sm">⚠️</span>
-        ) : node.type === 'fork' ? (
-          <span className="text-[10px]">⑂</span>
-        ) : (
-          <span className="text-[10px]">{node.label}</span>
-        )}
+        <NodeGlyph node={node} opened={opened} />
       </NodeShape>
     </div>
   );

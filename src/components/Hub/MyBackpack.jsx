@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
-import { getItemEmoji } from '../../systems/lootSystem.js';
+import { ItemSprite } from '../../assets/gameSprites.jsx';
 import { getTitleById } from '../../systems/milestones.js';
 import { arcadeCard, ARC_TILT, neuBtn, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
@@ -26,7 +26,11 @@ function AccessorySlot({ label, item }) {
         ${filled ? 'bg-yellow-200' : 'bg-stone-100'}
       `}
     >
-      <span className="text-2xl">{filled ? getItemEmoji(item) : '➕'}</span>
+      {filled ? (
+        <ItemSprite category={item.category} className="h-8 w-8" />
+      ) : (
+        <span className="text-2xl font-black text-black/40">+</span>
+      )}
       <span className="mt-1 text-[10px] font-black uppercase text-black/60">{label}</span>
       {filled && (
         <span className="mt-1 line-clamp-2 text-[9px] font-bold text-black">{item.name}</span>
@@ -83,13 +87,13 @@ export default function MyBackpack() {
           <div className="mt-4 flex flex-col items-center">
             <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border-4 border-black bg-sky-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
               {equipped.hat && (
-                <span className="absolute -top-4 text-3xl">{getItemEmoji(equipped.hat)}</span>
+                <ItemSprite category="hat" className="absolute -top-5 h-10 w-10" />
               )}
               <span className="text-6xl" aria-hidden="true">
                 ♟️
               </span>
               {equipped.pet && (
-                <span className="absolute -right-3 -bottom-2 text-2xl">{getItemEmoji(equipped.pet)}</span>
+                <ItemSprite category="pet" className="absolute -right-3 -bottom-2 h-9 w-9" />
               )}
               <span className="absolute -bottom-2 rounded-full border-4 border-black bg-yellow-300 px-3 py-0.5 text-xs font-black">
                 Lv. 1
@@ -129,7 +133,7 @@ export default function MyBackpack() {
                     className="flex items-center justify-between gap-2 rounded-xl border-4 border-black bg-white px-3 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                   >
                     <span className="flex items-center gap-2 text-sm font-bold text-black">
-                      <span>{getItemEmoji(item)}</span>
+                      <ItemSprite category={item.category} className="h-6 w-6 shrink-0" />
                       <span className="line-clamp-1">{item.name}</span>
                     </span>
                     <button
