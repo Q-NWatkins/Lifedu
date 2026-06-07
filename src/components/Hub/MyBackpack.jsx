@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
 import { getItemEmoji } from '../../systems/lootSystem.js';
+import { getTitleById } from '../../systems/milestones.js';
 import { neuBtn, neuCard, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
 
@@ -35,7 +36,9 @@ function AccessorySlot({ label, item }) {
 }
 
 export default function MyBackpack() {
-  const { badges, inventory, equipped, equipItem, isThemeUnlocked } = usePlayerProgress();
+  const { badges, inventory, equipped, equipItem, isThemeUnlocked, activeTitle } =
+    usePlayerProgress();
+  const activeTitleLabel = getTitleById(activeTitle);
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
@@ -90,6 +93,11 @@ export default function MyBackpack() {
               </span>
             </div>
             <p className="mt-3 text-sm font-black text-black">Adventure Pawn</p>
+            {activeTitleLabel && (
+              <p className="mt-1 rounded-full border-2 border-black bg-yellow-300 px-3 py-0.5 text-xs font-black text-black">
+                ⭐ {activeTitleLabel}
+              </p>
+            )}
             {equipped.clothing && (
               <p className="text-xs font-bold text-black/70">Wearing: {equipped.clothing.name}</p>
             )}

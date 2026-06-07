@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   getItemEmoji,
   getThemeUnlockForRarity,
@@ -8,59 +8,12 @@ import {
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
+import { getPlayerHand } from '../../systems/combatCards.js';
 import DefeatScreen from './DefeatScreen.jsx';
 
 const BOSS_MAX_HP = 100;
 const STARTING_HEARTS = 3;
 const PHASE = { INTRO: 'intro', BATTLE: 'battle', VICTORY: 'victory', DEFEAT: 'defeat' };
-
-const COMBAT_CARDS = [
-  {
-    id: 'shield',
-    name: 'Shield Block',
-    emoji: '🛡️',
-    effect: 'Block Next Attack',
-    detail: 'Absorbs one boss strike',
-    damage: 0,
-    difficulty: 'easy',
-    difficultyLabel: 'Easy',
-    headerFrom: '#3b82f6',
-    headerTo: '#1d4ed8',
-    borderCls: 'border-blue-700',
-    labelCls: 'bg-blue-100 text-blue-800',
-    glowRgb: '59,130,246',
-  },
-  {
-    id: 'strike',
-    name: 'Basic Strike',
-    emoji: '⚔️',
-    effect: '25 Damage',
-    detail: 'A sharp, fast slash',
-    damage: 25,
-    difficulty: 'medium',
-    difficultyLabel: 'Medium',
-    headerFrom: '#ef4444',
-    headerTo: '#b91c1c',
-    borderCls: 'border-red-700',
-    labelCls: 'bg-red-100 text-red-800',
-    glowRgb: '239,68,68',
-  },
-  {
-    id: 'fireball',
-    name: 'Mega Fireball',
-    emoji: '🔥',
-    effect: '50 Damage',
-    detail: 'A devastating inferno',
-    damage: 50,
-    difficulty: 'hard',
-    difficultyLabel: 'Hard',
-    headerFrom: '#991b1b',
-    headerTo: '#450a0a',
-    borderCls: 'border-red-950',
-    labelCls: 'bg-red-200 text-red-950',
-    glowRgb: '153,27,27',
-  },
-];
 
 /* ── Sub-components ──────────────────────────────────────────────────────── */
 
@@ -254,8 +207,19 @@ function LootRevealInline({ loot, lootRevealPhase, onEquip, onBackpack }) {
 
 /* ── Main component ──────────────────────────────────────────────────────── */
 
-export default function BossBattle({ course, onVictoryComplete, onDefeatComplete, onMegaRoll }) {
-  const { completeCourse, equipItem, sendToBackpack, unlockTheme } = usePlayerProgress();
+export default function BossBattle({
+  course,
+  onVictoryComplete,
+  onDefeatComplete,
+  onMegaRoll,
+  isReplay = false,
+  onReplayReward,
+}) {
+  const { completeCourse, equipItem, sendToBackpack, unlockTheme, unlockedCombatCards } =
+    usePlayerProgress();
+
+  // Base hand + any permanently unlocked Side-Boss cards.
+  const hand = useMemo(() => getPlayerHand(unlockedCombatCards), [unlockedCombatCards]);
 
   const boss = course.boss;
   const rawBadge = course.rewards?.completionBadge?.replace('badge-', '').replace(/-/g, ' ') ?? 'Course Champion';
@@ -394,8 +358,7 @@ export default function BossBattle({ course, onVictoryComplete, onDefeatComplete
     [isLocked, activeQuestion, activeCard, shieldActive, closeQuestion, triggerVictory],
   );
 
-  const handleLootEquip = useCallback(() => {
-    if (victoryLoot) equipItem(victoryLoot);
+  const finalizeVictory = useCallback(() => {
     completeCourse({
       courseId: course.id,
       curriculumId,
@@ -404,21 +367,20 @@ export default function BossBattle({ course, onVictoryComplete, onDefeatComplete
       skillGain: 10,
     });
     onMegaRoll?.();
+    // Replaying a conquered level grants a flat mastery bonus on top.
+    if (isReplay) onReplayReward?.();
     onVictoryComplete?.();
-  }, [victoryLoot, equipItem, completeCourse, course, curriculumId, badgeLabel, onMegaRoll, onVictoryComplete]);
+  }, [completeCourse, course, curriculumId, badgeLabel, onMegaRoll, isReplay, onReplayReward, onVictoryComplete]);
+
+  const handleLootEquip = useCallback(() => {
+    if (victoryLoot) equipItem(victoryLoot);
+    finalizeVictory();
+  }, [victoryLoot, equipItem, finalizeVictory]);
 
   const handleLootBackpack = useCallback(() => {
     if (victoryLoot) sendToBackpack(victoryLoot);
-    completeCourse({
-      courseId: course.id,
-      curriculumId,
-      badgeId: course.rewards?.completionBadge ?? `badge-${course.id}`,
-      badgeLabel,
-      skillGain: 10,
-    });
-    onMegaRoll?.();
-    onVictoryComplete?.();
-  }, [victoryLoot, sendToBackpack, completeCourse, course, curriculumId, badgeLabel, onMegaRoll, onVictoryComplete]);
+    finalizeVictory();
+  }, [victoryLoot, sendToBackpack, finalizeVictory]);
 
   return (
     <div
@@ -533,8 +495,8 @@ export default function BossBattle({ course, onVictoryComplete, onDefeatComplete
               <p className="text-[10px] font-black uppercase tracking-[0.25em] text-white/40">
                 — Your Hand —
               </p>
-              <div className="flex gap-3">
-                {COMBAT_CARDS.map((card) => (
+              <div className="flex flex-wrap justify-center gap-3">
+                {hand.map((card) => (
                   <CombatCard
                     key={card.id}
                     card={card}
@@ -580,6 +542,15 @@ export default function BossBattle({ course, onVictoryComplete, onDefeatComplete
               Skill Hexagon +10 pts · Mega Roll +3 bonus!
             </p>
           </div>
+
+          {isReplay && (
+            <div className="mt-3 rounded-xl border-2 border-cyan-400 bg-cyan-900/50 px-5 py-2 text-sm">
+              <p className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
+                Replay Mastery Bonus
+              </p>
+              <p className="font-black text-white">💎 +25 Gems · 🎲 +2 Energy</p>
+            </div>
+          )}
 
           <p className="mt-4 text-sm font-black text-yellow-300">✨ Boss Reward!</p>
 

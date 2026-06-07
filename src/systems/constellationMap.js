@@ -312,6 +312,30 @@ export function buildConstellationLayout(course) {
     label: 'Boss',
   });
 
+  // ── Interactive obstacle nodes (Mini-Boss & Side-Boss) ────────────────────
+  // Mini-Boss: sits on the SHARED prefix (everyone passes it) roughly mid-way,
+  // so it gates progress no matter which fork branch the player later takes.
+  let miniBossNodeId = null;
+  if (prefixIds.length >= 3) {
+    const miniIdx = Math.min(prefixIds.length - 2, Math.max(1, Math.round((prefixIds.length - 1) * 0.5)));
+    miniBossNodeId = prefixIds[miniIdx];
+    byId[miniBossNodeId].type = 'miniBoss';
+    byId[miniBossNodeId].label = 'Mini-Boss';
+  }
+
+  // Side-Boss: hidden on the OPTIONAL long loop (skip the mystery node), so only
+  // explorers who pick the long branch can find and challenge it for its prize.
+  let sideBossNodeId = null;
+  if (longIds.length >= 2) {
+    let sideIdx = Math.min(longIds.length - 1, Math.max(0, Math.floor(longIds.length * 0.66)));
+    if (sideIdx === mysteryArrayIndex) sideIdx = Math.max(0, sideIdx - 1);
+    if (sideIdx !== mysteryArrayIndex) {
+      sideBossNodeId = longIds[sideIdx];
+      byId[sideBossNodeId].type = 'sideBoss';
+      byId[sideBossNodeId].label = 'Side-Boss';
+    }
+  }
+
   // ── Apply the subject-specific geometry ───────────────────────────────────
   const placement = PLACEMENTS[layoutId] ?? placeConstellation;
   placement({
@@ -354,6 +378,8 @@ export function buildConstellationLayout(course) {
     forkNodeId,
     bossNodeId,
     mysteryNodeId,
+    miniBossNodeId,
+    sideBossNodeId,
     pathLength,
     bossStep: pathLength + 1,
     layoutId,

@@ -5,6 +5,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import SkillHexagon from '../SkillHexagon/SkillHexagon.jsx';
+import BadgeStand from './BadgeStand.jsx';
 
 const SKILL_IDS = ['math', 'science', 'reading', 'history'];
 const GAP_THRESHOLD = 35;
@@ -57,6 +58,11 @@ export default function PowerStats({ onGoToRealm }) {
         <p className="relative mt-4 text-center text-xs font-bold text-green-300/80">
           {badges.length} badges earned · {completedCourses.length} courses conquered
         </p>
+      </div>
+
+      {/* Level Up Badge Stand framing the hexagon */}
+      <div className={`${neuCard} bg-white p-5`}>
+        <BadgeStand />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">

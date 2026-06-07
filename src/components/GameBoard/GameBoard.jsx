@@ -1,15 +1,25 @@
+import { useEffect, useRef } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
-import { BossBattle } from '../BossBattle/index.js';
+import { BossBattle, SkirmishModal } from '../BossBattle/index.js';
 import { ChestModal } from '../Loot/index.js';
+import {
+  SIDE_BOSS_REWARD_CARD_ID,
+  SPECIAL_COMBAT_CARDS,
+} from '../../systems/combatCards.js';
 import ForkChoiceModal from './ForkChoiceModal.jsx';
 import MapComponent from './MapComponent.jsx';
 import MovementDeck from './MovementDeck.jsx';
 import { getBoardTheme } from './boardTheme.js';
 
+const REPLAY_GEM_BONUS = 25;
+const REPLAY_ENERGY_BONUS = 2;
+
 /**
- * Constellation map board with movement cards and branching paths.
+ * Constellation map board with movement cards, branching paths, and interactive
+ * obstacle nodes. `replay` forces the boss to re-trigger on a completed course
+ * and grants the mastery bonus on victory.
  */
 export default function GameBoard({
   course,
@@ -18,10 +28,21 @@ export default function GameBoard({
   courseTitle,
   initialEnergy = 10,
   embedded = false,
+  replay = false,
 }) {
   const palette = getBoardTheme(theme);
-  const { completedCourses } = usePlayerProgress();
+  const { completedCourses, addGems, unlockCombatCard, stepCards, consumeStepCards } =
+    usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
+
+  // Spend any Daily-Wheel step cards as bonus starting energy for this run.
+  // Captured once at mount so the value stays stable for the game loop.
+  const startEnergyRef = useRef(initialEnergy + stepCards);
+  const bonusStepsRef = useRef(stepCards);
+  useEffect(() => {
+    if (bonusStepsRef.current > 0) consumeStepCards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- consume exactly once on mount
+  }, []);
 
   const {
     layout,
@@ -34,13 +55,35 @@ export default function GameBoard({
     canMove,
     bossEncounterActive,
     forkChoicePending,
+    miniBossEncounter,
+    sideBossEncounter,
+    clearedNodes,
     moveAlongPath,
     chooseForkBranch,
     closeLootReveal,
     retreatFromBoss,
     dismissBossEncounter,
     grantMegaRoll,
-  } = useGameLoop(course, { initialEnergy, skipBossEncounter: isCourseComplete });
+    addEnergy,
+    resolveMiniBoss,
+    resolveSideBoss,
+  } = useGameLoop(course, {
+    initialEnergy: startEnergyRef.current,
+    // On a replay we deliberately re-fight the boss even though it's complete.
+    skipBossEncounter: isCourseComplete && !replay,
+  });
+
+  const sideBossReward = SPECIAL_COMBAT_CARDS[SIDE_BOSS_REWARD_CARD_ID];
+
+  const handleReplayReward = () => {
+    addGems(REPLAY_GEM_BONUS);
+    addEnergy(REPLAY_ENERGY_BONUS);
+  };
+
+  const handleSideBossWin = () => {
+    unlockCombatCard(SIDE_BOSS_REWARD_CARD_ID);
+    resolveSideBoss(sideBossEncounter?.id);
+  };
 
   return (
     <section
@@ -51,6 +94,26 @@ export default function GameBoard({
         <ChestModal loot={pendingLoot} onClose={closeLootReveal} />
       )}
 
+      {miniBossEncounter && (
+        <SkirmishModal
+          kind="mini"
+          node={miniBossEncounter}
+          questionCount={2}
+          onWin={() => resolveMiniBoss(miniBossEncounter.id)}
+        />
+      )}
+
+      {sideBossEncounter && (
+        <SkirmishModal
+          kind="side"
+          node={sideBossEncounter}
+          questionCount={2}
+          rewardLabel={sideBossReward?.name}
+          onWin={handleSideBossWin}
+          onSkip={() => resolveSideBoss(sideBossEncounter.id)}
+        />
+      )}
+
       {bossEncounterActive && course && (
         <BossBattle
           course={course}
@@ -58,6 +121,8 @@ export default function GameBoard({
           onVictoryComplete={dismissBossEncounter}
           onDefeatComplete={retreatFromBoss}
           onMegaRoll={grantMegaRoll}
+          isReplay={replay}
+          onReplayReward={handleReplayReward}
         />
       )}
 
@@ -73,9 +138,20 @@ export default function GameBoard({
               {courseTitle}
             </h1>
             <p className={`mt-1 text-sm font-bold ${palette.subtitle}`}>{palette.label}</p>
-            {isCourseComplete && (
-              <p className={`mt-3 inline-block ${neuBadge}`}>Course Complete!</p>
-            )}
+            <div className="mt-3 flex flex-wrap justify-center gap-2">
+              {replay ? (
+                <span className={`inline-block ${neuBadge}`}>Replay Quest — fresh questions!</span>
+              ) : (
+                isCourseComplete && (
+                  <span className={`inline-block ${neuBadge}`}>Course Complete!</span>
+                )
+              )}
+              {bonusStepsRef.current > 0 && (
+                <span className={`inline-block ${neuBadge}`}>
+                  🎴 +{bonusStepsRef.current} bonus energy from step cards!
+                </span>
+              )}
+            </div>
           </header>
         )}
 
@@ -89,6 +165,7 @@ export default function GameBoard({
               pathIndex={pathIndex}
               pathBranch={pathBranch}
               palette={palette}
+              clearedNodes={clearedNodes}
             />
           </div>
 
@@ -105,6 +182,8 @@ export default function GameBoard({
             <span>● Quiz</span>
             <span>📦 Chest</span>
             <span>✨ Mystery Chest (loop)</span>
+            <span>👺 Mini-Boss</span>
+            <span>🗡️ Side-Boss</span>
             <span>👹 {bossName}</span>
           </footer>
         </div>

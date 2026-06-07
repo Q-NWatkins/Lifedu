@@ -81,3 +81,13 @@ export const MULTI_SUBJECT_QUESTIONS = {
 export function getQuestionsForDifficulty(difficulty) {
   return shuffle(MULTI_SUBJECT_QUESTIONS[difficulty] ?? MULTI_SUBJECT_QUESTIONS.easy);
 }
+
+/** A single random question across all subjects/difficulties (Trivia Wheel). */
+export function getRandomQuestion() {
+  const all = [
+    ...MULTI_SUBJECT_QUESTIONS.easy,
+    ...MULTI_SUBJECT_QUESTIONS.medium,
+    ...MULTI_SUBJECT_QUESTIONS.hard,
+  ];
+  return all[Math.floor(Math.random() * all.length)];
+}

@@ -1,7 +1,12 @@
 import { getCourseDetails } from '../../config/index.js';
 import GameBoard from './GameBoard.jsx';
 
-export default function CourseBoard({ courseId, initialEnergy = 10, embedded = false }) {
+export default function CourseBoard({
+  courseId,
+  initialEnergy = 10,
+  embedded = false,
+  replay = false,
+}) {
   const course = getCourseDetails(courseId);
 
   if (!course) {
@@ -14,13 +19,14 @@ export default function CourseBoard({ courseId, initialEnergy = 10, embedded = f
 
   return (
     <GameBoard
-      key={courseId}
+      key={`${courseId}${replay ? '-replay' : ''}`}
       course={course}
       theme={course.themeId}
       bossName={course.boss.name}
       courseTitle={course.title}
       initialEnergy={initialEnergy}
       embedded={embedded}
+      replay={replay}
     />
   );
 }

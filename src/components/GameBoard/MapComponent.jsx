@@ -8,6 +8,8 @@ const NODE_COLORS = {
   mysteryChest: 'bg-fuchsia-400',
   fork: 'bg-white',
   boss: 'bg-red-500 text-white',
+  miniBoss: 'bg-orange-500 text-white',
+  sideBoss: 'bg-purple-500 text-white',
 };
 
 function NodeShape({ shape, className, children }) {
@@ -33,10 +35,11 @@ function NodeShape({ shape, className, children }) {
   return <div className={`${base} h-12 w-12 rounded-full`}>{children}</div>;
 }
 
-function MapNode({ node, isActive, isPassed, isOnPath, palette }) {
+function MapNode({ node, isActive, isPassed, isOnPath, isCleared, palette }) {
   const color = NODE_COLORS[node.type] ?? 'bg-sky-300';
   const dimmed = !isOnPath && node.branch !== 'shared';
   const opened = isPassed && (node.type === 'chest' || node.type === 'mysteryChest');
+  const isObstacle = node.type === 'miniBoss' || node.type === 'sideBoss';
 
   return (
     <div
@@ -55,9 +58,21 @@ function MapNode({ node, isActive, isPassed, isOnPath, palette }) {
         </div>
       )}
 
+      {/* Cleared obstacle marker */}
+      {isObstacle && isCleared && (
+        <span className="absolute -top-2 -right-2 z-30 flex h-5 w-5 items-center justify-center rounded-full border-2 border-black bg-green-400 text-[10px] font-black">
+          ✓
+        </span>
+      )}
+
       <NodeShape
         shape={node.shape}
-        className={`${color} ${opened ? 'opacity-50' : ''} ${isActive ? 'ring-4 ring-black' : ''}`}
+        className={`
+          ${color}
+          ${opened || (isObstacle && isCleared) ? 'opacity-50' : ''}
+          ${isActive ? 'ring-4 ring-black' : ''}
+          ${isObstacle && !isCleared ? 'animate-pulse ring-4 ring-black/30' : ''}
+        `}
       >
         {node.type === 'mysteryChest' ? (
           <span className="text-lg">✨</span>
@@ -65,6 +80,10 @@ function MapNode({ node, isActive, isPassed, isOnPath, palette }) {
           <span className="text-sm">📦</span>
         ) : node.type === 'boss' ? (
           <span className="text-xs">👹</span>
+        ) : node.type === 'miniBoss' ? (
+          <span className="text-sm">👺</span>
+        ) : node.type === 'sideBoss' ? (
+          <span className="text-sm">🗡️</span>
         ) : node.type === 'fork' ? (
           <span className="text-[10px]">⑂</span>
         ) : (
@@ -81,8 +100,10 @@ export default function MapComponent({
   pathIndex,
   pathBranch,
   palette,
+  clearedNodes = [],
 }) {
   const pathSet = useMemo(() => new Set(activePath), [activePath]);
+  const clearedSet = useMemo(() => new Set(clearedNodes), [clearedNodes]);
   const activeNodeId = activePath[pathIndex];
 
   const visibleEdges = useMemo(() => {
@@ -147,6 +168,7 @@ export default function MapComponent({
               isActive={isActive}
               isPassed={isPassed}
               isOnPath={isOnPath || node.branch === 'shared'}
+              isCleared={clearedSet.has(node.id)}
               palette={palette}
             />
           );

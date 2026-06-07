@@ -19,7 +19,8 @@ function isLootNode(node) {
 }
 
 /**
- * Constellation-aware game loop with movement cards and branching paths.
+ * Constellation-aware game loop with movement cards, branching paths, and
+ * interactive obstacle nodes (Mini-Boss gates + optional Side-Boss skirmishes).
  */
 export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = false } = {}) {
   const layout = buildConstellationLayout(course);
@@ -33,6 +34,9 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
   const [pendingLoot, setPendingLoot] = useState(null);
   const [bossEncounterActive, setBossEncounterActive] = useState(false);
   const [forkChoicePending, setForkChoicePending] = useState(false);
+  const [miniBossEncounter, setMiniBossEncounter] = useState(null);
+  const [sideBossEncounter, setSideBossEncounter] = useState(null);
+  const [clearedNodes, setClearedNodes] = useState([]);
 
   const movingRef = useRef(false);
   const pathIndexRef = useRef(0);
@@ -40,6 +44,7 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
   const openedChestsRef = useRef(new Set());
   const lootResolveRef = useRef(null);
   const skipBossRef = useRef(skipBossEncounter);
+  const clearedNodesRef = useRef(new Set());
 
   const activePath = getPathForBranch(layout, pathBranch ?? 'short');
 
@@ -74,11 +79,15 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
     setPendingLoot(null);
     setBossEncounterActive(false);
     setForkChoicePending(false);
+    setMiniBossEncounter(null);
+    setSideBossEncounter(null);
+    setClearedNodes([]);
     movingRef.current = false;
     pathIndexRef.current = 0;
     pathBranchRef.current = null;
     openedChestsRef.current = new Set();
     lootResolveRef.current = null;
+    clearedNodesRef.current = new Set();
   }, [course.id, initialEnergy]);
 
   const closeLootReveal = useCallback(() => {
@@ -104,6 +113,36 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
     setEnergy((e) => e + MEGA_ROLL_BONUS);
   }, []);
 
+  /** Generic energy grant (used for the replay-mastery bonus). */
+  const addEnergy = useCallback((amount) => {
+    if (!amount) return;
+    setEnergy((e) => Math.max(0, e + amount));
+  }, []);
+
+  const markNodeCleared = useCallback((nodeId) => {
+    if (nodeId == null) return;
+    clearedNodesRef.current.add(nodeId);
+    setClearedNodes((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
+  }, []);
+
+  /** Mini-Boss defeated → unlock the path past it. */
+  const resolveMiniBoss = useCallback(
+    (nodeId) => {
+      markNodeCleared(nodeId);
+      setMiniBossEncounter(null);
+    },
+    [markNodeCleared],
+  );
+
+  /** Side-Boss resolved (won or skipped) → allow passing. */
+  const resolveSideBoss = useCallback(
+    (nodeId) => {
+      markNodeCleared(nodeId);
+      setSideBossEncounter(null);
+    },
+    [markNodeCleared],
+  );
+
   const chooseForkBranch = useCallback((branch) => {
     setPathBranch(branch);
     pathBranchRef.current = branch;
@@ -112,7 +151,16 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
 
   const moveAlongPath = useCallback(
     async (steps) => {
-      if (movingRef.current || energy <= 0 || bossEncounterActive || pendingLoot) return false;
+      if (
+        movingRef.current ||
+        energy <= 0 ||
+        bossEncounterActive ||
+        pendingLoot ||
+        miniBossEncounter ||
+        sideBossEncounter
+      ) {
+        return false;
+      }
 
       let branch = pathBranchRef.current ?? 'short';
       let path = getPathForBranch(layout, branch);
@@ -151,6 +199,22 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
           return true;
         }
 
+        // Mini-Boss gate — stop dead and require a win before moving on.
+        if (node?.type === 'miniBoss' && !clearedNodesRef.current.has(node.id)) {
+          setMiniBossEncounter(node);
+          movingRef.current = false;
+          setIsMoving(false);
+          return true;
+        }
+
+        // Side-Boss — optional skirmish on arrival.
+        if (node?.type === 'sideBoss' && !clearedNodesRef.current.has(node.id)) {
+          setSideBossEncounter(node);
+          movingRef.current = false;
+          setIsMoving(false);
+          return true;
+        }
+
         const chestKey = `${branch}-${node?.id}`;
         if (node && isLootNode(node) && !openedChestsRef.current.has(chestKey)) {
           openedChestsRef.current.add(chestKey);
@@ -177,12 +241,18 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
       setIsMoving(false);
       return true;
     },
-    [bossEncounterActive, energy, layout, pendingLoot],
+    [bossEncounterActive, energy, layout, pendingLoot, miniBossEncounter, sideBossEncounter],
   );
 
   const lootRevealActive = Boolean(pendingLoot);
   const canMove =
-    energy > 0 && !isMoving && !bossEncounterActive && !lootRevealActive && !forkChoicePending;
+    energy > 0 &&
+    !isMoving &&
+    !bossEncounterActive &&
+    !lootRevealActive &&
+    !forkChoicePending &&
+    !miniBossEncounter &&
+    !sideBossEncounter;
 
   return {
     layout,
@@ -199,12 +269,18 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
     bossStep,
     bossEncounterActive,
     forkChoicePending,
+    miniBossEncounter,
+    sideBossEncounter,
+    clearedNodes,
     moveAlongPath,
     chooseForkBranch,
     closeLootReveal,
     retreatFromBoss,
     dismissBossEncounter,
     grantMegaRoll,
+    addEnergy,
+    resolveMiniBoss,
+    resolveSideBoss,
     getNodeAt,
   };
 }

@@ -43,6 +43,14 @@ export function PlayerProgressProvider({ children }) {
     (saved?.userUnlockedThemes ?? []).forEach((id) => base.add(id));
     return [...base];
   });
+  const [gems, setGems] = useState(saved?.gems ?? 0);
+  const [unlockedCombatCards, setUnlockedCombatCards] = useState(
+    saved?.unlockedCombatCards ?? [],
+  );
+  const [stepCards, setStepCards] = useState(saved?.stepCards ?? 0);
+  const [lastSpinAt, setLastSpinAt] = useState(saved?.lastSpinAt ?? null);
+  const [unlockedTitles, setUnlockedTitles] = useState(saved?.unlockedTitles ?? []);
+  const [activeTitle, setActiveTitleState] = useState(saved?.activeTitle ?? null);
 
   useEffect(() => {
     try {
@@ -55,12 +63,31 @@ export function PlayerProgressProvider({ children }) {
           inventory,
           equipped,
           userUnlockedThemes,
+          gems,
+          unlockedCombatCards,
+          stepCards,
+          lastSpinAt,
+          unlockedTitles,
+          activeTitle,
         }),
       );
     } catch {
       // ignore storage errors in demo
     }
-  }, [skills, badges, completedCourses, inventory, equipped, userUnlockedThemes]);
+  }, [
+    skills,
+    badges,
+    completedCourses,
+    inventory,
+    equipped,
+    userUnlockedThemes,
+    gems,
+    unlockedCombatCards,
+    stepCards,
+    lastSpinAt,
+    unlockedTitles,
+    activeTitle,
+  ]);
 
   const addToInventory = useCallback((item) => {
     if (!item?.id) return;
@@ -106,6 +133,61 @@ export function PlayerProgressProvider({ children }) {
     [userUnlockedThemes],
   );
 
+  /** Add (or spend, with a negative amount) gem currency. */
+  const addGems = useCallback((amount) => {
+    if (!amount) return;
+    setGems((prev) => Math.max(0, prev + amount));
+  }, []);
+
+  /** Permanently unlock a special Combat Action Card. Returns true if new. */
+  const unlockCombatCard = useCallback((cardId) => {
+    if (!cardId) return false;
+    let newlyUnlocked = false;
+    setUnlockedCombatCards((prev) => {
+      if (prev.includes(cardId)) return prev;
+      newlyUnlocked = true;
+      return [...prev, cardId];
+    });
+    return newlyUnlocked;
+  }, []);
+
+  /** Bonus movement cards (won from the Daily Trivia Wheel). */
+  const addStepCards = useCallback((amount) => {
+    if (!amount) return;
+    setStepCards((prev) => Math.max(0, prev + amount));
+  }, []);
+
+  /** Spend the whole step-card stash as bonus starting energy for a quest. */
+  const consumeStepCards = useCallback(() => {
+    let spent = 0;
+    setStepCards((prev) => {
+      spent = prev;
+      return 0;
+    });
+    return spent;
+  }, []);
+
+  /** Record a daily wheel spin (24h cooldown anchor). */
+  const recordDailySpin = useCallback(() => {
+    setLastSpinAt(Date.now());
+  }, []);
+
+  /** Unlock a milestone avatar title. Returns true if newly unlocked. */
+  const unlockTitle = useCallback((titleId) => {
+    if (!titleId) return false;
+    let newlyUnlocked = false;
+    setUnlockedTitles((prev) => {
+      if (prev.includes(titleId)) return prev;
+      newlyUnlocked = true;
+      return [...prev, titleId];
+    });
+    return newlyUnlocked;
+  }, []);
+
+  const setActiveTitle = useCallback((titleId) => {
+    setActiveTitleState(titleId);
+  }, []);
+
   const completeCourse = useCallback(
     ({ courseId, curriculumId, badgeId, badgeLabel, skillGain = 15 }) => {
       setSkills((prev) => ({
@@ -137,11 +219,24 @@ export function PlayerProgressProvider({ children }) {
       inventory,
       equipped,
       userUnlockedThemes,
+      gems,
+      unlockedCombatCards,
+      stepCards,
+      lastSpinAt,
+      unlockedTitles,
+      activeTitle,
       addToInventory,
       equipItem,
       sendToBackpack,
       unlockTheme,
       isThemeUnlocked,
+      addGems,
+      unlockCombatCard,
+      addStepCards,
+      consumeStepCards,
+      recordDailySpin,
+      unlockTitle,
+      setActiveTitle,
       completeCourse,
     }),
     [
@@ -151,11 +246,24 @@ export function PlayerProgressProvider({ children }) {
       inventory,
       equipped,
       userUnlockedThemes,
+      gems,
+      unlockedCombatCards,
+      stepCards,
+      lastSpinAt,
+      unlockedTitles,
+      activeTitle,
       addToInventory,
       equipItem,
       sendToBackpack,
       unlockTheme,
       isThemeUnlocked,
+      addGems,
+      unlockCombatCard,
+      addStepCards,
+      consumeStepCards,
+      recordDailySpin,
+      unlockTitle,
+      setActiveTitle,
       completeCourse,
     ],
   );

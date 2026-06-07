@@ -5,14 +5,23 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import { CourseBoard } from '../GameBoard/index.js';
+import DailyTriviaWheel from './DailyTriviaWheel.jsx';
 
 export default function QuestMap({ initialRealmId = null }) {
   const { completedCourses } = usePlayerProgress();
   const { themeConfig } = useTheme();
   const [activeRealmId, setActiveRealmId] = useState(null);
   const [activeCourseId, setActiveCourseId] = useState(null);
+  const [replayCourseId, setReplayCourseId] = useState(null);
 
   const activeRealm = REALMS.find((r) => r.id === activeRealmId) ?? null;
+  const isReplaying = replayCourseId === activeCourseId && activeCourseId != null;
+  const activeCourseComplete = completedCourses.includes(activeCourseId);
+
+  const selectCourse = (courseId) => {
+    setActiveCourseId(courseId);
+    setReplayCourseId(null);
+  };
 
   const enterRealm = (realm) => {
     const courses = getCoursesByCurriculum(realm.curriculumId);
@@ -40,6 +49,7 @@ export default function QuestMap({ initialRealmId = null }) {
   const handleBackToRealms = () => {
     setActiveRealmId(null);
     setActiveCourseId(null);
+    setReplayCourseId(null);
   };
 
   if (activeRealm && activeCourseId) {
@@ -63,7 +73,7 @@ export default function QuestMap({ initialRealmId = null }) {
                   key={course.id}
                   type="button"
                   disabled={!unlocked}
-                  onClick={() => setActiveCourseId(course.id)}
+                  onClick={() => selectCourse(course.id)}
                   className={`
                     rounded-lg border-4 border-black px-3 py-1 text-xs font-black transition-all
                     ${
@@ -82,10 +92,36 @@ export default function QuestMap({ initialRealmId = null }) {
               );
             })}
           </div>
+
+          {/* Replay a conquered quest for fresh, shuffled questions + bonuses */}
+          {activeCourseComplete && (
+            isReplaying ? (
+              <button
+                type="button"
+                onClick={() => setReplayCourseId(null)}
+                className={`${neuBtn} bg-white px-4 py-2 text-sm text-black hover:bg-stone-100`}
+              >
+                ✕ Exit Replay
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setReplayCourseId(activeCourseId)}
+                className={`${neuBtn} bg-cyan-300 px-4 py-2 text-sm text-black hover:bg-cyan-200`}
+              >
+                🔁 Replay Quest
+              </button>
+            )
+          )}
         </div>
 
         <div className={`overflow-hidden rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
-          <CourseBoard key={activeCourseId} courseId={activeCourseId} embedded />
+          <CourseBoard
+            key={`${activeCourseId}${isReplaying ? '-replay' : ''}`}
+            courseId={activeCourseId}
+            embedded
+            replay={isReplaying}
+          />
         </div>
       </div>
     );
@@ -93,6 +129,10 @@ export default function QuestMap({ initialRealmId = null }) {
 
   return (
     <div>
+      <div className="mb-6">
+        <DailyTriviaWheel />
+      </div>
+
       <header className="mb-6 text-center">
         <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.contrastText}`}>
           Choose Your Realm
