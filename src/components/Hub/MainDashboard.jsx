@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useTheme } from '../../context/ThemeContext.jsx';
 import BottomNav from './BottomNav.jsx';
 import MyBackpack from './MyBackpack.jsx';
 import PowerStats from './PowerStats.jsx';
 import QuestMap from './QuestMap.jsx';
 
 export default function MainDashboard() {
+  const { themeConfig } = useTheme();
   const [activeTab, setActiveTab] = useState('quest');
   const [questRealmId, setQuestRealmId] = useState(null);
 
@@ -27,7 +29,7 @@ export default function MainDashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 pt-6 pb-32">
+      <main className={`mx-auto max-w-4xl px-4 pt-6 pb-32 ${themeConfig.textColor}`}>
         {activeTab === 'quest' && (
           <QuestMap key={questRealmId ?? 'realms'} initialRealmId={questRealmId} />
         )}

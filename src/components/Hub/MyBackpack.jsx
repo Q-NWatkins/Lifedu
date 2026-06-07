@@ -36,7 +36,7 @@ function AccessorySlot({ label, item }) {
 
 export default function MyBackpack() {
   const { badges, inventory, equipped, equipItem } = usePlayerProgress();
-  const { activeTheme, setActiveTheme } = useTheme();
+  const { activeTheme, setActiveTheme, themeConfig } = useTheme();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -63,8 +63,8 @@ export default function MyBackpack() {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className="text-2xl font-black text-black sm:text-3xl">My Backpack</h1>
-        <p className="mt-1 text-sm font-bold text-black/60">
+        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.textColor}`}>My Backpack</h1>
+        <p className={`mt-1 text-sm font-bold ${themeConfig.textMuted}`}>
           Customize your hero and manage settings!
         </p>
       </header>
@@ -154,14 +154,29 @@ export default function MyBackpack() {
                   key={theme.id}
                   type="button"
                   onClick={() => setActiveTheme(theme.id)}
+                  aria-pressed={activeTheme === theme.id}
                   className={`
-                    neu-btn px-4 py-3 text-left text-sm
+                    neu-btn flex items-center gap-3 px-4 py-3 text-left text-sm
                     ${activeTheme === theme.id ? 'bg-yellow-300 text-black' : 'bg-white text-black hover:bg-lime-50'}
                   `}
                 >
-                  <span className="font-black">{theme.label}</span>
-                  <span className="mt-0.5 block text-xs font-semibold text-black/60">
-                    {theme.description}
+                  <span
+                    className="h-9 w-9 shrink-0 rounded-lg border-4 border-black"
+                    style={{ background: theme.swatch }}
+                    aria-hidden="true"
+                  />
+                  <span className="min-w-0">
+                    <span className="flex items-center gap-2 font-black">
+                      {theme.label}
+                      {activeTheme === theme.id && (
+                        <span className="rounded-full border-2 border-black bg-lime-300 px-2 py-0.5 text-[9px] uppercase">
+                          Active
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-0.5 block text-xs font-semibold text-black/60">
+                      {theme.description}
+                    </span>
                   </span>
                 </button>
               ))}

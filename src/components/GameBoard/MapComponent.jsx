@@ -92,8 +92,14 @@ export default function MapComponent({
     );
   }, [layout.edges, pathBranch]);
 
+  // Each subject layout supplies its own aspect ratio + max width so vertical
+  // trees/towers get tall frames and the orbital spiral gets a square one —
+  // this keeps absolutely-positioned nodes contained and avoids overlap.
+  const aspectClass = layout.view?.aspectClass ?? 'aspect-[5/4]';
+  const maxWClass = layout.view?.maxWClass ?? 'max-w-2xl';
+
   return (
-    <div className="relative mx-auto aspect-[5/4] w-full max-w-2xl">
+    <div className={`relative mx-auto w-full ${aspectClass} ${maxWClass}`}>
       <svg
         className="absolute inset-0 h-full w-full"
         viewBox="0 0 100 100"

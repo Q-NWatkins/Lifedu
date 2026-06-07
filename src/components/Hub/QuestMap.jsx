@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { REALMS, getRealmById } from '../../config/realms.js';
 import { getCoursesByCurriculum, isCourseUnlocked } from '../../config/progressionEngine.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import { CourseBoard } from '../GameBoard/index.js';
 
 export default function QuestMap({ initialRealmId = null }) {
   const { completedCourses } = usePlayerProgress();
+  const { themeConfig } = useTheme();
   const [activeRealmId, setActiveRealmId] = useState(null);
   const [activeCourseId, setActiveCourseId] = useState(null);
 
@@ -92,8 +94,10 @@ export default function QuestMap({ initialRealmId = null }) {
   return (
     <div>
       <header className="mb-6 text-center">
-        <h1 className="text-2xl font-black text-black sm:text-3xl">Choose Your Realm</h1>
-        <p className="mt-1 text-sm font-bold text-black/60">
+        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.textColor}`}>
+          Choose Your Realm
+        </h1>
+        <p className={`mt-1 text-sm font-bold ${themeConfig.textMuted}`}>
           Pick an adventure world to start your quest!
         </p>
       </header>

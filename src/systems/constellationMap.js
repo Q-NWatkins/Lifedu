@@ -1,13 +1,37 @@
 import { getChestTilesForPath } from '../config/courseMaps.js';
 
 /**
- * Builds a branching constellation map:
+ * Builds a branching board map with a shared topology but a SUBJECT-SPECIFIC
+ * geometry. Every subject keeps the same gameplay structure:
+ *
  *   shared start → FORK → short path ──┐
- *                    └── long loop ───┴→ BOSS
- * Long loop contains the Mystery Chest node.
+ *                    └── long loop ───┴→ MERGE → BOSS
+ *
+ * (the long loop carries the Mystery Chest node). Only the on-screen placement
+ * of the nodes changes per curriculum, giving each realm a distinct layout:
+ *
+ *   math    → Orbital Vortex       (spiral winding inward to a volcano core)
+ *   science → Constellation Network (a scattered geometric web)
+ *   reading → Canopy Climber       (an organic tree, branches split L/R upward)
+ *   history → Tower Ascent         (a vertical zig-zag staircase to a peak)
  */
 
 const NODE_SHAPES = ['circle', 'hexagon', 'diamond', 'square'];
+
+const LAYOUT_BY_CURRICULUM = {
+  math: 'orbital',
+  science: 'constellation',
+  reading: 'canopy',
+  history: 'tower',
+};
+
+/** Per-layout viewport hints so the board never overlaps or collapses height. */
+const LAYOUT_VIEW = {
+  orbital: { aspectClass: 'aspect-square', maxWClass: 'max-w-lg' },
+  constellation: { aspectClass: 'aspect-[5/4]', maxWClass: 'max-w-2xl' },
+  canopy: { aspectClass: 'aspect-[3/4]', maxWClass: 'max-w-sm' },
+  tower: { aspectClass: 'aspect-[3/4]', maxWClass: 'max-w-sm' },
+};
 
 function nodeTypeForStep(step, { milestones, chestTiles, isBoss, isFork, isMystery }) {
   if (isBoss) return 'boss';
@@ -18,6 +42,168 @@ function nodeTypeForStep(step, { milestones, chestTiles, isBoss, isFork, isMyste
   return 'lesson';
 }
 
+/** Deterministic 0..1 pseudo-random from an integer seed (stable per node id). */
+function seededUnit(seed) {
+  const s = Math.sin(seed * 127.1 + 0.5) * 43758.5453;
+  return s - Math.floor(s);
+}
+
+const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+
+/* ── Placement strategies ──────────────────────────────────────────────────
+ * Each receives the resolved structure and writes node.x / node.y (in a 0..100
+ * coordinate space matching MapComponent's viewBox). Topology is identical
+ * across strategies; only coordinates differ.
+ */
+
+function placeOrbital(struct) {
+  const { byId, prefixIds, shortIds, longIds, mergeId, bossId, mysteryArrayIndex } = struct;
+  const cx = 50;
+  const cy = 52;
+  const P = prefixIds.length;
+  const S = shortIds.length;
+  const L = longIds.length;
+  const spineMax = P + S + 1; // boss sits at fraction 1
+  const turns = 2.15;
+  const startAngle = -Math.PI / 2;
+
+  const radial = (f) => 44 - f * 38; // 44 (outer rim) → 6 (core)
+  const place = (id, f, rOffset = 0) => {
+    const angle = startAngle + f * turns * Math.PI * 2;
+    const r = Math.max(2, radial(f) + rOffset);
+    byId[id].x = clamp(cx + Math.cos(angle) * r, 6, 94);
+    byId[id].y = clamp(cy + Math.sin(angle) * r * 0.92, 6, 94);
+  };
+
+  prefixIds.forEach((id, i) => place(id, i / spineMax));
+  shortIds.forEach((id, j) => place(id, (P + j + 1) / spineMax));
+
+  const forkF = (P - 1) / spineMax;
+  const mergeF = (P + S) / spineMax;
+  longIds.forEach((id, k) => {
+    const localT = (k + 1) / (L + 1);
+    const f = forkF + localT * (mergeF - forkF);
+    place(id, f, k === mysteryArrayIndex ? 12 : 7); // long loop bulges outward
+  });
+
+  place(mergeId, mergeF);
+  place(bossId, 1); // central volcano core
+}
+
+function placeConstellation(struct) {
+  const { byId, prefixIds, shortIds, longIds, mergeId, bossId, mysteryArrayIndex } = struct;
+  const P = prefixIds.length;
+  const S = shortIds.length;
+  const L = longIds.length;
+  const spineMax = P + S + 1;
+  const xAt = (f) => 8 + f * 82;
+  const jitter = (id, spread) => (seededUnit(id + 1) - 0.5) * spread;
+
+  prefixIds.forEach((id, i) => {
+    byId[id].x = clamp(xAt(i / spineMax), 6, 92);
+    byId[id].y = clamp(48 + jitter(id, 26), 10, 90);
+  });
+  shortIds.forEach((id, j) => {
+    byId[id].x = clamp(xAt((P + j + 1) / spineMax), 6, 92);
+    byId[id].y = clamp(28 + jitter(id, 20), 8, 90); // upper web
+  });
+
+  const forkF = (P - 1) / spineMax;
+  const mergeF = (P + S) / spineMax;
+  longIds.forEach((id, k) => {
+    const localT = (k + 1) / (L + 1);
+    const f = forkF + localT * (mergeF - forkF);
+    byId[id].x = clamp(xAt(f), 6, 92);
+    byId[id].y =
+      k === mysteryArrayIndex ? 86 : clamp(72 + jitter(id, 22), 12, 92); // lower web
+  });
+
+  byId[mergeId].x = clamp(xAt(mergeF), 6, 92);
+  byId[mergeId].y = 48;
+  byId[bossId].x = 92;
+  byId[bossId].y = 16;
+}
+
+function placeCanopy(struct) {
+  const { byId, prefixIds, shortIds, longIds, mergeId, bossId, mysteryArrayIndex } = struct;
+  const P = prefixIds.length;
+  const S = shortIds.length;
+  const L = longIds.length;
+  const spineMax = P + S + 1;
+  const yAt = (f) => 92 - f * 86; // climb upward as progress increases
+
+  const forkF = (P - 1) / spineMax;
+  const mergeF = (P + S) / spineMax;
+
+  // Central trunk with a gentle organic sway.
+  prefixIds.forEach((id, i) => {
+    byId[id].x = clamp(50 + Math.sin(i * 0.9) * 4, 10, 90);
+    byId[id].y = yAt(i / spineMax);
+  });
+
+  // Left limb (short path) — bulges out, then curves back toward the trunk.
+  shortIds.forEach((id, j) => {
+    const t = (j + 1) / (S + 1);
+    byId[id].x = clamp(50 - (10 + Math.sin(t * Math.PI) * 16), 8, 50);
+    byId[id].y = yAt(forkF + t * (mergeF - forkF));
+  });
+
+  // Right limb (long loop) — wider bulge; the Mystery node reaches furthest out.
+  longIds.forEach((id, k) => {
+    const t = (k + 1) / (L + 1);
+    const bulge = k === mysteryArrayIndex ? 30 : 18;
+    byId[id].x = clamp(50 + (10 + Math.sin(t * Math.PI) * bulge), 50, 92);
+    byId[id].y = yAt(forkF + t * (mergeF - forkF));
+  });
+
+  byId[mergeId].x = 50;
+  byId[mergeId].y = yAt(mergeF);
+  byId[bossId].x = 50;
+  byId[bossId].y = 6; // canopy crown
+}
+
+function placeTower(struct) {
+  const { byId, prefixIds, shortIds, longIds, mergeId, bossId, mysteryArrayIndex } = struct;
+  const P = prefixIds.length;
+  const S = shortIds.length;
+  const L = longIds.length;
+  const spineMax = P + S + 1;
+  const yAt = (f) => 92 - f * 86; // ascend the tower
+
+  const forkF = (P - 1) / spineMax;
+  const mergeF = (P + S) / spineMax;
+
+  // Base of the tower — alternating staircase columns.
+  prefixIds.forEach((id, i) => {
+    byId[id].x = i % 2 === 0 ? 40 : 60;
+    byId[id].y = yAt(i / spineMax);
+  });
+
+  // Short branch hugs the left flight of stairs.
+  shortIds.forEach((id, j) => {
+    byId[id].x = j % 2 === 0 ? 22 : 40;
+    byId[id].y = yAt(forkF + ((j + 1) / (S + 1)) * (mergeF - forkF));
+  });
+
+  // Long branch hugs the right flight; the Mystery step juts out furthest.
+  longIds.forEach((id, k) => {
+    byId[id].x = k === mysteryArrayIndex ? 88 : k % 2 === 0 ? 60 : 78;
+    byId[id].y = yAt(forkF + ((k + 1) / (L + 1)) * (mergeF - forkF));
+  });
+
+  byId[mergeId].x = 50;
+  byId[mergeId].y = yAt(mergeF);
+  byId[bossId].x = 50;
+  byId[bossId].y = 6; // castle peak
+}
+
+const PLACEMENTS = {
+  orbital: placeOrbital,
+  constellation: placeConstellation,
+  canopy: placeCanopy,
+  tower: placeTower,
+};
+
 /**
  * @returns {{
  *   nodes: Array,
@@ -26,7 +212,11 @@ function nodeTypeForStep(step, { milestones, chestTiles, isBoss, isFork, isMyste
  *   longPath: number[],
  *   forkNodeId: number,
  *   bossNodeId: number,
- *   mysteryNodeId: number,
+ *   mysteryNodeId: number|null,
+ *   pathLength: number,
+ *   bossStep: number,
+ *   layoutId: string,
+ *   view: { aspectClass: string, maxWClass: string },
  * }}
  */
 export function buildConstellationLayout(course) {
@@ -34,21 +224,21 @@ export function buildConstellationLayout(course) {
   const milestones = new Set(course.milestones ?? []);
   const chestTiles = new Set(course.chestTiles ?? getChestTilesForPath(pathLength));
 
+  const layoutId = course.layoutId ?? LAYOUT_BY_CURRICULUM[course.curriculumId] ?? 'constellation';
+
   const forkStep = Math.max(2, Math.floor(pathLength * 0.35));
   const shortRemainder = Math.max(2, Math.ceil((pathLength - forkStep) / 2));
   const loopSteps = Math.max(3, pathLength - forkStep - shortRemainder);
 
   const nodes = [];
+  const byId = {};
   const edges = [];
   let id = 0;
 
   const addNode = (opts) => {
-    const node = {
-      id,
-      shape: NODE_SHAPES[id % NODE_SHAPES.length],
-      ...opts,
-    };
+    const node = { id, shape: NODE_SHAPES[id % NODE_SHAPES.length], x: 50, y: 50, ...opts };
     nodes.push(node);
+    byId[id] = node;
     return id++;
   };
 
@@ -59,15 +249,10 @@ export function buildConstellationLayout(course) {
   // ── Shared prefix (steps 1 .. forkStep) ───────────────────────────────────
   const prefixIds = [];
   for (let step = 1; step <= forkStep; step++) {
-    const t = (step - 1) / Math.max(forkStep - 1, 1);
-    const x = 12 + t * 28;
-    const y = 82 - t * 22;
     const isFork = step === forkStep;
     prefixIds.push(
       addNode({
         step,
-        x,
-        y,
         branch: 'shared',
         type: nodeTypeForStep(step, { milestones, chestTiles, isFork }),
         label: isFork ? 'Fork' : `${step}`,
@@ -81,12 +266,9 @@ export function buildConstellationLayout(course) {
   const shortIds = [];
   for (let i = 1; i <= shortRemainder; i++) {
     const step = forkStep + i;
-    const t = i / (shortRemainder + 1);
     shortIds.push(
       addNode({
         step,
-        x: 42 + t * 22,
-        y: 28 + t * 8,
         branch: 'short',
         type: nodeTypeForStep(step, { milestones, chestTiles }),
         label: `${step}`,
@@ -94,43 +276,30 @@ export function buildConstellationLayout(course) {
     );
   }
 
-  // ── Long loop (includes mystery chest mid-loop) ─────────────────────────
+  // ── Long loop (includes mystery chest mid-loop) ───────────────────────────
   const longIds = [];
-  const mysteryIndex = Math.floor(loopSteps / 2);
+  const mysteryStepIndex = Math.floor(loopSteps / 2); // matches legacy step numbering
+  const mysteryArrayIndex = mysteryStepIndex - 1; // 0-based index within longIds
   let mysteryNodeId = null;
 
   for (let i = 1; i <= loopSteps; i++) {
     const step = forkStep + i;
-    const angle = (i / loopSteps) * Math.PI * 1.35 + Math.PI * 0.1;
-    const cx = 72;
-    const cy = 52;
-    const rx = 22;
-    const ry = 28;
-    const isMystery = i === mysteryIndex;
-
+    const isMystery = i === mysteryStepIndex;
     if (isMystery) mysteryNodeId = id;
 
     longIds.push(
       addNode({
         step: step + shortRemainder,
-        x: cx + Math.cos(angle) * rx,
-        y: cy + Math.sin(angle) * ry,
         branch: 'long',
-        type: nodeTypeForStep(step + shortRemainder, {
-          milestones,
-          chestTiles,
-          isMystery,
-        }),
+        type: nodeTypeForStep(step + shortRemainder, { milestones, chestTiles, isMystery }),
         label: isMystery ? '?' : `${step + shortRemainder}`,
       }),
     );
   }
 
-  // ── Merge node + Boss ───────────────────────────────────────────────────
+  // ── Merge node + Boss ─────────────────────────────────────────────────────
   const mergeId = addNode({
     step: pathLength,
-    x: 88,
-    y: 22,
     branch: 'shared',
     type: nodeTypeForStep(pathLength, { milestones, chestTiles }),
     label: `${pathLength}`,
@@ -138,14 +307,24 @@ export function buildConstellationLayout(course) {
 
   const bossNodeId = addNode({
     step: pathLength + 1,
-    x: 92,
-    y: 8,
     branch: 'shared',
     type: 'boss',
     label: 'Boss',
   });
 
-  // ── Edges ───────────────────────────────────────────────────────────────
+  // ── Apply the subject-specific geometry ───────────────────────────────────
+  const placement = PLACEMENTS[layoutId] ?? placeConstellation;
+  placement({
+    byId,
+    prefixIds,
+    shortIds,
+    longIds,
+    mergeId,
+    bossId: bossNodeId,
+    mysteryArrayIndex,
+  });
+
+  // ── Edges ─────────────────────────────────────────────────────────────────
   for (let i = 0; i < prefixIds.length - 1; i++) {
     addEdge(prefixIds[i], prefixIds[i + 1], 'shared');
   }
@@ -177,6 +356,8 @@ export function buildConstellationLayout(course) {
     mysteryNodeId,
     pathLength,
     bossStep: pathLength + 1,
+    layoutId,
+    view: LAYOUT_VIEW[layoutId] ?? LAYOUT_VIEW.constellation,
   };
 }
 
