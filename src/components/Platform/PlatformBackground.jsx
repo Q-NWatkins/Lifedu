@@ -78,32 +78,37 @@ function BubbleShapes() {
   );
 }
 
-function SparkleShapes() {
-  const sparkles = Array.from({ length: 20 }, (_, i) => ({
+const JELLYBEAN_COLORS = ['#f472b6', '#c084fc', '#f9a8d4', '#a78bfa', '#fb7185', '#e879f9'];
+
+function JellybeanShapes() {
+  const beans = Array.from({ length: 18 }, (_, i) => ({
     id: i,
-    left: `${(i * 19 + 7) % 100}%`,
-    top: `${(i * 29 + 5) % 100}%`,
-    size: 8 + (i % 4) * 4,
-    delay: `${(i % 7) * 0.6}s`,
-    duration: `${3 + (i % 4) * 1.5}s`,
+    left: `${(i * 21 + 6) % 100}%`,
+    top: `${(i * 27 + 9) % 100}%`,
+    width: 18 + (i % 4) * 6,
+    color: JELLYBEAN_COLORS[i % JELLYBEAN_COLORS.length],
+    rot: `${(i % 2 === 0 ? 1 : -1) * (20 + (i % 3) * 15)}deg`,
+    delay: `${(i % 8) * 0.7}s`,
+    duration: `${5 + (i % 5) * 1.4}s`,
   }));
 
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {sparkles.map((sparkle) => (
+      {beans.map((bean) => (
         <span
-          key={sparkle.id}
-          className="animate-twinkle-sparkle absolute text-pink-300"
+          key={bean.id}
+          className="animate-float-jelly absolute block rounded-full border-2 border-white/50 shadow-sm"
           style={{
-            left: sparkle.left,
-            top: sparkle.top,
-            fontSize: sparkle.size,
-            animationDelay: sparkle.delay,
-            animationDuration: sparkle.duration,
+            left: bean.left,
+            top: bean.top,
+            width: bean.width,
+            height: bean.width * 0.6,
+            background: bean.color,
+            '--jelly-rot': bean.rot,
+            animationDelay: bean.delay,
+            animationDuration: bean.duration,
           }}
-        >
-          ✦
-        </span>
+        />
       ))}
     </div>
   );
@@ -117,7 +122,7 @@ export default function PlatformBackground({ children }) {
       {activeTheme === 'cosmic' && <StarParticles />}
       {activeTheme === 'sky' && <CloudShapes />}
       {activeTheme === 'deepsea' && <BubbleShapes />}
-      {activeTheme === 'candy' && <SparkleShapes />}
+      {activeTheme === 'candy' && <JellybeanShapes />}
       <div className="relative z-10">{children}</div>
     </div>
   );

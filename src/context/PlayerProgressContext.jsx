@@ -1,11 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { CURRICULUMS } from '../config/index.js';
+import { BASE_THEME_IDS } from './ThemeContext.jsx';
 
 const STORAGE_KEY = 'wit-player-progress';
 
 const DEFAULT_SKILLS = Object.fromEntries(
   Object.keys(CURRICULUMS).map((id) => [id, 10]),
 );
+
+/** Static themes everyone starts with; animated ones are loot-gated. */
+const DEFAULT_UNLOCKED_THEMES = BASE_THEME_IDS;
 
 const DEFAULT_EQUIPPED = {
   hat: null,
@@ -34,17 +38,29 @@ export function PlayerProgressProvider({ children }) {
   const [completedCourses, setCompletedCourses] = useState(saved?.completedCourses ?? []);
   const [inventory, setInventory] = useState(saved?.inventory ?? []);
   const [equipped, setEquipped] = useState(saved?.equipped ?? DEFAULT_EQUIPPED);
+  const [userUnlockedThemes, setUserUnlockedThemes] = useState(() => {
+    const base = new Set(DEFAULT_UNLOCKED_THEMES);
+    (saved?.userUnlockedThemes ?? []).forEach((id) => base.add(id));
+    return [...base];
+  });
 
   useEffect(() => {
     try {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ skills, badges, completedCourses, inventory, equipped }),
+        JSON.stringify({
+          skills,
+          badges,
+          completedCourses,
+          inventory,
+          equipped,
+          userUnlockedThemes,
+        }),
       );
     } catch {
       // ignore storage errors in demo
     }
-  }, [skills, badges, completedCourses, inventory, equipped]);
+  }, [skills, badges, completedCourses, inventory, equipped, userUnlockedThemes]);
 
   const addToInventory = useCallback((item) => {
     if (!item?.id) return;
@@ -68,6 +84,26 @@ export function PlayerProgressProvider({ children }) {
       addToInventory(item);
     },
     [addToInventory],
+  );
+
+  /**
+   * Unlock a tiered background theme. Returns true only when it was newly
+   * unlocked (so callers can celebrate the first-time drop).
+   */
+  const unlockTheme = useCallback((themeId) => {
+    if (!themeId) return false;
+    let newlyUnlocked = false;
+    setUserUnlockedThemes((prev) => {
+      if (prev.includes(themeId)) return prev;
+      newlyUnlocked = true;
+      return [...prev, themeId];
+    });
+    return newlyUnlocked;
+  }, []);
+
+  const isThemeUnlocked = useCallback(
+    (themeId) => userUnlockedThemes.includes(themeId),
+    [userUnlockedThemes],
   );
 
   const completeCourse = useCallback(
@@ -100,9 +136,12 @@ export function PlayerProgressProvider({ children }) {
       completedCourses,
       inventory,
       equipped,
+      userUnlockedThemes,
       addToInventory,
       equipItem,
       sendToBackpack,
+      unlockTheme,
+      isThemeUnlocked,
       completeCourse,
     }),
     [
@@ -111,9 +150,12 @@ export function PlayerProgressProvider({ children }) {
       completedCourses,
       inventory,
       equipped,
+      userUnlockedThemes,
       addToInventory,
       equipItem,
       sendToBackpack,
+      unlockTheme,
+      isThemeUnlocked,
       completeCourse,
     ],
   );

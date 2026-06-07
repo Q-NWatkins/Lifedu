@@ -1,1 +1,1 @@
-export { default as LootRevealModal } from './LootRevealModal.jsx';
+export { default as ChestModal } from './ChestModal.jsx';

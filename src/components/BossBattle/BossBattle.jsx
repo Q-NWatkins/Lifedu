@@ -1,5 +1,10 @@
 import { useCallback, useRef, useState } from 'react';
-import { getItemEmoji, RARITY_STYLES, rollLoot } from '../../systems/lootSystem.js';
+import {
+  getItemEmoji,
+  getThemeUnlockForRarity,
+  RARITY_STYLES,
+  rollLoot,
+} from '../../systems/lootSystem.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
@@ -250,7 +255,7 @@ function LootRevealInline({ loot, lootRevealPhase, onEquip, onBackpack }) {
 /* ── Main component ──────────────────────────────────────────────────────── */
 
 export default function BossBattle({ course, onVictoryComplete, onDefeatComplete, onMegaRoll }) {
-  const { completeCourse, equipItem, sendToBackpack } = usePlayerProgress();
+  const { completeCourse, equipItem, sendToBackpack, unlockTheme } = usePlayerProgress();
 
   const boss = course.boss;
   const rawBadge = course.rewards?.completionBadge?.replace('badge-', '').replace(/-/g, ' ') ?? 'Course Champion';
@@ -324,11 +329,14 @@ export default function BossBattle({ course, onVictoryComplete, onDefeatComplete
   const triggerVictory = useCallback(() => {
     const loot = rollLoot();
     setVictoryLoot(loot);
+    // Tiered animated themes can also drop from boss rewards.
+    const themeId = getThemeUnlockForRarity(loot.rarity);
+    if (themeId) unlockTheme(themeId);
     setLootRevealPhase('chest');
     setTimeout(() => setLootRevealPhase('reveal'), 900);
     setTimeout(() => setLootRevealPhase('actions'), 1600);
     setPhase(PHASE.VICTORY);
-  }, []);
+  }, [unlockTheme]);
 
   const handleAnswer = useCallback(
     (i) => {

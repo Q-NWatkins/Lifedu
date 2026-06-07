@@ -98,3 +98,17 @@ export function rollLoot() {
 export function getItemEmoji(item) {
   return CATEGORY_EMOJI[item?.category] ?? '🎁';
 }
+
+/**
+ * Tiered theme drops — animated background themes are locked behind rarity.
+ * Common/Uncommon/Rare give cosmetics only; Epic & Legendary also unlock a
+ * moving CSS-background theme.
+ */
+export const RARITY_THEME_UNLOCKS = {
+  Epic: 'deepsea', // Deep Sea Trench — animated rising bubbles
+  Legendary: 'candy', // Enchanted Candy Kingdom — floating jellybeans
+};
+
+export function getThemeUnlockForRarity(rarity) {
+  return RARITY_THEME_UNLOCKS[rarity] ?? null;
+}

@@ -94,10 +94,10 @@ export default function QuestMap({ initialRealmId = null }) {
   return (
     <div>
       <header className="mb-6 text-center">
-        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.textColor}`}>
+        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.contrastText}`}>
           Choose Your Realm
         </h1>
-        <p className={`mt-1 text-sm font-bold ${themeConfig.textMuted}`}>
+        <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Pick an adventure world to start your quest!
         </p>
       </header>

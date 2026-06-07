@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { CURRICULUMS } from '../../config/index.js';
 import { getRealmByCurriculum } from '../../config/realms.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import SkillHexagon from '../SkillHexagon/SkillHexagon.jsx';
 
@@ -25,13 +26,14 @@ function buildInsights(skills) {
 
 export default function PowerStats({ onGoToRealm }) {
   const { skills, badges, completedCourses } = usePlayerProgress();
+  const { themeConfig } = useTheme();
   const { strengths, gaps } = useMemo(() => buildInsights(skills), [skills]);
 
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className="text-2xl font-black text-black sm:text-3xl">Power Stats</h1>
-        <p className="mt-1 text-sm font-bold text-black/60">
+        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.contrastText}`}>Power Stats</h1>
+        <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Scan your skills and plan your next quest!
         </p>
       </header>

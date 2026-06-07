@@ -2,7 +2,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle } from '../BossBattle/index.js';
-import { LootRevealModal } from '../Loot/index.js';
+import { ChestModal } from '../Loot/index.js';
 import ForkChoiceModal from './ForkChoiceModal.jsx';
 import MapComponent from './MapComponent.jsx';
 import MovementDeck from './MovementDeck.jsx';
@@ -48,7 +48,7 @@ export default function GameBoard({
       aria-label={courseTitle ? `${courseTitle} constellation map` : 'Course map'}
     >
       {pendingLoot && (
-        <LootRevealModal loot={pendingLoot} onClose={closeLootReveal} />
+        <ChestModal loot={pendingLoot} onClose={closeLootReveal} />
       )}
 
       {bossEncounterActive && course && (

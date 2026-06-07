@@ -177,12 +177,88 @@ body {
   }
 }
 
+@keyframes float-jelly {
+  0% {
+    transform: translateY(0) rotate(var(--jelly-rot, 0deg));
+  }
+  50% {
+    transform: translateY(-22px) rotate(calc(var(--jelly-rot, 0deg) + 12deg));
+  }
+  100% {
+    transform: translateY(0) rotate(var(--jelly-rot, 0deg));
+  }
+}
+
 .animate-rise-bubble {
   animation: rise-bubble linear infinite;
 }
 
 .animate-twinkle-sparkle {
   animation: twinkle-sparkle ease-in-out infinite;
+}
+
+.animate-float-jelly {
+  animation: float-jelly ease-in-out infinite;
+}
+
+/* ── Chest unboxing state machine ─────────────────────────────────────────── */
+
+@keyframes chest-rattle {
+  0%,
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+  20% {
+    transform: scale(1.08) rotate(-8deg);
+  }
+  40% {
+    transform: scale(1.05) rotate(8deg);
+  }
+  60% {
+    transform: scale(1.12) rotate(-6deg);
+  }
+  80% {
+    transform: scale(1.06) rotate(6deg);
+  }
+}
+
+@keyframes chest-flash {
+  0% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes card-pop {
+  0% {
+    transform: scale(0.3) translateY(40px);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.06) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-chest-rattle {
+  animation: chest-rattle 0.25s ease-in-out infinite;
+}
+
+.animate-chest-flash {
+  animation: chest-flash 0.5s ease-out forwards;
+}
+
+.animate-card-pop {
+  animation: card-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
 .animate-boss-shake {
