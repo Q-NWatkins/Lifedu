@@ -3,7 +3,7 @@ import { CURRICULUMS } from '../../config/index.js';
 import { getRealmByCurriculum } from '../../config/realms.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
-import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
+import { arcadeCard, ARC_TILT, neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import SkillHexagon from '../SkillHexagon/SkillHexagon.jsx';
 import BadgeStand from './BadgeStand.jsx';
 
@@ -30,13 +30,15 @@ export default function PowerStats({ onGoToRealm }) {
   const { themeConfig } = useTheme();
   const { strengths, gaps } = useMemo(() => buildInsights(skills), [skills]);
 
-  // Token-bound card surface: container + ink + border all from the active theme.
-  const cardCls = `rounded-2xl border-4 ${themeConfig.border_color} ${themeConfig.bg_card} ${themeConfig.text_card} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`;
+  // Vibrant arcade panel — deep fill, neon border, inner glow, light ink.
+  const cardCls = arcadeCard;
 
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.text_main}`}>Power Stats</h1>
+        <h1 className={`${ARC_TILT} inline-block text-2xl font-black uppercase sm:text-3xl ${themeConfig.text_main}`}>
+          Power Stats
+        </h1>
         <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Scan your skills and plan your next quest!
         </p>

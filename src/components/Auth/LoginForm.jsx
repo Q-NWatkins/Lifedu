@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
-import { neuBtn } from '../../styles/neubrutalism.js';
+import { btn3dSuccess } from '../../styles/neubrutalism.js';
 
 /**
  * Neubrutalist Login / Registration form. Pipes directly into the AuthProvider:
@@ -90,7 +90,7 @@ export default function LoginForm({ compact = false }) {
         <button
           type="submit"
           disabled={busy}
-          className={`${neuBtn} w-full bg-green-400 px-4 py-3 text-black hover:bg-green-300 disabled:opacity-60`}
+          className={`${btn3dSuccess} w-full px-4 py-3`}
         >
           {busy ? 'Checking…' : mode === 'login' ? 'Log In' : 'Create Account'}
         </button>

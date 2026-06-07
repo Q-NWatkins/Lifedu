@@ -6,7 +6,7 @@ import {
   rollLoot,
 } from '../../systems/lootSystem.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
-import { neuBtn } from '../../styles/neubrutalism.js';
+import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
 import DefeatScreen from './DefeatScreen.jsx';
@@ -428,8 +428,8 @@ export default function BossBattle({
           <button
             type="button"
             onClick={() => setPhase(PHASE.BATTLE)}
-            className={`${neuBtn} bg-red-600 px-10 py-3 text-lg text-white hover:bg-red-500`}
-            style={{ boxShadow: '4px 4px 0 rgba(0,0,0,1), 0 0 20px rgba(239,68,68,0.5)' }}
+            className={`${btn3dDanger} px-10 py-3 text-lg`}
+            style={{ boxShadow: '0 8px 0 rgba(0,0,0,0.4), 0 0 24px rgba(239,68,68,0.6)' }}
           >
             Enter the Arena!
           </button>

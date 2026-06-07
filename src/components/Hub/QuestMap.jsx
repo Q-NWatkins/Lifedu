@@ -3,7 +3,7 @@ import { REALMS, getRealmById } from '../../config/realms.js';
 import { MAX_GRADE, getGradeMap } from '../../config/mapRegistry.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
-import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
+import { ARC_TILT, neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import { CourseBoard } from '../GameBoard/index.js';
 import DailyTriviaWheel from './DailyTriviaWheel.jsx';
 
@@ -148,7 +148,7 @@ export default function QuestMap({ initialRealmId = null }) {
       </div>
 
       <header className="mb-6 text-center">
-        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.text_main}`}>
+        <h1 className={`${ARC_TILT} inline-block text-2xl font-black uppercase sm:text-3xl ${themeConfig.text_main}`}>
           Choose Your Realm
         </h1>
         <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
@@ -180,7 +180,9 @@ export default function QuestMap({ initialRealmId = null }) {
                   Grade {ceiling}/{MAX_GRADE}
                 </span>
               </div>
-              <h2 className="mt-3 text-xl font-black text-black">{realm.name}</h2>
+              <h2 className={`${ARC_TILT} mt-3 inline-block text-xl font-black uppercase text-black`}>
+                {realm.name}
+              </h2>
               <p className="mt-1 text-sm font-semibold text-black/70">{realm.tagline}</p>
               <p className="mt-3 text-xs font-black uppercase tracking-wide text-black/50 group-hover:text-black/70">
                 Enter realm →

@@ -34,9 +34,9 @@ export default function BadgeStand() {
       {celebrate && <Confetti onDone={() => setCelebrate(false)} />}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black">🏅 Level Up Badge Stand</h3>
+        <h3 className="-rotate-2 text-sm font-black uppercase">🏅 Level Up Badge Stand</h3>
         {activeMilestone && (
-          <span className="rounded-full border-2 border-black bg-yellow-300 px-2 py-0.5 text-[10px] font-black text-black">
+          <span className="-skew-x-3 rounded-full border-2 border-black bg-yellow-300 px-2 py-0.5 text-[10px] font-black text-black shadow-[0_3px_0_rgba(0,0,0,0.4)]">
             Title: {activeMilestone.title}
           </span>
         )}
@@ -61,9 +61,9 @@ export default function BadgeStand() {
               title={m.reached ? m.title : `Reach ${m.threshold} in ${m.subject}`}
               className={`
                 relative flex flex-col items-center gap-0.5 rounded-xl border-4 border-black px-1 py-2 transition-all
-                ${claimable ? 'animate-badge-glow bg-yellow-200 hover:scale-105' : ''}
-                ${isUnlocked ? 'bg-white hover:scale-105' : ''}
-                ${!m.reached ? 'cursor-not-allowed bg-stone-200 opacity-60 grayscale' : 'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'}
+                ${claimable ? '-rotate-2 animate-badge-glow bg-yellow-200 hover:scale-110' : ''}
+                ${isUnlocked ? 'bg-white hover:-rotate-2 hover:scale-110' : ''}
+                ${!m.reached ? 'cursor-not-allowed bg-stone-200 opacity-60 grayscale' : 'shadow-[0_4px_0_rgba(0,0,0,0.35)]'}
                 ${isActive ? 'ring-4 ring-yellow-400' : ''}
               `}
             >

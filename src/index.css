@@ -259,23 +259,24 @@ body {
 }
 
 @layer components {
+  /* Arcade 3D system — chunky floating cards + pressable key-cap buttons. */
   .neu-card {
-    @apply rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)];
+    @apply rounded-2xl border-4 border-black shadow-[0_8px_0_rgba(0,0,0,0.3)];
   }
 
   .neu-tile {
-    @apply rounded-xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all duration-200;
+    @apply rounded-xl border-4 border-black shadow-[0_5px_0_rgba(0,0,0,0.3)] transition-all duration-200;
   }
 
   .neu-btn {
-    @apply rounded-xl border-4 border-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-y-1 active:shadow-none;
+    @apply rounded-xl border-b-[6px] border-black/30 font-extrabold uppercase tracking-wide shadow-lg transition-all active:translate-y-[4px] active:border-b-2;
   }
 
   .neu-btn-round {
-    @apply rounded-full border-4 border-black font-bold shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all active:translate-y-1 active:shadow-none;
+    @apply rounded-full border-b-[6px] border-black/30 font-extrabold uppercase tracking-wide shadow-lg transition-all active:translate-y-[4px] active:border-b-2;
   }
 
   .neu-panel {
-    @apply rounded-2xl border-4 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)];
+    @apply rounded-2xl border-4 border-black bg-white shadow-[0_8px_0_rgba(0,0,0,0.3)];
   }
 }

@@ -8,7 +8,7 @@ import {
   buildWheelGradient,
   rollSegmentIndex,
 } from '../../systems/wheelRewards.js';
-import { neuBtn } from '../../styles/neubrutalism.js';
+import { btn3d, neuBtn } from '../../styles/neubrutalism.js';
 import Confetti from '../common/Confetti.jsx';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -202,7 +202,7 @@ export default function DailyTriviaWheel() {
                   <button
                     type="button"
                     onClick={startSpin}
-                    className={`${neuBtn} mt-3 bg-yellow-300 px-6 py-2.5 text-black hover:bg-yellow-200`}
+                    className={`${btn3d} mt-3 px-6 py-2.5`}
                   >
                     Spin to Win!
                   </button>

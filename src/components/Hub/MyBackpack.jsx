@@ -3,7 +3,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
 import { getItemEmoji } from '../../systems/lootSystem.js';
 import { getTitleById } from '../../systems/milestones.js';
-import { neuBtn, neuPanel } from '../../styles/neubrutalism.js';
+import { arcadeCard, ARC_TILT, neuBtn, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
 
 const SETTINGS_KEY = 'wit-backpack-settings';
@@ -42,8 +42,8 @@ export default function MyBackpack() {
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
 
-  // Token-bound card surface: container + ink + border all from the active theme.
-  const cardCls = `rounded-2xl border-4 ${themeConfig.border_color} ${themeConfig.bg_card} ${themeConfig.text_card} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`;
+  // Vibrant arcade panel — deep fill, neon border, inner glow, light ink.
+  const cardCls = arcadeCard;
 
   useEffect(() => {
     try {
@@ -69,7 +69,7 @@ export default function MyBackpack() {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className={`text-2xl font-black sm:text-3xl ${themeConfig.text_main}`}>My Backpack</h1>
+        <h1 className={`${ARC_TILT} inline-block text-2xl font-black uppercase sm:text-3xl ${themeConfig.text_main}`}>My Backpack</h1>
         <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Customize your hero and manage settings!
         </p>

@@ -57,7 +57,7 @@ export default function MainDashboard() {
           </div>
 
           <div className="hidden text-center sm:block">
-            <h1 className="text-xl font-black text-black sm:text-2xl">LearnQuest</h1>
+            <h1 className="-rotate-2 text-xl font-black uppercase tracking-wide text-black sm:text-2xl">LearnQuest</h1>
             <p className="text-xs font-bold text-black/60">Your adventure in learning!</p>
           </div>
 
