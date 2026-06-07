@@ -10,6 +10,7 @@ const NODE_COLORS = {
   boss: 'bg-red-500 text-white',
   miniBoss: 'bg-orange-500 text-white',
   sideBoss: 'bg-purple-500 text-white',
+  hazard: 'bg-rose-300 text-black',
 };
 
 function NodeShape({ shape, className, children }) {
@@ -84,6 +85,8 @@ function MapNode({ node, isActive, isPassed, isOnPath, isCleared, palette }) {
           <span className="text-sm">👺</span>
         ) : node.type === 'sideBoss' ? (
           <span className="text-sm">🗡️</span>
+        ) : node.type === 'hazard' ? (
+          <span className="text-sm">⚠️</span>
         ) : node.type === 'fork' ? (
           <span className="text-[10px]">⑂</span>
         ) : (

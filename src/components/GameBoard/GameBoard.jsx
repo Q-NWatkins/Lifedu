@@ -59,10 +59,12 @@ export default function GameBoard({
     forkChoicePending,
     miniBossEncounter,
     sideBossEncounter,
+    pendingHazard,
     clearedNodes,
     moveAlongPath,
     chooseForkBranch,
     closeLootReveal,
+    closeHazard,
     retreatFromBoss,
     dismissBossEncounter,
     grantMegaRoll,
@@ -94,6 +96,32 @@ export default function GameBoard({
     >
       {pendingLoot && (
         <ChestModal loot={pendingLoot} onClose={closeLootReveal} />
+      )}
+
+      {pendingHazard && (
+        <div
+          className="fixed inset-0 z-[160] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Hazard tile"
+        >
+          <div className="w-full max-w-xs rounded-2xl border-4 border-black bg-rose-200 p-6 text-center text-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-black bg-rose-400 text-3xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              ⚠️
+            </div>
+            <h3 className="mt-3 text-xl font-black">Trap Tile!</h3>
+            <p className="mt-1 text-sm font-semibold opacity-80">
+              You stumbled into a hazard and lost <strong>1 energy</strong>.
+            </p>
+            <button
+              type="button"
+              onClick={closeHazard}
+              className="neu-btn mt-5 bg-white px-6 py-2.5 text-sm text-black hover:bg-stone-100"
+            >
+              Shake it off!
+            </button>
+          </div>
+        </div>
       )}
 
       {miniBossEncounter && (
@@ -186,6 +214,7 @@ export default function GameBoard({
             <span>✨ Mystery Chest (loop)</span>
             <span>👺 Mini-Boss</span>
             <span>🗡️ Side-Boss</span>
+            <span>⚠️ Trap</span>
             <span>👹 {bossName}</span>
           </footer>
         </div>

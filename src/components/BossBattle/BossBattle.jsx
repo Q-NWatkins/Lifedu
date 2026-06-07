@@ -215,7 +215,7 @@ export default function BossBattle({
   isReplay = false,
   onReplayReward,
 }) {
-  const { completeCourse, equipItem, sendToBackpack, unlockTheme, unlockedCombatCards } =
+  const { completeCourse, equipItem, sendToBackpack, unlockTheme, unlockedCombatCards, unlockGrade } =
     usePlayerProgress();
 
   // Base hand + any permanently unlocked Side-Boss cards.
@@ -367,10 +367,12 @@ export default function BossBattle({
       skillGain: 10,
     });
     onMegaRoll?.();
+    // Progressive campaign: defeating a grade boss unlocks the next grade map.
+    if (course.grade) unlockGrade(curriculumId, course.grade + 1);
     // Replaying a conquered level grants a flat mastery bonus on top.
     if (isReplay) onReplayReward?.();
     onVictoryComplete?.();
-  }, [completeCourse, course, curriculumId, badgeLabel, onMegaRoll, isReplay, onReplayReward, onVictoryComplete]);
+  }, [completeCourse, course, curriculumId, badgeLabel, onMegaRoll, unlockGrade, isReplay, onReplayReward, onVictoryComplete]);
 
   const handleLootEquip = useCallback(() => {
     if (victoryLoot) equipItem(victoryLoot);

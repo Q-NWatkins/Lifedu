@@ -25,6 +25,8 @@ function isLootNode(node) {
 export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = false } = {}) {
   const layout = buildConstellationLayout(course);
   const bossStep = layout.bossStep;
+  // Animation pace scales with grade (slower on Grade 1, snappier on Grade 5).
+  const stepDelay = course.stepDelayMs ?? STEP_DELAY_MS;
 
   const [pathBranch, setPathBranch] = useState(null);
   const [pathIndex, setPathIndex] = useState(0);
@@ -36,6 +38,7 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
   const [forkChoicePending, setForkChoicePending] = useState(false);
   const [miniBossEncounter, setMiniBossEncounter] = useState(null);
   const [sideBossEncounter, setSideBossEncounter] = useState(null);
+  const [pendingHazard, setPendingHazard] = useState(null);
   const [clearedNodes, setClearedNodes] = useState([]);
 
   const movingRef = useRef(false);
@@ -43,6 +46,8 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
   const pathBranchRef = useRef(null);
   const openedChestsRef = useRef(new Set());
   const lootResolveRef = useRef(null);
+  const hazardResolveRef = useRef(null);
+  const triggeredHazardsRef = useRef(new Set());
   const skipBossRef = useRef(skipBossEncounter);
   const clearedNodesRef = useRef(new Set());
 
@@ -81,12 +86,15 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
     setForkChoicePending(false);
     setMiniBossEncounter(null);
     setSideBossEncounter(null);
+    setPendingHazard(null);
     setClearedNodes([]);
     movingRef.current = false;
     pathIndexRef.current = 0;
     pathBranchRef.current = null;
     openedChestsRef.current = new Set();
     lootResolveRef.current = null;
+    hazardResolveRef.current = null;
+    triggeredHazardsRef.current = new Set();
     clearedNodesRef.current = new Set();
   }, [course.id, initialEnergy]);
 
@@ -94,6 +102,14 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
     setPendingLoot(null);
     lootResolveRef.current?.();
     lootResolveRef.current = null;
+  }, []);
+
+  /** Acknowledge a hazard/trap: apply the energy penalty and resume movement. */
+  const closeHazard = useCallback(() => {
+    setEnergy((e) => Math.max(0, e - 1));
+    setPendingHazard(null);
+    hazardResolveRef.current?.();
+    hazardResolveRef.current = null;
   }, []);
 
   const retreatFromBoss = useCallback(() => {
@@ -156,6 +172,7 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
         energy <= 0 ||
         bossEncounterActive ||
         pendingLoot ||
+        pendingHazard ||
         miniBossEncounter ||
         sideBossEncounter
       ) {
@@ -183,7 +200,7 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
       const targetIndex = Math.min(fromIndex + steps, path.length - 1);
 
       for (let i = fromIndex + 1; i <= targetIndex; i++) {
-        await sleep(STEP_DELAY_MS);
+        await sleep(stepDelay);
 
         branch = pathBranchRef.current ?? 'short';
         path = getPathForBranch(layout, branch);
@@ -215,6 +232,15 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
           return true;
         }
 
+        // Hazard / trap — pause, warn, and dock 1 energy on acknowledge.
+        if (node?.type === 'hazard' && !triggeredHazardsRef.current.has(node.id)) {
+          triggeredHazardsRef.current.add(node.id);
+          await new Promise((resolve) => {
+            hazardResolveRef.current = resolve;
+            setPendingHazard({ node, tile: node.step });
+          });
+        }
+
         const chestKey = `${branch}-${node?.id}`;
         if (node && isLootNode(node) && !openedChestsRef.current.has(chestKey)) {
           openedChestsRef.current.add(chestKey);
@@ -241,7 +267,16 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
       setIsMoving(false);
       return true;
     },
-    [bossEncounterActive, energy, layout, pendingLoot, miniBossEncounter, sideBossEncounter],
+    [
+      bossEncounterActive,
+      energy,
+      layout,
+      pendingLoot,
+      pendingHazard,
+      miniBossEncounter,
+      sideBossEncounter,
+      stepDelay,
+    ],
   );
 
   const lootRevealActive = Boolean(pendingLoot);
@@ -251,6 +286,7 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
     !bossEncounterActive &&
     !lootRevealActive &&
     !forkChoicePending &&
+    !pendingHazard &&
     !miniBossEncounter &&
     !sideBossEncounter;
 
@@ -271,10 +307,12 @@ export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = fa
     forkChoicePending,
     miniBossEncounter,
     sideBossEncounter,
+    pendingHazard,
     clearedNodes,
     moveAlongPath,
     chooseForkBranch,
     closeLootReveal,
+    closeHazard,
     retreatFromBoss,
     dismissBossEncounter,
     grantMegaRoll,

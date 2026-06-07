@@ -1,4 +1,5 @@
 import { getCourseDetails } from '../../config/index.js';
+import { getMapById } from '../../config/mapRegistry.js';
 import GameBoard from './GameBoard.jsx';
 
 export default function CourseBoard({
@@ -7,7 +8,9 @@ export default function CourseBoard({
   embedded = false,
   replay = false,
 }) {
-  const course = getCourseDetails(courseId);
+  // Prefer the progressive grade registry (e.g. "math_2"); fall back to the
+  // legacy named-course config for any other id.
+  const course = getMapById(courseId) ?? getCourseDetails(courseId);
 
   if (!course) {
     return (

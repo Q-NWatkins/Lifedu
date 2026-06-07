@@ -11,6 +11,10 @@ const DEFAULT_SKILLS = Object.fromEntries(
 /** Static themes everyone starts with; animated ones are loot-gated. */
 const DEFAULT_UNLOCKED_THEMES = BASE_THEME_IDS;
 
+/** Every subject campaign starts with only Grade 1 unlocked. */
+const DEFAULT_UNLOCKED_GRADES = { math: 1, science: 1, reading: 1, history: 1 };
+const MAX_GRADE = 5;
+
 const DEFAULT_EQUIPPED = {
   hat: null,
   clothing: null,
@@ -51,6 +55,10 @@ export function PlayerProgressProvider({ children }) {
   const [lastSpinAt, setLastSpinAt] = useState(saved?.lastSpinAt ?? null);
   const [unlockedTitles, setUnlockedTitles] = useState(saved?.unlockedTitles ?? []);
   const [activeTitle, setActiveTitleState] = useState(saved?.activeTitle ?? null);
+  const [unlockedGrades, setUnlockedGrades] = useState(() => ({
+    ...DEFAULT_UNLOCKED_GRADES,
+    ...(saved?.unlockedGrades ?? {}),
+  }));
 
   useEffect(() => {
     try {
@@ -69,6 +77,7 @@ export function PlayerProgressProvider({ children }) {
           lastSpinAt,
           unlockedTitles,
           activeTitle,
+          unlockedGrades,
         }),
       );
     } catch {
@@ -87,6 +96,7 @@ export function PlayerProgressProvider({ children }) {
     lastSpinAt,
     unlockedTitles,
     activeTitle,
+    unlockedGrades,
   ]);
 
   const addToInventory = useCallback((item) => {
@@ -188,6 +198,29 @@ export function PlayerProgressProvider({ children }) {
     setActiveTitleState(titleId);
   }, []);
 
+  /**
+   * Unlock a subject's campaign up to `grade` (clamped to MAX_GRADE). Used when
+   * a grade boss is defeated to open the next grade map. Returns true if this
+   * raised the unlocked ceiling.
+   */
+  const unlockGrade = useCallback((subject, grade) => {
+    if (!subject || !grade) return false;
+    const target = Math.min(MAX_GRADE, grade);
+    let raised = false;
+    setUnlockedGrades((prev) => {
+      const current = prev[subject] ?? 1;
+      if (target <= current) return prev;
+      raised = true;
+      return { ...prev, [subject]: target };
+    });
+    return raised;
+  }, []);
+
+  const isGradeUnlocked = useCallback(
+    (subject, grade) => grade <= (unlockedGrades[subject] ?? 1),
+    [unlockedGrades],
+  );
+
   const completeCourse = useCallback(
     ({ courseId, curriculumId, badgeId, badgeLabel, skillGain = 15 }) => {
       setSkills((prev) => ({
@@ -225,6 +258,7 @@ export function PlayerProgressProvider({ children }) {
       lastSpinAt,
       unlockedTitles,
       activeTitle,
+      unlockedGrades,
       addToInventory,
       equipItem,
       sendToBackpack,
@@ -237,6 +271,8 @@ export function PlayerProgressProvider({ children }) {
       recordDailySpin,
       unlockTitle,
       setActiveTitle,
+      unlockGrade,
+      isGradeUnlocked,
       completeCourse,
     }),
     [
@@ -252,6 +288,7 @@ export function PlayerProgressProvider({ children }) {
       lastSpinAt,
       unlockedTitles,
       activeTitle,
+      unlockedGrades,
       addToInventory,
       equipItem,
       sendToBackpack,
@@ -264,6 +301,8 @@ export function PlayerProgressProvider({ children }) {
       recordDailySpin,
       unlockTitle,
       setActiveTitle,
+      unlockGrade,
+      isGradeUnlocked,
       completeCourse,
     ],
   );

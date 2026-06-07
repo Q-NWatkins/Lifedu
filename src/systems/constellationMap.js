@@ -50,6 +50,23 @@ function seededUnit(seed) {
 
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+/** Pick `count` evenly spaced items from `arr` (stable, no duplicates). */
+function pickEvenly(arr, count) {
+  if (count <= 0 || arr.length === 0) return [];
+  if (count >= arr.length) return [...arr];
+  const out = [];
+  const used = new Set();
+  for (let i = 0; i < count; i++) {
+    const idx = Math.round(((i + 1) * arr.length) / (count + 1));
+    const clamped = clamp(idx, 0, arr.length - 1);
+    if (!used.has(clamped)) {
+      used.add(clamped);
+      out.push(arr[clamped]);
+    }
+  }
+  return out;
+}
+
 /* ── Placement strategies ──────────────────────────────────────────────────
  * Each receives the resolved structure and writes node.x / node.y (in a 0..100
  * coordinate space matching MapComponent's viewBox). Topology is identical
@@ -222,7 +239,12 @@ const PLACEMENTS = {
 export function buildConstellationLayout(course) {
   const pathLength = course.pathLength;
   const milestones = new Set(course.milestones ?? []);
-  const chestTiles = new Set(course.chestTiles ?? getChestTilesForPath(pathLength));
+  // Grade maps inject chests by count post-hoc (see below); legacy courses use
+  // explicit/step-based chest tiles during node creation.
+  const useChestCount = typeof course.chestCount === 'number';
+  const chestTiles = new Set(
+    useChestCount ? [] : course.chestTiles ?? getChestTilesForPath(pathLength),
+  );
 
   const layoutId = course.layoutId ?? LAYOUT_BY_CURRICULUM[course.curriculumId] ?? 'constellation';
 
@@ -312,16 +334,21 @@ export function buildConstellationLayout(course) {
     label: 'Boss',
   });
 
-  // ── Interactive obstacle nodes (Mini-Boss & Side-Boss) ────────────────────
-  // Mini-Boss: sits on the SHARED prefix (everyone passes it) roughly mid-way,
-  // so it gates progress no matter which fork branch the player later takes.
-  let miniBossNodeId = null;
-  if (prefixIds.length >= 3) {
-    const miniIdx = Math.min(prefixIds.length - 2, Math.max(1, Math.round((prefixIds.length - 1) * 0.5)));
-    miniBossNodeId = prefixIds[miniIdx];
-    byId[miniBossNodeId].type = 'miniBoss';
-    byId[miniBossNodeId].label = 'Mini-Boss';
+  // ── Interactive obstacle nodes (Mini-Boss, Side-Boss, Hazards) ────────────
+  // Mini-Bosses sit on the SHARED prefix (everyone passes it), so they gate
+  // progress no matter which fork branch the player later takes. Higher grades
+  // request more of them — multiple mandatory blockades on long endurance maps.
+  const miniBossNodeIds = [];
+  const miniBossCount = Math.max(0, course.miniBossCount ?? 1);
+  if (miniBossCount > 0 && prefixIds.length >= 3) {
+    const interior = prefixIds.slice(1, prefixIds.length - 1); // exclude start & fork
+    pickEvenly(interior, Math.min(miniBossCount, interior.length)).forEach((id) => {
+      byId[id].type = 'miniBoss';
+      byId[id].label = 'Mini-Boss';
+      miniBossNodeIds.push(id);
+    });
   }
+  const miniBossNodeId = miniBossNodeIds[0] ?? null;
 
   // Side-Boss: hidden on the OPTIONAL long loop (skip the mystery node), so only
   // explorers who pick the long branch can find and challenge it for its prize.
@@ -334,6 +361,32 @@ export function buildConstellationLayout(course) {
       byId[sideBossNodeId].type = 'sideBoss';
       byId[sideBossNodeId].label = 'Side-Boss';
     }
+  }
+
+  // Hazard / trap tiles: scattered across the branch lesson nodes. Frequency
+  // climbs with grade (none at Grade 1, several at Grade 3+).
+  const hazardNodeIds = [];
+  const hazardCount = Math.max(0, course.hazardCount ?? 0);
+  if (hazardCount > 0) {
+    const candidates = [...shortIds, ...longIds].filter((id) => byId[id].type === 'lesson');
+    pickEvenly(candidates, Math.min(hazardCount, candidates.length)).forEach((id) => {
+      byId[id].type = 'hazard';
+      byId[id].label = 'Trap';
+      hazardNodeIds.push(id);
+    });
+  }
+
+  // Count-based chest injection (grade rarity). Chests fill remaining lesson
+  // nodes across both branches AFTER bosses/hazards have claimed theirs.
+  if (useChestCount) {
+    const chestCount = Math.max(0, course.chestCount);
+    const candidates = [...shortIds, ...longIds, ...prefixIds.slice(1, -1)].filter(
+      (id) => byId[id].type === 'lesson',
+    );
+    pickEvenly(candidates, Math.min(chestCount, candidates.length)).forEach((id) => {
+      byId[id].type = 'chest';
+      byId[id].label = 'Treasure';
+    });
   }
 
   // ── Apply the subject-specific geometry ───────────────────────────────────
@@ -379,7 +432,9 @@ export function buildConstellationLayout(course) {
     bossNodeId,
     mysteryNodeId,
     miniBossNodeId,
+    miniBossNodeIds,
     sideBossNodeId,
+    hazardNodeIds,
     pathLength,
     bossStep: pathLength + 1,
     layoutId,
