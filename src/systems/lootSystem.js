@@ -4,6 +4,19 @@
 
 export const RARITIES = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary'];
 
+/** Gem payout for scrapping a cosmetic in the Trade Box, by rarity. */
+export const SCRAP_VALUES = {
+  Common: 10,
+  Uncommon: 20,
+  Rare: 30,
+  Epic: 50,
+  Legendary: 100,
+};
+
+export function getScrapValue(rarity) {
+  return SCRAP_VALUES[rarity] ?? 10;
+}
+
 export const RARITY_WEIGHTS = [
   { rarity: 'Common', weight: 60 },
   { rarity: 'Uncommon', weight: 25 },

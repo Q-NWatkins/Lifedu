@@ -4,6 +4,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { AdminGuard, AdminPanel } from '../Auth/index.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
+import TiltedTitle from '../common/TiltedTitle.jsx';
 import BottomNav from './BottomNav.jsx';
 import MyBackpack from './MyBackpack.jsx';
 import PowerStats from './PowerStats.jsx';
@@ -57,8 +58,10 @@ export default function MainDashboard() {
           </div>
 
           <div className="hidden text-center sm:block">
-            <h1 className="-rotate-2 text-xl font-black uppercase tracking-wide text-black sm:text-2xl">LearnQuest</h1>
-            <p className="text-xs font-bold text-black/60">Your adventure in learning!</p>
+            <TiltedTitle as="h1" className="text-lg font-black uppercase tracking-wide text-cyan-50 sm:text-xl">
+              LearnQuest
+            </TiltedTitle>
+            <p className="mt-1 text-xs font-bold text-black/60">Your adventure in learning!</p>
           </div>
 
           <div className="flex items-center justify-end gap-2">

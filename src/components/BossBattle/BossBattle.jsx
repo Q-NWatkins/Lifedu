@@ -1,11 +1,13 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getThemeUnlockForRarity, RARITY_STYLES, rollLoot } from '../../systems/lootSystem.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { useAudio } from '../../context/AudioContext.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
 import {
   getBossSprite,
+  getPlayerSprite,
   ItemSprite,
   StarSprite,
   TreasureChestSprite,
@@ -37,6 +39,28 @@ function HeartRow({ hearts, shieldActive, shaking }) {
         </span>
       )}
     </div>
+  );
+}
+
+function ChargeBadge({ emoji, label, count, active, disabled, onUse }) {
+  const usable = count > 0 && !disabled;
+  return (
+    <button
+      type="button"
+      disabled={!usable}
+      onClick={onUse}
+      title={`${label} charge — ${count} available`}
+      className={`
+        relative flex flex-col items-center rounded-xl border-4 border-black px-2 py-1 text-[9px] font-black uppercase transition-all
+        ${active ? 'bg-cyan-300 text-black' : usable ? 'bg-white text-black hover:-translate-y-0.5' : 'bg-stone-700 text-white/40'}
+      `}
+    >
+      <span className="text-base leading-none">{emoji}</span>
+      <span>{label}</span>
+      <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-black bg-yellow-300 text-[10px] text-black">
+        {count}
+      </span>
+    </button>
   );
 }
 
@@ -218,11 +242,30 @@ export default function BossBattle({
   isReplay = false,
   onReplayReward,
 }) {
-  const { completeCourse, equipItem, sendToBackpack, unlockTheme, unlockedCombatCards, unlockGrade } =
-    usePlayerProgress();
+  const {
+    completeCourse,
+    equipItem,
+    sendToBackpack,
+    unlockTheme,
+    unlockedCombatCards,
+    unlockGrade,
+    consumableCharges,
+    consumeConsumable,
+  } = usePlayerProgress();
+
+  const PlayerSprite = getPlayerSprite('astronaut');
 
   // Base hand + any permanently unlocked Side-Boss cards.
   const hand = useMemo(() => getPlayerHand(unlockedCombatCards), [unlockedCombatCards]);
+
+  const { playCombat, playExploration } = useAudio();
+
+  // Cross-fade into the combat track while the arena is open; restore the
+  // exploration loop when the player leaves the boss screen.
+  useEffect(() => {
+    playCombat();
+    return () => playExploration();
+  }, [playCombat, playExploration]);
 
   const boss = course.boss;
   const BossSprite = getBossSprite(course.curriculumId);
@@ -265,6 +308,11 @@ export default function BossBattle({
   // Animation flags
   const [bossShaking, setBossShaking] = useState(false);
   const [playerShaking, setPlayerShaking] = useState(false);
+  const [isStriking, setIsStriking] = useState(false);
+
+  // Consumable-driven turn modifiers (reset after each strike resolves).
+  const [dmgMultiplier, setDmgMultiplier] = useState(1);
+  const [dmgBonus, setDmgBonus] = useState(0);
 
   // Victory loot
   const [victoryLoot, setVictoryLoot] = useState(null);
@@ -281,6 +329,22 @@ export default function BossBattle({
     setFeedback(null);
     setIsLocked(false);
   }, []);
+
+  // ── Consumable charge badges: spend 1 charge to alter the next turn ───────
+  const useShieldCharge = useCallback(() => {
+    if (activeCard) return;
+    if (consumeConsumable('shield')) setShieldActive(true);
+  }, [activeCard, consumeConsumable]);
+
+  const useHeavyCharge = useCallback(() => {
+    if (activeCard) return;
+    if (consumeConsumable('heavyAttack')) setDmgBonus((b) => b + 25);
+  }, [activeCard, consumeConsumable]);
+
+  const useDoubleCharge = useCallback(() => {
+    if (activeCard) return;
+    if (consumeConsumable('doubleDamage')) setDmgMultiplier(2);
+  }, [activeCard, consumeConsumable]);
 
   const handleCardClick = useCallback(
     (card) => {
@@ -323,7 +387,15 @@ export default function BossBattle({
             setShieldActive(true);
             closeQuestion();
           } else {
-            const dmg = activeCard.damage;
+            // Apply consumable turn modifiers, then reset them.
+            const dmg = activeCard.damage * dmgMultiplier + dmgBonus;
+            setDmgMultiplier(1);
+            setDmgBonus(0);
+
+            // Physical strike: lunge the hero sprite forward for 400ms.
+            setIsStriking(true);
+            setTimeout(() => setIsStriking(false), 400);
+
             setBossShaking(true);
             setTimeout(() => setBossShaking(false), 550);
 
@@ -359,7 +431,16 @@ export default function BossBattle({
         }
       }
     },
-    [isLocked, activeQuestion, activeCard, shieldActive, closeQuestion, triggerVictory],
+    [
+      isLocked,
+      activeQuestion,
+      activeCard,
+      shieldActive,
+      dmgMultiplier,
+      dmgBonus,
+      closeQuestion,
+      triggerVictory,
+    ],
   );
 
   const finalizeVictory = useCallback(() => {
@@ -485,15 +566,50 @@ export default function BossBattle({
           {/* Player section — bottom */}
           <div className="flex flex-1 flex-col items-center justify-between overflow-y-auto px-4 py-4">
             {/* Player info */}
-            <div className="flex w-full max-w-sm flex-col items-center gap-1">
+            <div className="flex w-full max-w-sm flex-col items-center gap-2">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-sky-400">
                 Your Hero
               </p>
-              <HeartRow
-                hearts={hearts}
-                shieldActive={shieldActive}
-                shaking={playerShaking}
-              />
+
+              <div className="flex items-center gap-3">
+                {/* Hero sprite — lunges forward on a correct strike */}
+                <div
+                  className={`transition-transform duration-300 ease-out ${
+                    isStriking ? 'translate-x-32 -translate-y-2 scale-110' : 'translate-x-0'
+                  }`}
+                >
+                  <PlayerSprite className="h-12 w-12 drop-shadow-[0_0_6px_rgba(34,211,238,0.85)]" />
+                </div>
+                <HeartRow hearts={hearts} shieldActive={shieldActive} shaking={playerShaking} />
+              </div>
+
+              {/* Consumable charge badges */}
+              <div className="mt-1 flex gap-2">
+                <ChargeBadge
+                  emoji="🛡️"
+                  label="Shield"
+                  count={consumableCharges.shield}
+                  active={shieldActive}
+                  disabled={!!activeCard}
+                  onUse={useShieldCharge}
+                />
+                <ChargeBadge
+                  emoji="💥"
+                  label="Heavy"
+                  count={consumableCharges.heavyAttack}
+                  active={dmgBonus > 0}
+                  disabled={!!activeCard}
+                  onUse={useHeavyCharge}
+                />
+                <ChargeBadge
+                  emoji="⚡"
+                  label="2×"
+                  count={consumableCharges.doubleDamage}
+                  active={dmgMultiplier > 1}
+                  disabled={!!activeCard}
+                  onUse={useDoubleCharge}
+                />
+              </div>
             </div>
 
             {/* Hand of cards */}

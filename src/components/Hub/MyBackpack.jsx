@@ -1,12 +1,34 @@
 import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
+import { useAudio } from '../../context/AudioContext.jsx';
 import { ItemSprite } from '../../assets/gameSprites.jsx';
 import { getTitleById } from '../../systems/milestones.js';
-import { arcadeCard, ARC_TILT, neuBtn, neuPanel } from '../../styles/neubrutalism.js';
+import { RARITY_STYLES, getScrapValue } from '../../systems/lootSystem.js';
+import { arcadeCard, btn3dSuccess, neuBtn, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
+import TiltedTitle from '../common/TiltedTitle.jsx';
 
 const SETTINGS_KEY = 'wit-backpack-settings';
+
+const TABS = [
+  { id: 'gear', label: 'Customize' },
+  { id: 'trade', label: 'Trade Box' },
+  { id: 'shop', label: 'Token Shop' },
+];
+
+/** Animated biomes purchasable with gems. */
+const SHOP_BIOMES = [
+  { id: 'deepsea', price: 400 },
+  { id: 'candy', price: 500 },
+];
+
+/** One-time-use combat consumables purchasable with gems. */
+const SHOP_CONSUMABLES = [
+  { type: 'shield', label: 'Shield Block Charge', emoji: '🛡️', price: 50 },
+  { type: 'heavyAttack', label: 'Heavy Attack Charge', emoji: '💥', price: 100 },
+  { type: 'doubleDamage', label: 'Double Damage Charge', emoji: '⚡', price: 150 },
+];
 
 const DEFAULT_SETTINGS = {
   soundEffects: true,
@@ -39,12 +61,222 @@ function AccessorySlot({ label, item }) {
   );
 }
 
+/* ── Trade Box: scrap unwanted cosmetics for gems ─────────────────────────── */
+function TradeBox() {
+  const { inventory, equipped, removeFromInventory, addGems } = usePlayerProgress();
+  const [selected, setSelected] = useState(() => new Set());
+
+  const isEquipped = (item) => equipped[item.category]?.id === item.id;
+  const toggle = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const totalValue = [...selected].reduce((sum, id) => {
+    const item = inventory.find((i) => i.id === id);
+    return sum + (item ? getScrapValue(item.rarity) : 0);
+  }, 0);
+
+  const scrapSelected = () => {
+    selected.forEach((id) => {
+      const item = inventory.find((i) => i.id === id);
+      if (item && !isEquipped(item)) {
+        removeFromInventory(id);
+        addGems(getScrapValue(item.rarity));
+      }
+    });
+    setSelected(new Set());
+  };
+
+  return (
+    <div className={`${arcadeCard} p-5`}>
+      <h2 className="text-lg font-black">Trade Box</h2>
+      <p className="mt-1 text-xs font-semibold opacity-70">
+        Select unwanted cosmetics or duplicates and scrap them for gems.
+      </p>
+
+      {inventory.length === 0 ? (
+        <p className={`${neuPanel} mt-4 bg-white p-4 text-center text-xs font-bold text-black/50`}>
+          No loot yet — open chests on the Quest Map to find cosmetics!
+        </p>
+      ) : (
+        <ul className="mt-4 grid max-h-72 gap-2 overflow-y-auto sm:grid-cols-2">
+          {inventory.map((item) => {
+            const equippedNow = isEquipped(item);
+            const checked = selected.has(item.id);
+            const styles = RARITY_STYLES[item.rarity] ?? RARITY_STYLES.Common;
+            return (
+              <li key={item.id}>
+                <button
+                  type="button"
+                  disabled={equippedNow}
+                  onClick={() => toggle(item.id)}
+                  className={`
+                    flex w-full items-center justify-between gap-2 rounded-xl border-4 px-3 py-2 text-left transition-all
+                    ${checked ? 'border-cyan-400 ring-2 ring-cyan-300' : 'border-black'}
+                    ${equippedNow ? 'cursor-not-allowed bg-stone-200 opacity-60' : 'bg-white hover:bg-lime-50'}
+                  `}
+                >
+                  <span className="flex min-w-0 items-center gap-2 text-sm font-bold text-black">
+                    <ItemSprite category={item.category} className="h-6 w-6 shrink-0" />
+                    <span className="min-w-0">
+                      <span className="line-clamp-1">{item.name}</span>
+                      <span className={`text-[10px] font-black uppercase ${styles.label}`}>
+                        {item.rarity}
+                        {equippedNow && ' · equipped'}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1 text-xs font-black text-amber-600">
+                    💎 {getScrapValue(item.rarity)}
+                  </span>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="mt-4 flex items-center justify-between gap-3">
+        <span className="text-sm font-black">
+          Selected: <span className="text-amber-300">💎 {totalValue}</span>
+        </span>
+        <button
+          type="button"
+          disabled={selected.size === 0}
+          onClick={scrapSelected}
+          className={`${btn3dSuccess} px-5 py-2.5 text-sm`}
+        >
+          Scrap for Gems
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Arcade Token Shop: spend gems on biomes & consumables ────────────────── */
+function TokenShop() {
+  const { gems, spendGems, unlockTheme, isThemeUnlocked, addConsumable, consumableCharges } =
+    usePlayerProgress();
+  const { setActiveTheme } = useTheme();
+
+  const buyBiome = (id, price) => {
+    if (isThemeUnlocked(id)) {
+      setActiveTheme(id);
+      return;
+    }
+    if (spendGems(price)) {
+      unlockTheme(id);
+      setActiveTheme(id);
+    }
+  };
+
+  const buyConsumable = (type, price) => {
+    if (spendGems(price)) addConsumable(type, 1);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className={`${arcadeCard} flex items-center justify-between p-5`}>
+        <div>
+          <h2 className="text-lg font-black">Arcade Token Shop</h2>
+          <p className="mt-1 text-xs font-semibold opacity-70">
+            Spend gems on biomes & combat charges.
+          </p>
+        </div>
+        <span className="rounded-full border-4 border-black bg-white px-3 py-1 text-sm font-black text-black">
+          💎 {gems}
+        </span>
+      </div>
+
+      {/* Premium animated biomes */}
+      <div className={`${arcadeCard} p-5`}>
+        <h3 className="text-sm font-black uppercase">Premium Animated Biomes</h3>
+        <div className="mt-3 grid gap-2">
+          {SHOP_BIOMES.map(({ id, price }) => {
+            const theme = PLATFORM_THEMES[id];
+            const owned = isThemeUnlocked(id);
+            const affordable = gems >= price;
+            return (
+              <div
+                key={id}
+                className="flex items-center gap-3 rounded-xl border-4 border-black bg-white p-3 text-black"
+              >
+                <span
+                  className="h-9 w-9 shrink-0 rounded-lg border-4 border-black"
+                  style={{ background: theme.swatch }}
+                  aria-hidden="true"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black">{theme.label}</span>
+                  <span className="block text-[10px] font-bold text-black/60">{theme.description}</span>
+                </span>
+                <button
+                  type="button"
+                  disabled={!owned && !affordable}
+                  onClick={() => buyBiome(id, price)}
+                  className={`${neuBtn} shrink-0 px-3 py-2 text-xs ${
+                    owned ? 'bg-lime-300 text-black' : affordable ? 'bg-yellow-300 text-black' : 'bg-stone-200 text-stone-500'
+                  }`}
+                >
+                  {owned ? 'Equip' : `💎 ${price}`}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* One-time combat charges */}
+      <div className={`${arcadeCard} p-5`}>
+        <h3 className="text-sm font-black uppercase">Combat Charges</h3>
+        <div className="mt-3 grid gap-2">
+          {SHOP_CONSUMABLES.map(({ type, label, emoji, price }) => {
+            const affordable = gems >= price;
+            return (
+              <div
+                key={type}
+                className="flex items-center gap-3 rounded-xl border-4 border-black bg-white p-3 text-black"
+              >
+                <span className="text-2xl" aria-hidden="true">
+                  {emoji}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black">{label}</span>
+                  <span className="block text-[10px] font-bold text-black/60">
+                    Owned: {consumableCharges[type] ?? 0}
+                  </span>
+                </span>
+                <button
+                  type="button"
+                  disabled={!affordable}
+                  onClick={() => buyConsumable(type, price)}
+                  className={`${neuBtn} shrink-0 px-3 py-2 text-xs ${
+                    affordable ? 'bg-yellow-300 text-black' : 'bg-stone-200 text-stone-500'
+                  }`}
+                >
+                  💎 {price}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MyBackpack() {
   const { badges, inventory, equipped, equipItem, isThemeUnlocked, activeTitle } =
     usePlayerProgress();
   const activeTitleLabel = getTitleById(activeTitle);
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
+  const { volume, setVolume } = useAudio();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [tab, setTab] = useState('gear');
 
   // Vibrant arcade panel — deep fill, neon border, inner glow, light ink.
   const cardCls = arcadeCard;
@@ -73,12 +305,34 @@ export default function MyBackpack() {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className={`${ARC_TILT} inline-block text-2xl font-black uppercase sm:text-3xl ${themeConfig.text_main}`}>My Backpack</h1>
-        <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
-          Customize your hero and manage settings!
+        <TiltedTitle as="h1" className="text-2xl font-black uppercase text-cyan-50 sm:text-3xl">
+          My Backpack
+        </TiltedTitle>
+        <p className={`mt-2 text-sm font-bold ${themeConfig.contrastMuted}`}>
+          Customize your hero, trade loot, and shop for power-ups!
         </p>
       </header>
 
+      {/* Sub-tab navigation */}
+      <div className="flex flex-wrap justify-center gap-2">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={`${neuBtn} px-5 py-2 text-sm ${
+              tab === t.id ? 'bg-yellow-300 text-black' : 'bg-white text-black hover:bg-lime-50'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'trade' && <TradeBox />}
+      {tab === 'shop' && <TokenShop />}
+
+      {tab === 'gear' && (
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Left — Avatar & accessories */}
         <div className={`${cardCls} p-5`}>
@@ -218,6 +472,30 @@ export default function MyBackpack() {
           </div>
 
           <div className={`${cardCls} p-5`}>
+            <h2 className="text-lg font-black">Music &amp; Sound</h2>
+            <p className="mt-1 text-xs font-semibold opacity-70">
+              Adventure & battle music cross-fade as you play.
+            </p>
+            <div className="mt-4 flex items-center gap-3">
+              <span className="text-xl" aria-hidden="true">
+                {volume === 0 ? '🔇' : '🔊'}
+              </span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={Math.round(volume * 100)}
+                onChange={(e) => setVolume(Number(e.target.value) / 100)}
+                aria-label="Background music volume"
+                className="h-3 w-full cursor-pointer appearance-none rounded-full border-2 border-black bg-white accent-cyan-400"
+              />
+              <span className="w-10 shrink-0 text-right text-sm font-black">
+                {Math.round(volume * 100)}%
+              </span>
+            </div>
+          </div>
+
+          <div className={`${cardCls} p-5`}>
             <h2 className="text-lg font-black">Parent Controls</h2>
             <p className="mt-1 text-xs font-semibold opacity-70">
               Grown-ups can manage account preferences here.
@@ -268,6 +546,7 @@ export default function MyBackpack() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

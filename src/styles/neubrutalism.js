@@ -35,9 +35,9 @@ export const neuBtnRound =
 export const neuPanel =
   'rounded-2xl border-4 border-black bg-white shadow-[0_8px_0_rgba(0,0,0,0.3)]';
 
-/** Angled comic-book chip (yellow). Slight tilt for velocity. */
+/** Status chip (yellow). Kept perfectly straight for crisp readability. */
 export const neuBadge =
-  '-rotate-2 rounded-full border-2 border-black bg-yellow-300 px-2 py-0.5 text-[10px] font-black uppercase text-black shadow-[0_3px_0_rgba(0,0,0,0.4)]';
+  'rotate-0 skew-x-0 rounded-full border-2 border-black bg-yellow-300 px-2 py-0.5 text-[10px] font-black uppercase text-black shadow-[0_3px_0_rgba(0,0,0,0.4)]';
 
 /* ── Bevel-layered gradient buttons (featured CTAs) ───────────────────────── */
 

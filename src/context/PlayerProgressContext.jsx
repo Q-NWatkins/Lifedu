@@ -51,6 +51,12 @@ export function PlayerProgressProvider({ children }) {
   const [unlockedCombatCards, setUnlockedCombatCards] = useState(
     saved?.unlockedCombatCards ?? [],
   );
+  const [consumableCharges, setConsumableCharges] = useState(() => ({
+    shield: 0,
+    heavyAttack: 0,
+    doubleDamage: 0,
+    ...(saved?.consumableCharges ?? {}),
+  }));
   const [stepCards, setStepCards] = useState(saved?.stepCards ?? 0);
   const [lastSpinAt, setLastSpinAt] = useState(saved?.lastSpinAt ?? null);
   const [unlockedTitles, setUnlockedTitles] = useState(saved?.unlockedTitles ?? []);
@@ -78,6 +84,7 @@ export function PlayerProgressProvider({ children }) {
           unlockedTitles,
           activeTitle,
           unlockedGrades,
+          consumableCharges,
         }),
       );
     } catch {
@@ -97,6 +104,7 @@ export function PlayerProgressProvider({ children }) {
     unlockedTitles,
     activeTitle,
     unlockedGrades,
+    consumableCharges,
   ]);
 
   const addToInventory = useCallback((item) => {
@@ -148,6 +156,55 @@ export function PlayerProgressProvider({ children }) {
     if (!amount) return;
     setGems((prev) => Math.max(0, prev + amount));
   }, []);
+
+  /** Spend gems if the balance covers it. Returns true on success. */
+  const spendGems = useCallback(
+    (amount) => {
+      if (amount <= 0 || gems < amount) return false;
+      setGems((prev) => Math.max(0, prev - amount));
+      return true;
+    },
+    [gems],
+  );
+
+  /** Remove an inventory item (and unequip it if it was worn). */
+  const removeFromInventory = useCallback((itemId) => {
+    if (!itemId) return;
+    setInventory((prev) => prev.filter((entry) => entry.id !== itemId));
+    setEquipped((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      for (const slot of Object.keys(next)) {
+        if (next[slot]?.id === itemId) {
+          next[slot] = null;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
+  /** Add one-time-use combat consumable charges. */
+  const addConsumable = useCallback((type, amount = 1) => {
+    if (!type || !amount) return;
+    setConsumableCharges((prev) => ({
+      ...prev,
+      [type]: Math.max(0, (prev[type] ?? 0) + amount),
+    }));
+  }, []);
+
+  /** Spend one charge of a consumable. Returns true if one was available. */
+  const consumeConsumable = useCallback(
+    (type) => {
+      if ((consumableCharges[type] ?? 0) <= 0) return false;
+      setConsumableCharges((prev) => ({
+        ...prev,
+        [type]: Math.max(0, (prev[type] ?? 0) - 1),
+      }));
+      return true;
+    },
+    [consumableCharges],
+  );
 
   /** Permanently unlock a special Combat Action Card. Returns true if new. */
   const unlockCombatCard = useCallback((cardId) => {
@@ -254,18 +311,23 @@ export function PlayerProgressProvider({ children }) {
       userUnlockedThemes,
       gems,
       unlockedCombatCards,
+      consumableCharges,
       stepCards,
       lastSpinAt,
       unlockedTitles,
       activeTitle,
       unlockedGrades,
       addToInventory,
+      removeFromInventory,
       equipItem,
       sendToBackpack,
       unlockTheme,
       isThemeUnlocked,
       addGems,
+      spendGems,
       unlockCombatCard,
+      addConsumable,
+      consumeConsumable,
       addStepCards,
       consumeStepCards,
       recordDailySpin,
@@ -284,18 +346,23 @@ export function PlayerProgressProvider({ children }) {
       userUnlockedThemes,
       gems,
       unlockedCombatCards,
+      consumableCharges,
       stepCards,
       lastSpinAt,
       unlockedTitles,
       activeTitle,
       unlockedGrades,
       addToInventory,
+      removeFromInventory,
       equipItem,
       sendToBackpack,
       unlockTheme,
       isThemeUnlocked,
       addGems,
+      spendGems,
       unlockCombatCard,
+      addConsumable,
+      consumeConsumable,
       addStepCards,
       consumeStepCards,
       recordDailySpin,

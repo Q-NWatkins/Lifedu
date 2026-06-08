@@ -5,10 +5,6 @@ import { useGameLoop } from '../../hooks/useGameLoop.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle, SkirmishModal } from '../BossBattle/index.js';
 import { ChestModal } from '../Loot/index.js';
-import {
-  SIDE_BOSS_REWARD_CARD_ID,
-  SPECIAL_COMBAT_CARDS,
-} from '../../systems/combatCards.js';
 import ForkChoiceModal from './ForkChoiceModal.jsx';
 import MapComponent from './MapComponent.jsx';
 import MovementDeck from './MovementDeck.jsx';
@@ -33,7 +29,7 @@ export default function GameBoard({
 }) {
   const palette = getBoardTheme(theme);
   const { themeConfig } = useTheme();
-  const { completedCourses, addGems, unlockCombatCard, stepCards, consumeStepCards } =
+  const { completedCourses, addGems, addConsumable, stepCards, consumeStepCards } =
     usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
 
@@ -77,15 +73,14 @@ export default function GameBoard({
     skipBossEncounter: isCourseComplete && !replay,
   });
 
-  const sideBossReward = SPECIAL_COMBAT_CARDS[SIDE_BOSS_REWARD_CARD_ID];
-
   const handleReplayReward = () => {
     addGems(REPLAY_GEM_BONUS);
     addEnergy(REPLAY_ENERGY_BONUS);
   };
 
+  // Side-boss now drops a one-time Double Damage charge (not a permanent trait).
   const handleSideBossWin = () => {
-    unlockCombatCard(SIDE_BOSS_REWARD_CARD_ID);
+    addConsumable('doubleDamage', 1);
     resolveSideBoss(sideBossEncounter?.id);
   };
 
@@ -138,7 +133,7 @@ export default function GameBoard({
           kind="side"
           node={sideBossEncounter}
           questionCount={2}
-          rewardLabel={sideBossReward?.name}
+          rewardLabel="Double Damage Charge"
           onWin={handleSideBossWin}
           onSkip={() => resolveSideBoss(sideBossEncounter.id)}
         />

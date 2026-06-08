@@ -12,7 +12,8 @@ import {
 import { btn3d, neuBtn } from '../../styles/neubrutalism.js';
 import Confetti from '../common/Confetti.jsx';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
+// Cooldown between free spins: 5 hours, enabling multi-session daily loops.
+const DAY_MS = 5 * 60 * 60 * 1000;
 const QUESTION_SECONDS = 12;
 const SPIN_MS = 3400;
 

@@ -3,9 +3,10 @@ import { REALMS, getRealmById } from '../../config/realms.js';
 import { MAX_GRADE, getGradeMap } from '../../config/mapRegistry.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
-import { ARC_TILT, neuBtn, neuCard } from '../../styles/neubrutalism.js';
+import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import { CourseBoard } from '../GameBoard/index.js';
 import DailyTriviaWheel from './DailyTriviaWheel.jsx';
+import TiltedTitle from '../common/TiltedTitle.jsx';
 
 const GRADES = Array.from({ length: MAX_GRADE }, (_, i) => i + 1);
 
@@ -148,10 +149,10 @@ export default function QuestMap({ initialRealmId = null }) {
       </div>
 
       <header className="mb-6 text-center">
-        <h1 className={`${ARC_TILT} inline-block text-2xl font-black uppercase sm:text-3xl ${themeConfig.text_main}`}>
+        <TiltedTitle as="h1" className="text-2xl font-black uppercase text-cyan-50 sm:text-3xl">
           Choose Your Realm
-        </h1>
-        <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
+        </TiltedTitle>
+        <p className={`mt-2 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Each realm is a 5-grade campaign — beat a grade boss to unlock the next!
         </p>
       </header>
@@ -180,7 +181,7 @@ export default function QuestMap({ initialRealmId = null }) {
                   Grade {ceiling}/{MAX_GRADE}
                 </span>
               </div>
-              <h2 className={`${ARC_TILT} mt-3 inline-block text-xl font-black uppercase text-black`}>
+              <h2 className="mt-3 inline-block rotate-0 skew-x-0 skew-y-0 text-xl font-black uppercase text-black">
                 {realm.name}
               </h2>
               <p className="mt-1 text-sm font-semibold text-black/70">{realm.tagline}</p>

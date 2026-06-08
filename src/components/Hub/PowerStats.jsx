@@ -3,9 +3,10 @@ import { CURRICULUMS } from '../../config/index.js';
 import { getRealmByCurriculum } from '../../config/realms.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
-import { arcadeCard, ARC_TILT, neuBtn, neuCard } from '../../styles/neubrutalism.js';
+import { arcadeCard, neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import SkillHexagon from '../SkillHexagon/SkillHexagon.jsx';
 import BadgeStand from './BadgeStand.jsx';
+import TiltedTitle from '../common/TiltedTitle.jsx';
 
 const SKILL_IDS = ['math', 'science', 'reading', 'history'];
 const GAP_THRESHOLD = 35;
@@ -36,10 +37,10 @@ export default function PowerStats({ onGoToRealm }) {
   return (
     <div className="space-y-6">
       <header className="text-center">
-        <h1 className={`${ARC_TILT} inline-block text-2xl font-black uppercase sm:text-3xl ${themeConfig.text_main}`}>
+        <TiltedTitle as="h1" className="text-2xl font-black uppercase text-cyan-50 sm:text-3xl">
           Power Stats
-        </h1>
-        <p className={`mt-1 text-sm font-bold ${themeConfig.contrastMuted}`}>
+        </TiltedTitle>
+        <p className={`mt-2 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Scan your skills and plan your next quest!
         </p>
       </header>
