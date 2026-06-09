@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
+import { useGameAudio } from '../../context/AudioContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle, SkirmishModal } from '../BossBattle/index.js';
@@ -29,6 +30,12 @@ export default function GameBoard({
 }) {
   const palette = getBoardTheme(theme);
   const { themeConfig } = useTheme();
+  const { playTrack } = useGameAudio();
+  useEffect(() => {
+    if (playTrack) {
+      playTrack('gameboard');
+    }
+  }, [course?.id, playTrack]); // Plays whenever they switch realms
   const { completedCourses, addGems, addConsumable, stepCards, consumeStepCards } =
     usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;

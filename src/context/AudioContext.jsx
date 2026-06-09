@@ -178,6 +178,8 @@ export function AudioProvider({ children }) {
       bgmVolume,
       currentTrack,
       switchTrack,
+      // Alias: same smooth cross-fade switcher, friendlier verb for callers.
+      playTrack: switchTrack,
       updateVolume,
       playSfx,
     }),
