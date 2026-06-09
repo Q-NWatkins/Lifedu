@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useGameAudio } from '../../context/AudioContext.jsx';
 import { AdminGuard, AdminPanel } from '../Auth/index.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
 import TiltedTitle from '../common/TiltedTitle.jsx';
@@ -14,8 +15,16 @@ export default function MainDashboard() {
   const { themeConfig } = useTheme();
   const { gems, stepCards } = usePlayerProgress();
   const { session, isAdmin, logout } = useAuth();
+  const { switchTrack } = useGameAudio();
   const [activeTab, setActiveTab] = useState('quest');
   const [questRealmId, setQuestRealmId] = useState(null);
+
+  // Tab-driven BGM. The Quest tab is left to QuestMap, which distinguishes the
+  // realm picker (hub) from an open realm map (gameboard).
+  useEffect(() => {
+    if (activeTab === 'backpack') switchTrack('backpack');
+    else if (activeTab === 'stats' || activeTab === 'admin') switchTrack('hub');
+  }, [activeTab, switchTrack]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
-import { useAudio } from '../../context/AudioContext.jsx';
+import { useGameAudio } from '../../context/AudioContext.jsx';
 import { ItemSprite } from '../../assets/gameSprites.jsx';
 import { getTitleById } from '../../systems/milestones.js';
 import { RARITY_STYLES, getScrapValue } from '../../systems/lootSystem.js';
@@ -274,7 +274,7 @@ export default function MyBackpack() {
     usePlayerProgress();
   const activeTitleLabel = getTitleById(activeTitle);
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
-  const { volume, setVolume } = useAudio();
+  const { bgmVolume, updateVolume } = useGameAudio();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [tab, setTab] = useState('gear');
 
@@ -474,23 +474,24 @@ export default function MyBackpack() {
           <div className={`${cardCls} p-5`}>
             <h2 className="text-lg font-black">Music &amp; Sound</h2>
             <p className="mt-1 text-xs font-semibold opacity-70">
-              Adventure & battle music cross-fade as you play.
+              Overworld & battle music cross-fade as you play. Slide to 0 to mute.
             </p>
             <div className="mt-4 flex items-center gap-3">
-              <span className="text-xl" aria-hidden="true">
-                {volume === 0 ? '🔇' : '🔊'}
+              <span className="text-2xl" aria-hidden="true">
+                {bgmVolume === 0 ? '🔇' : '🔊'}
               </span>
               <input
                 type="range"
                 min="0"
-                max="100"
-                value={Math.round(volume * 100)}
-                onChange={(e) => setVolume(Number(e.target.value) / 100)}
+                max="1"
+                step="0.1"
+                value={bgmVolume}
+                onChange={(e) => updateVolume(Number(e.target.value))}
                 aria-label="Background music volume"
-                className="h-3 w-full cursor-pointer appearance-none rounded-full border-2 border-black bg-white accent-cyan-400"
+                className="h-5 w-full cursor-pointer appearance-none rounded-full border-4 border-black bg-white accent-cyan-400 shadow-[0_3px_0_rgba(0,0,0,0.3)]"
               />
               <span className="w-10 shrink-0 text-right text-sm font-black">
-                {Math.round(volume * 100)}%
+                {Math.round(bgmVolume * 100)}%
               </span>
             </div>
           </div>

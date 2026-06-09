@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { PlayerProgressProvider } from './context/PlayerProgressContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
-import { AudioProvider, useAudio } from './context/AudioContext.jsx';
+import { AudioProvider, useGameAudio } from './context/AudioContext.jsx';
 import PlatformBackground from './components/Platform/PlatformBackground.jsx';
 import { MainDashboard } from './components/Hub/index.js';
 import { LoginForm } from './components/Auth/index.js';
@@ -14,14 +14,13 @@ import { LoginForm } from './components/Auth/index.js';
  */
 function AuthenticatedApp() {
   const { isAuthenticated } = useAuth();
-  const { playExploration, stopMusic } = useAudio();
+  const { switchTrack } = useGameAudio();
 
-  // Exploration music plays across the dashboard; the Boss Battle screen takes
-  // over with the combat track and restores exploration on exit.
+  // Individual screens select their own track; here we just silence music on
+  // the login screen / logout.
   useEffect(() => {
-    if (isAuthenticated) playExploration();
-    else stopMusic();
-  }, [isAuthenticated, playExploration, stopMusic]);
+    if (!isAuthenticated) switchTrack(null);
+  }, [isAuthenticated, switchTrack]);
 
   if (!isAuthenticated) {
     return (

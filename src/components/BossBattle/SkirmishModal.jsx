@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
+import { useGameAudio } from '../../context/AudioContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 
 const PHASE = { INTRO: 'intro', BATTLE: 'battle', VICTORY: 'victory' };
@@ -26,6 +27,15 @@ export default function SkirmishModal({
 }) {
   const isSide = kind === 'side';
   const tier = difficulty ?? (isSide ? 'hard' : 'easy');
+
+  const { switchTrack } = useGameAudio();
+
+  // Side/mini-boss skirmish → sideBoss theme; restore the gameboard map theme
+  // when the overlay closes.
+  useEffect(() => {
+    switchTrack('sideBoss');
+    return () => switchTrack('gameboard');
+  }, [switchTrack]);
 
   const [questions] = useState(() =>
     getQuestionsForDifficulty(tier).slice(0, questionCount),

@@ -9,30 +9,34 @@ import {
 } from 'react';
 
 /**
- * Centralized background-music engine with a tiny cross-fade state machine.
+ * Centralized Background Music (BGM) engine.
  *
- * Two looping HTML5 Audio nodes (exploration + combat) are kept alive for the
- * app's lifetime. Switching `mode` eases the outgoing track's gain to 0 and the
- * incoming track's gain to the master `volume`, giving a smooth cross-fade.
+ * A registry of looping HTML5 Audio nodes (one per gameplay screen state) is
+ * created once and kept alive for the app's lifetime. `switchTrack(key)` runs a
+ * smooth 300ms cross-fade: the outgoing track fades to 0, pauses, and rewinds;
+ * the incoming track fades up to the global `bgmVolume`.
  *
- * Track URLs are royalty-free placeholders — drop your own loops into
- * `public/audio/` (or point these at a CDN). Missing files fail silently.
+ * Track URLs are local public-asset placeholders — drop your own royalty-free
+ * loops into `public/audio/`. Missing files fail silently.
  */
-const TRACKS = {
-  exploration: '/audio/exploration-loop.mp3', // upbeat adventurous fantasy loop
-  combat: '/audio/combat-loop.mp3', // intense driving dark rhythm
+const TRACK_SOURCES = {
+  hub: '/audio/hub_theme.mp3', // Quest Map & Power Stats
+  backpack: '/audio/backpack_theme.mp3', // My Backpack view
+  gameboard: '/audio/gameboard_theme.mp3', // active realm maps
+  sideBoss: '/audio/sideboss_theme.mp3', // side-boss card fights
+  finalBoss: '/audio/finalboss_theme.mp3', // final boss arena
 };
 
-const VOLUME_KEY = 'wit-audio-volume';
-const FADE_STEP = 0.05; // gain change per tick
-const FADE_MS = 60;
+const VOLUME_KEY = 'wit-bgm-volume';
+const FADE_MS = 300;
+const TICK_MS = 30;
 
-const clamp01 = (v) => Math.min(1, Math.max(0, v));
+const clamp01 = (v) => Math.min(1, Math.max(0, Number(v) || 0));
 
 function loadVolume() {
   try {
     const raw = localStorage.getItem(VOLUME_KEY);
-    if (raw != null) return clamp01(Number(raw));
+    if (raw != null) return clamp01(raw);
   } catch {
     // ignore
   }
@@ -42,99 +46,124 @@ function loadVolume() {
 const AudioContext = createContext(null);
 
 export function AudioProvider({ children }) {
-  const [volume, setVolumeState] = useState(loadVolume);
-  const [mode, setMode] = useState(null); // 'exploration' | 'combat' | null
+  const [bgmVolume, setBgmVolume] = useState(loadVolume);
+  const [currentTrack, setCurrentTrack] = useState(null);
 
   const tracksRef = useRef(null);
-  const targetsRef = useRef({ exploration: 0, combat: 0 });
+  const currentKeyRef = useRef(null);
   const fadeRef = useRef(null);
-  const volumeRef = useRef(volume);
-  const modeRef = useRef(mode);
+  const volumeRef = useRef(bgmVolume);
 
   useEffect(() => {
-    volumeRef.current = volume;
-  }, [volume]);
-  useEffect(() => {
-    modeRef.current = mode;
-  }, [mode]);
+    volumeRef.current = bgmVolume;
+  }, [bgmVolume]);
 
-  // Create the persistent audio nodes once.
+  // ── Track registry: build the Audio nodes once ────────────────────────────
   useEffect(() => {
-    const make = (src) => {
+    const registry = {};
+    for (const [key, src] of Object.entries(TRACK_SOURCES)) {
       const audio = new Audio(src);
       audio.loop = true;
       audio.preload = 'auto';
       audio.volume = 0;
-      return audio;
-    };
-    tracksRef.current = {
-      exploration: make(TRACKS.exploration),
-      combat: make(TRACKS.combat),
-    };
+      registry[key] = audio;
+    }
+    tracksRef.current = registry;
 
     return () => {
       if (fadeRef.current) clearInterval(fadeRef.current);
-      const tracks = tracksRef.current;
-      if (tracks) {
-        Object.values(tracks).forEach((a) => {
-          a.pause();
-          a.src = '';
-        });
-      }
+      Object.values(registry).forEach((a) => {
+        a.pause();
+        a.src = '';
+      });
     };
   }, []);
 
-  const runFade = useCallback(() => {
-    if (fadeRef.current) return; // already fading
-    fadeRef.current = setInterval(() => {
-      const tracks = tracksRef.current;
-      if (!tracks) return;
-      let stillFading = false;
-
-      for (const key of Object.keys(tracks)) {
-        const audio = tracks[key];
-        const target = targetsRef.current[key];
-        const diff = target - audio.volume;
-
-        if (Math.abs(diff) <= FADE_STEP) {
-          audio.volume = clamp01(target);
-          if (target === 0 && !audio.paused) audio.pause();
-        } else {
-          audio.volume = clamp01(audio.volume + Math.sign(diff) * FADE_STEP);
-          stillFading = true;
-        }
-      }
-
-      if (!stillFading) {
-        clearInterval(fadeRef.current);
-        fadeRef.current = null;
-      }
-    }, FADE_MS);
-  }, []);
-
-  // Whenever mode or volume changes, recompute targets and (re)start the fade.
-  useEffect(() => {
+  // ── Smooth cross-fade switcher ────────────────────────────────────────────
+  const switchTrack = useCallback((newTrackKey) => {
     const tracks = tracksRef.current;
     if (!tracks) return;
 
-    for (const key of Object.keys(tracks)) {
-      const isActive = key === mode;
-      targetsRef.current[key] = isActive ? volume : 0;
-      if (isActive) {
-        // play() may reject until the first user gesture — that's fine.
-        tracks[key].play?.().catch(() => {});
-      }
+    const fromKey = currentKeyRef.current;
+    if (fromKey === newTrackKey) {
+      // Already on this track — make sure it's actually playing.
+      const same = newTrackKey ? tracks[newTrackKey] : null;
+      same?.play?.().catch(() => {});
+      return;
     }
-    runFade();
-  }, [mode, volume, runFade]);
 
-  // Browser autoplay policies block audio until a user gesture. On the first
-  // interaction, resume whatever track the current mode wants.
+    if (fadeRef.current) clearInterval(fadeRef.current);
+
+    const outgoing = fromKey ? tracks[fromKey] : null;
+    const incoming = newTrackKey ? tracks[newTrackKey] : null;
+    const targetVol = volumeRef.current;
+
+    currentKeyRef.current = newTrackKey ?? null;
+    setCurrentTrack(newTrackKey ?? null);
+
+    if (incoming) {
+      incoming.volume = 0;
+      incoming.play?.().catch(() => {});
+    }
+
+    const outStart = outgoing ? outgoing.volume : 0;
+    let elapsed = 0;
+
+    fadeRef.current = setInterval(() => {
+      elapsed += TICK_MS;
+      const t = Math.min(1, elapsed / FADE_MS);
+
+      if (outgoing) outgoing.volume = clamp01(outStart * (1 - t));
+      if (incoming) incoming.volume = clamp01(targetVol * t);
+
+      if (t >= 1) {
+        clearInterval(fadeRef.current);
+        fadeRef.current = null;
+        if (outgoing) {
+          outgoing.pause();
+          outgoing.currentTime = 0; // reset outgoing playback position
+        }
+        if (incoming) incoming.volume = targetVol;
+      }
+    }, TICK_MS);
+  }, []);
+
+  // ── Global volume control ─────────────────────────────────────────────────
+  const updateVolume = useCallback((newValue) => {
+    const vol = clamp01(newValue);
+    volumeRef.current = vol;
+    setBgmVolume(vol);
+    try {
+      localStorage.setItem(VOLUME_KEY, String(vol));
+    } catch {
+      // ignore
+    }
+    // Apply across all registered elements at once (only the active one is audible).
+    const tracks = tracksRef.current;
+    if (!tracks) return;
+    for (const key of Object.keys(tracks)) {
+      tracks[key].volume = key === currentKeyRef.current ? vol : 0;
+    }
+  }, []);
+
+  // ── One-shot sound snippet helper ─────────────────────────────────────────
+  const playSfx = useCallback((src) => {
+    if (!src) return;
+    try {
+      const sfx = new Audio(src);
+      sfx.volume = volumeRef.current;
+      sfx.play?.().catch(() => {});
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Browser autoplay policies block audio until the first user gesture.
   useEffect(() => {
     const unlock = () => {
       const tracks = tracksRef.current;
-      const current = modeRef.current;
-      if (tracks && current) tracks[current].play?.().catch(() => {});
+      const key = currentKeyRef.current;
+      if (tracks && key) tracks[key].play?.().catch(() => {});
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
@@ -144,34 +173,22 @@ export function AudioProvider({ children }) {
     };
   }, []);
 
-  const setVolume = useCallback((next) => {
-    const vol = clamp01(Number(next));
-    setVolumeState(vol);
-    try {
-      localStorage.setItem(VOLUME_KEY, String(vol));
-    } catch {
-      // ignore
-    }
-  }, []);
-
   const value = useMemo(
     () => ({
-      mode,
-      volume,
-      setVolume,
-      setMode,
-      playExploration: () => setMode('exploration'),
-      playCombat: () => setMode('combat'),
-      stopMusic: () => setMode(null),
+      bgmVolume,
+      currentTrack,
+      switchTrack,
+      updateVolume,
+      playSfx,
     }),
-    [mode, volume, setVolume],
+    [bgmVolume, currentTrack, switchTrack, updateVolume, playSfx],
   );
 
   return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
 }
 
-export function useAudio() {
+export function useGameAudio() {
   const ctx = useContext(AudioContext);
-  if (!ctx) throw new Error('useAudio must be used within AudioProvider');
+  if (!ctx) throw new Error('useGameAudio must be used within AudioProvider');
   return ctx;
 }

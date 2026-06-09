@@ -3,6 +3,7 @@ import { REALMS, getRealmById } from '../../config/realms.js';
 import { MAX_GRADE, getGradeMap } from '../../config/mapRegistry.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
+import { useGameAudio } from '../../context/AudioContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 import { CourseBoard } from '../GameBoard/index.js';
 import DailyTriviaWheel from './DailyTriviaWheel.jsx';
@@ -13,6 +14,7 @@ const GRADES = Array.from({ length: MAX_GRADE }, (_, i) => i + 1);
 export default function QuestMap({ initialRealmId = null }) {
   const { unlockedGrades, completedCourses } = usePlayerProgress();
   const { themeConfig } = useTheme();
+  const { switchTrack } = useGameAudio();
   const [activeRealmId, setActiveRealmId] = useState(null);
   const [activeGrade, setActiveGrade] = useState(1);
   const [replayGrade, setReplayGrade] = useState(null);
@@ -37,6 +39,12 @@ export default function QuestMap({ initialRealmId = null }) {
     if (realm) enterRealm(realm);
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only auto-enter when hub navigates to a realm
   }, [initialRealmId]);
+
+  // Realm picker → hub theme; an open realm map → gameboard theme.
+  const boardOpen = Boolean(activeRealm && activeMapId);
+  useEffect(() => {
+    switchTrack(boardOpen ? 'gameboard' : 'hub');
+  }, [boardOpen, switchTrack]);
 
   const selectGrade = (grade) => {
     setActiveGrade(grade);

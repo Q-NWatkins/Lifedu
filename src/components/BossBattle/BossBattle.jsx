@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getThemeUnlockForRarity, RARITY_STYLES, rollLoot } from '../../systems/lootSystem.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
-import { useAudio } from '../../context/AudioContext.jsx';
+import { useGameAudio } from '../../context/AudioContext.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
@@ -258,14 +258,13 @@ export default function BossBattle({
   // Base hand + any permanently unlocked Side-Boss cards.
   const hand = useMemo(() => getPlayerHand(unlockedCombatCards), [unlockedCombatCards]);
 
-  const { playCombat, playExploration } = useAudio();
+  const { switchTrack } = useGameAudio();
 
-  // Cross-fade into the combat track while the arena is open; restore the
-  // exploration loop when the player leaves the boss screen.
+  // Final boss arena → finalBoss theme; restore the gameboard map theme on exit.
   useEffect(() => {
-    playCombat();
-    return () => playExploration();
-  }, [playCombat, playExploration]);
+    switchTrack('finalBoss');
+    return () => switchTrack('gameboard');
+  }, [switchTrack]);
 
   const boss = course.boss;
   const BossSprite = getBossSprite(course.curriculumId);
