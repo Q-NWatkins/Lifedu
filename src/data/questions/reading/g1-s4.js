@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'g1-reading-s4-001',
+    prompt: 'Read: "The dog barked loudly." What animal barked?',
+    options: ['cat', 'dog', 'bird', 'fish'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s4-002',
+    prompt: 'Which word best completes the sentence? "The sun is ___."',
+    options: ['bright', 'jump', 'table', 'dog'],
+    correctIndex: 0,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s4-003',
+    prompt: 'Which word is a naming word (noun)?',
+    options: ['run', 'happy', 'book', 'quickly'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s4-004',
+    prompt: 'Read: "Lily went to the park." Where did Lily go?',
+    options: ['school', 'store', 'park', 'house'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s4-005',
+    prompt: 'Which word means the same as "happy"?',
+    options: ['sad', 'glad', 'angry', 'tired'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s4-006',
+    prompt: 'What comes first in a story?',
+    options: ['middle', 'ending', 'beginning', 'title page'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s4-007',
+    prompt: 'Read: "Ben put on boots because it was raining." Why did Ben wear boots?',
+    options: ['It was snowing', 'It was raining', 'It was sunny', 'It was bedtime'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+];

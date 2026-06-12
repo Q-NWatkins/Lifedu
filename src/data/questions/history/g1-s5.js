@@ -1,0 +1,9 @@
+export default [
+  { id: 'g1-history-s5-001', prompt: 'What can we learn from family stories?', options: ['Information about the past', 'How to change the weather', 'How plants make food', 'How planets move'], correctIndex: 0, difficulty: 'hard' },
+  { id: 'g1-history-s5-002', prompt: 'Which event would come first on a timeline?', options: ['The earliest event', 'The latest event', 'The funniest event', 'The longest event'], correctIndex: 0, difficulty: 'hard' },
+  { id: 'g1-history-s5-003', prompt: 'Why do communities have helpers like police officers and firefighters?', options: ['To keep people safe', 'To make it rain', 'To grow crops', 'To build mountains'], correctIndex: 0, difficulty: 'hard' },
+  { id: 'g1-history-s5-004', prompt: 'If something happened before you were born, it is part of what?', options: ['The past', 'The future', 'Today', 'Tomorrow'], correctIndex: 0, difficulty: 'hard' },
+  { id: 'g1-history-s5-005', prompt: 'Why are national symbols important?', options: ['They help represent a country', 'They control the weather', 'They grow food', 'They teach math'], correctIndex: 0, difficulty: 'hard' },
+  { id: 'g1-history-s5-006', prompt: 'What is one reason people celebrate holidays?', options: ['To remember important events and traditions', 'To make the sun shine', 'To change the seasons', 'To stop clocks'], correctIndex: 0, difficulty: 'hard' },
+  { id: 'g1-history-s5-007', prompt: 'How can a timeline help us understand history?', options: ['It shows the order in which events happened', 'It predicts the future', 'It measures temperature', 'It grows plants'], correctIndex: 0, difficulty: 'hard' },
+];

@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'g1-reading-s1-001',
+    prompt: 'Which word rhymes with "cat"?',
+    options: ['dog', 'hat', 'sun', 'pen'],
+    correctIndex: 1,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s1-002',
+    prompt: 'Which word starts with the letter B?',
+    options: ['apple', 'ball', 'cat', 'dog'],
+    correctIndex: 1,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s1-003',
+    prompt: 'Which word names an animal?',
+    options: ['chair', 'tiger', 'table', 'book'],
+    correctIndex: 1,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s1-004',
+    prompt: 'What is the first letter in the word "sun"?',
+    options: ['s', 'u', 'n', 't'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s1-005',
+    prompt: 'Which word is a color?',
+    options: ['run', 'blue', 'jump', 'tree'],
+    correctIndex: 1,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s1-006',
+    prompt: 'Which word rhymes with "log"?',
+    options: ['dog', 'sun', 'hat', 'pen'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s1-007',
+    prompt: 'Which word is a person?',
+    options: ['teacher', 'desk', 'book', 'tree'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+];

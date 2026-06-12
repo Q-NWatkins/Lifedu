@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
+import { getStageQuestionPools } from '../../data/questions/index.js';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
 
@@ -21,6 +22,7 @@ export default function SkirmishModal({
   node,
   questionCount = 2,
   difficulty,
+  questionBankId,
   rewardLabel,
   onWin,
   onSkip,
@@ -37,9 +39,12 @@ export default function SkirmishModal({
     return () => switchTrack('gameboard');
   }, [switchTrack]);
 
-  const [questions] = useState(() =>
-    getQuestionsForDifficulty(tier).slice(0, questionCount),
-  );
+  // Prefer the active stage's bank for this tier; fall back to multi-subject.
+  const [questions] = useState(() => {
+    const bankTier = getStageQuestionPools(questionBankId)[tier];
+    const pool = bankTier ?? getQuestionsForDifficulty(tier);
+    return pool.slice(0, questionCount);
+  });
   const [phase, setPhase] = useState(PHASE.INTRO);
   const [qIndex, setQIndex] = useState(0);
   const [selected, setSelected] = useState(null);

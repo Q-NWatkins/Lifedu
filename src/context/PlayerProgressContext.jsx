@@ -1,8 +1,20 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { CURRICULUMS } from '../config/index.js';
 import { BASE_THEME_IDS } from './ThemeContext.jsx';
+import { useAuth } from './AuthContext.jsx';
 
-const STORAGE_KEY = 'wit-player-progress';
+// Storage is namespaced PER USER so accounts sharing a device never inherit each
+// other's gems / courses / unlocks. Key shape: `wit-progress:<userId>`.
+const STORAGE_NS = 'wit-progress';
+const keyFor = (userId) => `${STORAGE_NS}:${userId}`;
 
 const DEFAULT_SKILLS = Object.fromEntries(
   Object.keys(CURRICULUMS).map((id) => [id, 10]),
@@ -22,54 +34,127 @@ const DEFAULT_EQUIPPED = {
   badge: null,
 };
 
-function loadProgress() {
+/**
+ * A pristine, zeroed progress snapshot — exactly what a brand-new account or a
+ * logged-out session sees (0 gems, no unlocks, baseline skills/energy).
+ */
+function defaultProgress() {
+  return {
+    skills: { ...DEFAULT_SKILLS },
+    badges: [],
+    completedCourses: [],
+    inventory: [],
+    equipped: { ...DEFAULT_EQUIPPED },
+    userUnlockedThemes: [...DEFAULT_UNLOCKED_THEMES],
+    gems: 0,
+    unlockedCombatCards: [],
+    consumableCharges: { shield: 0, heavyAttack: 0, doubleDamage: 0 },
+    stepCards: 0,
+    lastSpinAt: null,
+    unlockedTitles: [],
+    activeTitle: null,
+    unlockedGrades: { ...DEFAULT_UNLOCKED_GRADES },
+  };
+}
+
+/**
+ * Load + normalize a single user's saved blob. With no user (logged out) or no
+ * saved data, returns clean defaults so nothing carries over between accounts.
+ */
+function loadProgress(userId) {
+  const base = defaultProgress();
+  if (!userId) return base;
+
+  let saved = null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const raw = localStorage.getItem(keyFor(userId));
+    saved = raw ? JSON.parse(raw) : null;
   } catch {
-    return null;
+    saved = null;
   }
+  if (!saved) return base;
+
+  const themes = new Set(DEFAULT_UNLOCKED_THEMES);
+  (saved.userUnlockedThemes ?? []).forEach((id) => themes.add(id));
+
+  return {
+    skills: saved.skills ?? base.skills,
+    badges: saved.badges ?? base.badges,
+    completedCourses: saved.completedCourses ?? base.completedCourses,
+    inventory: saved.inventory ?? base.inventory,
+    equipped: saved.equipped ?? base.equipped,
+    userUnlockedThemes: [...themes],
+    gems: saved.gems ?? base.gems,
+    unlockedCombatCards: saved.unlockedCombatCards ?? base.unlockedCombatCards,
+    consumableCharges: { ...base.consumableCharges, ...(saved.consumableCharges ?? {}) },
+    stepCards: saved.stepCards ?? base.stepCards,
+    lastSpinAt: saved.lastSpinAt ?? base.lastSpinAt,
+    unlockedTitles: saved.unlockedTitles ?? base.unlockedTitles,
+    activeTitle: saved.activeTitle ?? base.activeTitle,
+    unlockedGrades: { ...base.unlockedGrades, ...(saved.unlockedGrades ?? {}) },
+  };
 }
 
 const PlayerProgressContext = createContext(null);
 
 export function PlayerProgressProvider({ children }) {
-  const saved = loadProgress();
+  // The active account drives which namespaced store we read/write.
+  const { session } = useAuth();
+  const userId = session?.username ?? null;
 
-  const [skills, setSkills] = useState(saved?.skills ?? DEFAULT_SKILLS);
-  const [badges, setBadges] = useState(saved?.badges ?? []);
-  const [completedCourses, setCompletedCourses] = useState(saved?.completedCourses ?? []);
-  const [inventory, setInventory] = useState(saved?.inventory ?? []);
-  const [equipped, setEquipped] = useState(saved?.equipped ?? DEFAULT_EQUIPPED);
-  const [userUnlockedThemes, setUserUnlockedThemes] = useState(() => {
-    const base = new Set(DEFAULT_UNLOCKED_THEMES);
-    (saved?.userUnlockedThemes ?? []).forEach((id) => base.add(id));
-    return [...base];
-  });
-  const [gems, setGems] = useState(saved?.gems ?? 0);
-  const [unlockedCombatCards, setUnlockedCombatCards] = useState(
-    saved?.unlockedCombatCards ?? [],
-  );
-  const [consumableCharges, setConsumableCharges] = useState(() => ({
-    shield: 0,
-    heavyAttack: 0,
-    doubleDamage: 0,
-    ...(saved?.consumableCharges ?? {}),
-  }));
-  const [stepCards, setStepCards] = useState(saved?.stepCards ?? 0);
-  const [lastSpinAt, setLastSpinAt] = useState(saved?.lastSpinAt ?? null);
-  const [unlockedTitles, setUnlockedTitles] = useState(saved?.unlockedTitles ?? []);
-  const [activeTitle, setActiveTitleState] = useState(saved?.activeTitle ?? null);
-  const [unlockedGrades, setUnlockedGrades] = useState(() => ({
-    ...DEFAULT_UNLOCKED_GRADES,
-    ...(saved?.unlockedGrades ?? {}),
-  }));
+  // Start from a clean slate; the hydrate effect loads the active user's data.
+  const initial = defaultProgress();
+  const [skills, setSkills] = useState(initial.skills);
+  const [badges, setBadges] = useState(initial.badges);
+  const [completedCourses, setCompletedCourses] = useState(initial.completedCourses);
+  const [inventory, setInventory] = useState(initial.inventory);
+  const [equipped, setEquipped] = useState(initial.equipped);
+  const [userUnlockedThemes, setUserUnlockedThemes] = useState(initial.userUnlockedThemes);
+  const [gems, setGems] = useState(initial.gems);
+  const [unlockedCombatCards, setUnlockedCombatCards] = useState(initial.unlockedCombatCards);
+  const [consumableCharges, setConsumableCharges] = useState(initial.consumableCharges);
+  const [stepCards, setStepCards] = useState(initial.stepCards);
+  const [lastSpinAt, setLastSpinAt] = useState(initial.lastSpinAt);
+  const [unlockedTitles, setUnlockedTitles] = useState(initial.unlockedTitles);
+  const [activeTitle, setActiveTitleState] = useState(initial.activeTitle);
+  const [unlockedGrades, setUnlockedGrades] = useState(initial.unlockedGrades);
 
+  const hydratedUserRef = useRef(undefined);
+  const justHydratedRef = useRef(false);
+
+  // Hydrate (or reset) the entire store whenever the signed-in account changes
+  // — login, account switch, or logout. No user → pristine defaults.
   useEffect(() => {
+    const data = loadProgress(userId);
+    setSkills(data.skills);
+    setBadges(data.badges);
+    setCompletedCourses(data.completedCourses);
+    setInventory(data.inventory);
+    setEquipped(data.equipped);
+    setUserUnlockedThemes(data.userUnlockedThemes);
+    setGems(data.gems);
+    setUnlockedCombatCards(data.unlockedCombatCards);
+    setConsumableCharges(data.consumableCharges);
+    setStepCards(data.stepCards);
+    setLastSpinAt(data.lastSpinAt);
+    setUnlockedTitles(data.unlockedTitles);
+    setActiveTitleState(data.activeTitle);
+    setUnlockedGrades(data.unlockedGrades);
+    hydratedUserRef.current = userId;
+    justHydratedRef.current = true; // skip the immediate persist (still stale state)
+  }, [userId]);
+
+  // Persist to the active user's namespaced key. Skipped when logged out, before
+  // hydration, and on the hydration tick (so one account never overwrites another).
+  useEffect(() => {
+    if (!userId || hydratedUserRef.current !== userId) return;
+    if (justHydratedRef.current) {
+      justHydratedRef.current = false;
+      return;
+    }
     try {
       localStorage.setItem(
-        STORAGE_KEY,
+        keyFor(userId),
         JSON.stringify({
           skills,
           badges,
@@ -91,6 +176,7 @@ export function PlayerProgressProvider({ children }) {
       // ignore storage errors in demo
     }
   }, [
+    userId,
     skills,
     badges,
     completedCourses,

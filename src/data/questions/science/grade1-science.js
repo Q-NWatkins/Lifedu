@@ -1,4 +1,4 @@
-science: [
+export default [
   {
     id: 'g1-science-001',
     prompt: 'Which of these is a living thing?',

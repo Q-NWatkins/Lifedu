@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'g1-reading-s3-001',
+    prompt: 'Which word describes size?',
+    options: ['big', 'run', 'apple', 'chair'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s3-002',
+    prompt: 'Read: "Tom has a red ball." What color is the ball?',
+    options: ['blue', 'green', 'red', 'yellow'],
+    correctIndex: 2,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s3-003',
+    prompt: 'Read: "The bird flew to the tree." Where did the bird go?',
+    options: ['house', 'tree', 'car', 'road'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s3-004',
+    prompt: 'Which word means the opposite of "hot"?',
+    options: ['cold', 'warm', 'sunny', 'fire'],
+    correctIndex: 0,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s3-005',
+    prompt: 'Read: "Sara ate an apple." What did Sara eat?',
+    options: ['banana', 'apple', 'orange', 'grape'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s3-006',
+    prompt: 'Which sentence ends with a question mark?',
+    options: ['I like dogs.', 'Where is my book?', 'The sun is bright.', 'Run fast.'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+  {
+    id: 'g1-reading-s3-007',
+    prompt: 'What is the main character in a story called?',
+    options: ['setting', 'character', 'title', 'author'],
+    correctIndex: 1,
+    difficulty: 'medium',
+  },
+];

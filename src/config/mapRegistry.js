@@ -18,6 +18,15 @@ import { CURRICULUMS } from './courseMaps.js';
 export const SUBJECT_ORDER = ['math', 'science', 'reading', 'history'];
 export const MAX_GRADE = 5;
 
+/**
+ * Each grade is broken into a progressive number of stages:
+ *   Grade 1 → 5, Grade 2 → 10, Grade 3 → 15, Grade 4 → 20, Grade 5 → 25.
+ */
+export const STAGES_PER_GRADE = { 1: 5, 2: 10, 3: 15, 4: 20, 5: 25 };
+export function getStageCount(grade) {
+  return STAGES_PER_GRADE[grade] ?? 5;
+}
+
 /** Geometry scaling table, indexed by grade. */
 const GRADE_GEOMETRY = {
   1: { pathLength: 9, stepDelayMs: 460, miniBossCount: 1, hazardCount: 0, chestCount: 3 },
@@ -100,7 +109,75 @@ export function buildGradeMap(subject, grade) {
   };
 }
 
-/** The full registry: { 'math_1': {...}, … 'history_5': {...} }. */
+/**
+ * Build a single STAGE map within a grade. Geometry ramps gently across the
+ * grade's stages (early stages short & calm, the final stage is the grade boss
+ * gauntlet). Crucially, each stage carries a stage-specific `questionBankId`
+ * (e.g. `reading-g1-stage-3`) so the game loop & boss battle pull exactly that
+ * curriculum stage's questions.
+ */
+function stageGeometry(grade, stage, stageCount) {
+  const g = GRADE_GEOMETRY[grade] ?? GRADE_GEOMETRY[1];
+  const t = stageCount > 1 ? (stage - 1) / (stageCount - 1) : 0; // 0 → 1 across the grade
+  const isFinal = stage === stageCount;
+  return {
+    pathLength: Math.max(6, Math.round(6 + t * (g.pathLength - 6))),
+    stepDelayMs: g.stepDelayMs,
+    miniBossCount: isFinal ? Math.max(1, g.miniBossCount) : t > 0.5 ? 1 : 0,
+    hazardCount: Math.round(t * g.hazardCount),
+    chestCount: Math.max(1, g.chestCount - (t > 0.5 ? 1 : 0)),
+  };
+}
+
+export function buildStageMap(subject, grade, stage) {
+  const stageCount = getStageCount(grade);
+  const geo = stageGeometry(grade, stage, stageCount);
+  const label = CURRICULUMS[subject]?.label ?? subject;
+  const themeId = SUBJECT_THEMES[subject][grade - 1];
+  const bossName = SUBJECT_BOSSES[subject][grade - 1];
+  const isFinalStage = stage === stageCount;
+
+  return {
+    id: `${subject}_g${grade}_s${stage}`,
+    curriculumId: subject,
+    subject,
+    grade,
+    stage,
+    stageCount,
+    isFinalStage,
+    title: `${label} · G${grade} · Stage ${stage}`,
+    subtitle: `Stage ${stage} of ${stageCount}`,
+    themeId,
+    // Stage-specific bank key — this is what flows into the boss battle.
+    questionBankId: `${subject}-g${grade}-stage-${stage}`,
+    pathLength: geo.pathLength,
+    stepDelayMs: geo.stepDelayMs,
+    miniBossCount: geo.miniBossCount,
+    hazardCount: geo.hazardCount,
+    chestCount: geo.chestCount,
+    milestones: spreadPositions(geo.pathLength, 2),
+    boss: {
+      name: isFinalStage ? bossName : `${bossName} (Stage ${stage})`,
+      description: isFinalStage
+        ? `The Grade ${grade} guardian of the ${label} realm. Defeat it to unlock Grade ${
+            Math.min(MAX_GRADE, grade + 1)
+          }!`
+        : `Clear Stage ${stage} to advance to Stage ${stage + 1}.`,
+    },
+    rewards: {
+      completionBadge: `badge-${subject}-g${grade}-s${stage}`,
+    },
+    prerequisites: stage > 1 ? [`${subject}_g${grade}_s${stage - 1}`] : [],
+  };
+}
+
+export function getStageMap(subject, grade, stage) {
+  if (!SUBJECT_THEMES[subject] || grade < 1 || grade > MAX_GRADE) return null;
+  if (stage < 1 || stage > getStageCount(grade)) return null;
+  return buildStageMap(subject, grade, stage);
+}
+
+/** The full registry of GRADE maps: { 'math_1': {...}, … 'history_5': {...} }. */
 export const MAP_REGISTRY = SUBJECT_ORDER.reduce((acc, subject) => {
   for (let grade = 1; grade <= MAX_GRADE; grade++) {
     acc[`${subject}_${grade}`] = buildGradeMap(subject, grade);
@@ -112,6 +189,12 @@ export function getGradeMap(subject, grade) {
   return MAP_REGISTRY[`${subject}_${grade}`] ?? null;
 }
 
+const STAGE_ID_RE = /^([a-z]+)_g(\d+)_s(\d+)$/;
+
+/** Resolve a map by id — grade maps from the registry, stage maps on demand. */
 export function getMapById(mapId) {
-  return MAP_REGISTRY[mapId] ?? null;
+  if (MAP_REGISTRY[mapId]) return MAP_REGISTRY[mapId];
+  const match = STAGE_ID_RE.exec(mapId ?? '');
+  if (match) return getStageMap(match[1], Number(match[2]), Number(match[3]));
+  return null;
 }

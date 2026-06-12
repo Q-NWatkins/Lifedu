@@ -131,6 +131,7 @@ export default function GameBoard({
           kind="mini"
           node={miniBossEncounter}
           questionCount={2}
+          questionBankId={course.questionBankId}
           onWin={() => resolveMiniBoss(miniBossEncounter.id)}
         />
       )}
@@ -140,6 +141,7 @@ export default function GameBoard({
           kind="side"
           node={sideBossEncounter}
           questionCount={2}
+          questionBankId={course.questionBankId}
           rewardLabel="Double Damage Charge"
           onWin={handleSideBossWin}
           onSkip={() => resolveSideBoss(sideBossEncounter.id)}

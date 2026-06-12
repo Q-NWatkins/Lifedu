@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'g1-reading-s2-001',
+    prompt: 'What sound does the letter M make?',
+    options: ['/m/', '/s/', '/t/', '/b/'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s2-002',
+    prompt: 'Which word completes the sentence? "I see a ___."',
+    options: ['run', 'jump', 'cat', 'fast'],
+    correctIndex: 2,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s2-003',
+    prompt: 'Which word names a place?',
+    options: ['school', 'dog', 'apple', 'red'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s2-004',
+    prompt: 'Which word rhymes with "cake"?',
+    options: ['lake', 'dog', 'sun', 'tree'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s2-005',
+    prompt: 'What is the last letter in "fish"?',
+    options: ['f', 'i', 's', 'h'],
+    correctIndex: 3,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s2-006',
+    prompt: 'Which word is a fruit?',
+    options: ['banana', 'desk', 'shoe', 'cloud'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+  {
+    id: 'g1-reading-s2-007',
+    prompt: 'Which word starts with the same sound as "ball"?',
+    options: ['bat', 'cat', 'sun', 'dog'],
+    correctIndex: 0,
+    difficulty: 'easy',
+  },
+];

@@ -1,4 +1,4 @@
-history: [
+export default [
   {
     id: 'g1-history-001',
     prompt: 'Who is the leader of a school?',

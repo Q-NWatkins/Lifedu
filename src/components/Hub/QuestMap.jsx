@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { REALMS, getRealmById } from '../../config/realms.js';
-import { MAX_GRADE, getGradeMap } from '../../config/mapRegistry.js';
+import { MAX_GRADE, getStageCount, getStageMap } from '../../config/mapRegistry.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
@@ -17,20 +17,30 @@ export default function QuestMap({ initialRealmId = null }) {
   const { switchTrack } = useGameAudio();
   const [activeRealmId, setActiveRealmId] = useState(null);
   const [activeGrade, setActiveGrade] = useState(1);
-  const [replayGrade, setReplayGrade] = useState(null);
+  const [activeStage, setActiveStage] = useState(1);
+  const [replayKey, setReplayKey] = useState(null);
 
   const activeRealm = REALMS.find((r) => r.id === activeRealmId) ?? null;
   const subject = activeRealm?.curriculumId;
   const unlockedCeiling = subject ? unlockedGrades[subject] ?? 1 : 1;
-  const activeMapId = subject ? `${subject}_${activeGrade}` : null;
-  const isReplaying = replayGrade === activeGrade && activeMapId != null;
-  const activeMapComplete = activeMapId ? completedCourses.includes(activeMapId) : false;
+  const stageCount = getStageCount(activeGrade);
+
+  // Stage map keys: e.g. `reading_g1_s1` → questionBankId `reading-g1-stage-1`.
+  const stageMapId = subject ? `${subject}_g${activeGrade}_s${activeStage}` : null;
+  const stageMap = subject ? getStageMap(subject, activeGrade, activeStage) : null;
+  const isReplaying = replayKey === stageMapId && stageMapId != null;
+  const activeStageComplete = stageMapId ? completedCourses.includes(stageMapId) : false;
+
+  const stageIdFor = (s) => `${subject}_g${activeGrade}_s${s}`;
+  const isStageComplete = (s) => completedCourses.includes(stageIdFor(s));
+  const isStageUnlocked = (s) =>
+    activeGrade <= unlockedCeiling && (s === 1 || isStageComplete(s - 1));
 
   const enterRealm = (realm) => {
     setActiveRealmId(realm.id);
-    // Drop the player on their highest unlocked grade for that subject.
     setActiveGrade(unlockedGrades[realm.curriculumId] ?? 1);
-    setReplayGrade(null);
+    setActiveStage(1);
+    setReplayKey(null);
   };
 
   useEffect(() => {
@@ -41,23 +51,29 @@ export default function QuestMap({ initialRealmId = null }) {
   }, [initialRealmId]);
 
   // Realm picker → hub theme; an open realm map → gameboard theme.
-  const boardOpen = Boolean(activeRealm && activeMapId);
+  const boardOpen = Boolean(activeRealm && stageMapId);
   useEffect(() => {
     switchTrack(boardOpen ? 'gameboard' : 'hub');
   }, [boardOpen, switchTrack]);
 
   const selectGrade = (grade) => {
     setActiveGrade(grade);
-    setReplayGrade(null);
+    setActiveStage(1);
+    setReplayKey(null);
+  };
+
+  const selectStage = (stage) => {
+    setActiveStage(stage);
+    setReplayKey(null);
   };
 
   const handleBackToRealms = () => {
     setActiveRealmId(null);
-    setReplayGrade(null);
+    setReplayKey(null);
   };
 
-  if (activeRealm && activeMapId) {
-    const gradeMap = getGradeMap(subject, activeGrade);
+  if (activeRealm && stageMapId) {
+    const stages = Array.from({ length: stageCount }, (_, i) => i + 1);
 
     return (
       <div className="space-y-4">
@@ -70,23 +86,21 @@ export default function QuestMap({ initialRealmId = null }) {
             ← Realms
           </button>
 
-          {/* Progressive Grade 1-5 track */}
+          {/* Grade 1-5 track (campaign progression) */}
           <div className={`${neuCard} flex flex-wrap items-center gap-2 ${activeRealm.palette.card} p-2`}>
             <span className="px-1 text-[10px] font-black uppercase tracking-wide text-black/70">
               {activeRealm.name}
             </span>
             {GRADES.map((grade) => {
               const unlocked = grade <= unlockedCeiling;
-              const complete = completedCourses.includes(`${subject}_${grade}`);
               const isActive = activeGrade === grade;
-
               return (
                 <button
                   key={grade}
                   type="button"
                   disabled={!unlocked}
                   onClick={() => selectGrade(grade)}
-                  title={unlocked ? `Grade ${grade}` : `Defeat the Grade ${grade - 1} boss to unlock`}
+                  title={unlocked ? `Grade ${grade}` : `Finish Grade ${grade - 1} to unlock`}
                   className={`
                     rounded-lg border-4 border-black px-3 py-1 text-xs font-black transition-all
                     ${
@@ -98,50 +112,88 @@ export default function QuestMap({ initialRealmId = null }) {
                     }
                   `}
                 >
-                  {complete ? '✓ ' : ''}G{grade}
+                  G{grade}
                   {!unlocked && ' 🔒'}
                 </button>
               );
             })}
           </div>
+        </div>
 
-          {/* Replay a conquered grade for fresh, shuffled questions + bonuses */}
-          {activeMapComplete &&
+        {/* Progressive Stage track for the active grade (Grade 1 = 5 stages) */}
+        <div className={`${neuCard} flex flex-wrap items-center gap-2 ${activeRealm.palette.track} p-2`}>
+          <span className="px-1 text-[10px] font-black uppercase tracking-wide text-black/70">
+            Grade {activeGrade} Stages
+          </span>
+          {stages.map((stage) => {
+            const unlocked = isStageUnlocked(stage);
+            const complete = isStageComplete(stage);
+            const isActive = activeStage === stage;
+            return (
+              <button
+                key={stage}
+                type="button"
+                disabled={!unlocked}
+                onClick={() => selectStage(stage)}
+                title={unlocked ? `Stage ${stage}` : `Clear Stage ${stage - 1} to unlock`}
+                className={`
+                  flex h-9 w-9 items-center justify-center rounded-full border-4 border-black text-xs font-black transition-all
+                  ${
+                    isActive
+                      ? 'bg-yellow-300 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]'
+                      : complete
+                        ? 'bg-lime-300 text-black hover:bg-lime-200'
+                        : unlocked
+                          ? 'bg-white text-black hover:bg-lime-50'
+                          : 'cursor-not-allowed bg-stone-300 text-stone-500'
+                  }
+                `}
+              >
+                {complete ? '✓' : unlocked ? stage : '🔒'}
+              </button>
+            );
+          })}
+
+          {/* Replay a cleared stage for fresh, shuffled questions + bonuses */}
+          {activeStageComplete &&
             (isReplaying ? (
               <button
                 type="button"
-                onClick={() => setReplayGrade(null)}
-                className={`${neuBtn} bg-white px-4 py-2 text-sm text-black hover:bg-stone-100`}
+                onClick={() => setReplayKey(null)}
+                className={`${neuBtn} ml-auto bg-white px-3 py-1.5 text-xs text-black hover:bg-stone-100`}
               >
                 ✕ Exit Replay
               </button>
             ) : (
               <button
                 type="button"
-                onClick={() => setReplayGrade(activeGrade)}
-                className={`${neuBtn} bg-cyan-300 px-4 py-2 text-sm text-black hover:bg-cyan-200`}
+                onClick={() => setReplayKey(stageMapId)}
+                className={`${neuBtn} ml-auto bg-cyan-300 px-3 py-1.5 text-xs text-black hover:bg-cyan-200`}
               >
-                🔁 Replay Quest
+                🔁 Replay
               </button>
             ))}
         </div>
 
-        {/* Grade summary banner */}
-        {gradeMap && (
+        {/* Stage summary banner */}
+        {stageMap && (
           <p className={`text-sm font-bold ${themeConfig.contrastMuted}`}>
             <span className={`font-black ${themeConfig.text_main}`}>
-              Grade {activeGrade} · {gradeMap.subtitle}
+              Stage {activeStage} of {stageCount}
             </span>{' '}
-            — {gradeMap.pathLength} nodes · {gradeMap.miniBossCount} mini-boss
-            {gradeMap.miniBossCount > 1 ? 'es' : ''}
-            {gradeMap.hazardCount > 0 ? ` · ${gradeMap.hazardCount} traps` : ''}
+            — {stageMap.pathLength} nodes
+            {stageMap.miniBossCount > 0
+              ? ` · ${stageMap.miniBossCount} mini-boss${stageMap.miniBossCount > 1 ? 'es' : ''}`
+              : ''}
+            {stageMap.hazardCount > 0 ? ` · ${stageMap.hazardCount} traps` : ''}
+            {stageMap.isFinalStage ? ' · 👑 Grade Boss' : ''}
           </p>
         )}
 
         <div className="overflow-hidden rounded-2xl border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           <CourseBoard
-            key={`${activeMapId}${isReplaying ? '-replay' : ''}`}
-            courseId={activeMapId}
+            key={`${stageMapId}${isReplaying ? '-replay' : ''}`}
+            courseId={stageMapId}
             embedded
             replay={isReplaying}
           />
@@ -161,7 +213,7 @@ export default function QuestMap({ initialRealmId = null }) {
           Choose Your Realm
         </TiltedTitle>
         <p className={`mt-2 text-sm font-bold ${themeConfig.contrastMuted}`}>
-          Each realm is a 5-grade campaign — beat a grade boss to unlock the next!
+          Each realm is a 5-grade campaign — clear every stage to unlock the next grade!
         </p>
       </header>
 

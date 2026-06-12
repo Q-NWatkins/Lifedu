@@ -4,6 +4,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
+import { getStageQuestionPools } from '../../data/questions/index.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
 import {
   getBossSprite,
@@ -272,12 +273,18 @@ export default function BossBattle({
   const badgeLabel = rawBadge.replace(/\b\w/g, (c) => c.toUpperCase());
   const curriculumId = course.curriculumId;
 
-  // Pre-shuffle question pools for each difficulty tier
-  const [questionPools] = useState(() => ({
-    easy: getQuestionsForDifficulty('easy'),
-    medium: getQuestionsForDifficulty('medium'),
-    hard: getQuestionsForDifficulty('hard'),
-  }));
+  // Pre-shuffle question pools per difficulty tier. When the course/stage maps
+  // to a registered bank (e.g. `reading-g1-stage-1`), questions come from that
+  // exact curriculum stage; any empty tier falls back to the multi-subject pool.
+  const [questionPools] = useState(() => {
+    const subjectLabel = (course.subject ?? '').replace(/^./, (c) => c.toUpperCase());
+    const bank = getStageQuestionPools(course.questionBankId, subjectLabel);
+    return {
+      easy: bank.easy ?? getQuestionsForDifficulty('easy'),
+      medium: bank.medium ?? getQuestionsForDifficulty('medium'),
+      hard: bank.hard ?? getQuestionsForDifficulty('hard'),
+    };
+  });
   const qIdxRef = useRef({ easy: 0, medium: 0, hard: 0 });
 
   const nextQuestion = useCallback(
@@ -452,7 +459,11 @@ export default function BossBattle({
     });
     onMegaRoll?.();
     // Progressive campaign: defeating a grade boss unlocks the next grade map.
-    if (course.grade) unlockGrade(curriculumId, course.grade + 1);
+    // Only the final stage of a grade opens the next grade (grade maps without
+    // a `stage` are treated as final for backward compatibility).
+    if (course.grade && course.isFinalStage !== false) {
+      unlockGrade(curriculumId, course.grade + 1);
+    }
     // Replaying a conquered level grants a flat mastery bonus on top.
     if (isReplay) onReplayReward?.();
     onVictoryComplete?.();

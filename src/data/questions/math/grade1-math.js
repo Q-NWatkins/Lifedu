@@ -1,4 +1,4 @@
-math: [
+export default [
   {
     id: 'g1-math-001',
     prompt: 'What is 2 + 3?',

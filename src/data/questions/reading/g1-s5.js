@@ -1,0 +1,51 @@
+export default [
+  {
+    id: 'g1-reading-s5-001',
+    prompt: 'Read: "The ice cream melted in the sun." What happened to the ice cream?',
+    options: ['It froze', 'It melted', 'It grew', 'It bounced'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'g1-reading-s5-002',
+    prompt: 'Which word best describes a rabbit?',
+    options: ['slow', 'quiet', 'furry', 'square'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'g1-reading-s5-003',
+    prompt: 'Read: "Mia watered the flower every day." What helped the flower grow?',
+    options: ['water', 'sand', 'toy', 'paper'],
+    correctIndex: 0,
+    difficulty: 'hard',
+  },
+  {
+    id: 'g1-reading-s5-004',
+    prompt: 'Which sentence tells about something that already happened?',
+    options: ['I will jump tomorrow.', 'I am jumping.', 'I jumped yesterday.', 'I can jump.'],
+    correctIndex: 2,
+    difficulty: 'hard',
+  },
+  {
+    id: 'g1-reading-s5-005',
+    prompt: 'Read: "The puppy hid under the table during the storm." Where was the puppy?',
+    options: ['on the roof', 'under the table', 'in a tree', 'outside'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+  {
+    id: 'g1-reading-s5-006',
+    prompt: 'What is the title of a story?',
+    options: ['The name of the story', 'The last page', 'The picture', 'The author'],
+    correctIndex: 0,
+    difficulty: 'hard',
+  },
+  {
+    id: 'g1-reading-s5-007',
+    prompt: 'Read: "Jake shared his crayons with Emma." What does this tell us about Jake?',
+    options: ['He is selfish', 'He is kind', 'He is sleepy', 'He is lost'],
+    correctIndex: 1,
+    difficulty: 'hard',
+  },
+];
