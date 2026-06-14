@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { REALMS, getRealmById } from '../../config/realms.js';
 import { MAX_GRADE, getStageCount, getStageMap } from '../../config/mapRegistry.js';
+import { getStageConfig } from '../../data/realmConfig.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
@@ -28,6 +29,7 @@ export default function QuestMap({ initialRealmId = null }) {
   // Stage map keys: e.g. `reading_g1_s1` → questionBankId `reading-g1-stage-1`.
   const stageMapId = subject ? `${subject}_g${activeGrade}_s${activeStage}` : null;
   const stageMap = subject ? getStageMap(subject, activeGrade, activeStage) : null;
+  const stageConfig = subject ? getStageConfig(subject, activeGrade, activeStage) : null;
   const isReplaying = replayKey === stageMapId && stageMapId != null;
   const activeStageComplete = stageMapId ? completedCourses.includes(stageMapId) : false;
 
@@ -176,17 +178,16 @@ export default function QuestMap({ initialRealmId = null }) {
         </div>
 
         {/* Stage summary banner */}
-        {stageMap && (
+        {stageConfig && (
           <p className={`text-sm font-bold ${themeConfig.contrastMuted}`}>
             <span className={`font-black ${themeConfig.text_main}`}>
               Stage {activeStage} of {stageCount}
             </span>{' '}
-            — {stageMap.pathLength} nodes
-            {stageMap.miniBossCount > 0
-              ? ` · ${stageMap.miniBossCount} mini-boss${stageMap.miniBossCount > 1 ? 'es' : ''}`
-              : ''}
-            {stageMap.hazardCount > 0 ? ` · ${stageMap.hazardCount} traps` : ''}
-            {stageMap.isFinalStage ? ' · 👑 Grade Boss' : ''}
+            — {stageConfig.totalTiles}-tile color track ·{' '}
+            {Object.values(stageConfig.topics)
+              .map((t) => t.replace(/-/g, ' '))
+              .join(', ')}
+            {stageMap?.isFinalStage ? ' · 👑 Grade Boss' : ''}
           </p>
         )}
 

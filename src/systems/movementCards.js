@@ -1,77 +1,42 @@
 /**
- * Movement card deck — replaces dice rolls.
+ * Candyland-style movement deck. Cards are tied to COLORS, not step counts.
+ * Playing a card scans ahead on the track for the matching colored tile(s):
+ *   count 1 → the next tile of that color, count 2 → the second one, etc.
  */
 
-export const CARD_POOL = [
-  {
-    id: 'step-1',
-    name: 'Step +1',
-    emoji: '👣',
-    description: 'Take one careful step.',
-    type: 'fixed',
-    value: 1,
-    color: 'bg-lime-300',
-  },
-  {
-    id: 'sprint-3',
-    name: 'Sprint +3',
-    emoji: '💨',
-    description: 'Burst forward three nodes!',
-    type: 'fixed',
-    value: 3,
-    color: 'bg-orange-300',
-  },
-  {
-    id: 'lucky-roll',
-    name: 'Lucky Roll',
-    emoji: '🎲',
-    description: 'Roll 1–6 and move!',
-    type: 'random',
-    min: 1,
-    max: 6,
-    color: 'bg-violet-300',
-  },
-  {
-    id: 'hop-2',
-    name: 'Hop +2',
-    emoji: '🐸',
-    description: 'Bounce ahead two nodes.',
-    type: 'fixed',
-    value: 2,
-    color: 'bg-sky-300',
-  },
-  {
-    id: 'mega-4',
-    name: 'Leap +4',
-    emoji: '🚀',
-    description: 'A big leap forward!',
-    type: 'fixed',
-    value: 4,
-    color: 'bg-pink-300',
-  },
+export const COLOR_CARD_POOL = [
+  { id: 'single-red', name: 'Single Red', emoji: '🔴', type: 'color', count: 1, color: 'red', tile: 'bg-red-400' },
+  { id: 'double-red', name: 'Double Red', emoji: '🔴🔴', type: 'color', count: 2, color: 'red', tile: 'bg-red-400' },
+  { id: 'single-yellow', name: 'Single Yellow', emoji: '🟡', type: 'color', count: 1, color: 'yellow', tile: 'bg-yellow-300' },
+  { id: 'double-yellow', name: 'Double Yellow', emoji: '🟡🟡', type: 'color', count: 2, color: 'yellow', tile: 'bg-yellow-300' },
+  { id: 'single-blue', name: 'Single Blue', emoji: '🔵', type: 'color', count: 1, color: 'blue', tile: 'bg-sky-400' },
+  { id: 'double-blue', name: 'Double Blue', emoji: '🔵🔵', type: 'color', count: 2, color: 'blue', tile: 'bg-sky-400' },
+  { id: 'single-green', name: 'Single Green', emoji: '🟢', type: 'color', count: 1, color: 'green', tile: 'bg-green-400' },
+  { id: 'double-green', name: 'Double Green', emoji: '🟢🟢', type: 'color', count: 2, color: 'green', tile: 'bg-green-400' },
 ];
 
-export function drawMovementCard() {
-  return { ...CARD_POOL[Math.floor(Math.random() * CARD_POOL.length)] };
+/** Pool restricted to the colors that actually appear on the active track. */
+function poolForColors(colors) {
+  if (!colors || colors.length === 0) return COLOR_CARD_POOL;
+  const allowed = new Set(colors);
+  const filtered = COLOR_CARD_POOL.filter((c) => allowed.has(c.color));
+  return filtered.length > 0 ? filtered : COLOR_CARD_POOL;
 }
 
-export function drawHand(size = 3) {
-  return Array.from({ length: size }, () => drawMovementCard());
+export function drawColorCard(colors) {
+  const pool = poolForColors(colors);
+  return { ...pool[Math.floor(Math.random() * pool.length)] };
 }
 
-export function resolveCardSteps(card) {
-  if (!card) return 0;
-  if (card.type === 'fixed') return card.value;
-  if (card.type === 'random') {
-    return Math.floor(Math.random() * (card.max - card.min + 1)) + card.min;
-  }
-  return 1;
+export function drawColorHand(size = 3, colors) {
+  return Array.from({ length: size }, () => drawColorCard(colors));
 }
 
-export function replenishHand(hand, playedIndex) {
+/** Remove the played card and top the hand back up to `size`. */
+export function replenishColorHand(hand, playedIndex, colors, size = 3) {
   const next = hand.filter((_, i) => i !== playedIndex);
-  while (next.length < 3) {
-    next.push(drawMovementCard());
+  while (next.length < size) {
+    next.push(drawColorCard(colors));
   }
   return next;
 }
