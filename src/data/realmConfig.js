@@ -1,13 +1,19 @@
 /**
  * Central Realm Matrix — the data layout for the "Game of Life + Monopoly +
- * Candyland" board loop. Each Subject Realm declares a fixed-length WINDING
- * track (15–25 tiles) whose colored tiles map to GRANULAR sub-topics of that one
- * subject, plus exactly one SPHINX FORK with a short-cut branch and a long
- * detour branch that rejoin at a merge tile.
+ * Candyland" board loop. Each Subject Realm declares its GRANULAR sub-topics
+ * (one per tile color). The board itself is generated procedurally: its length
+ * scales with grade & stage, and the snaking geometry comes from boardGenerator.
  *
  * Pillar 1 (Isolated Realms): color → sub-topic is scoped to the realm.
- * Pillar 2 (Fixed length, variable complexity): totalTiles stays 15–25.
  */
+import { generateSnakingLayout } from '../systems/boardGenerator.js';
+
+/** Dynamic length: longer boards for higher grades/stages. */
+export function totalTilesFor(grade = 1, stage = 1) {
+  return 10 + grade * 3 + stage * 2;
+}
+
+const GRID_WIDTH = 5; // tiles per serpentine row
 
 export const TILE_HEX = {
   red: '#ef4444',
@@ -34,22 +40,18 @@ export const TILE_CLASS = {
 export const REALM_CONFIG = {
   science: {
     label: 'Science Cosmos',
-    totalTiles: 15,
     topics: { red: 'biology-basics', yellow: 'space-basics', blue: 'physics-basics' },
   },
   math: {
     label: 'Math Citadel',
-    totalTiles: 15,
     topics: { red: 'addition-basics', yellow: 'subtraction-basics', blue: 'geometry-shapes' },
   },
   reading: {
     label: 'Reading Realm',
-    totalTiles: 15,
     topics: { red: 'nouns-verbs', yellow: 'vowel-sounds', blue: 'sight-words' },
   },
   history: {
     label: 'History Timeline',
-    totalTiles: 18,
     topics: {
       red: 'domestic-heritage',
       yellow: 'ancient-cultures',
@@ -59,113 +61,63 @@ export const REALM_CONFIG = {
   },
 };
 
-const PRE_COUNT = 3; // colored tiles before the fork
-const SHORTCUT_COUNT = 2; // tiles on the quick branch
-const DETOUR_COUNT = 4; // tiles on the long branch
-
-const lerp = (a, b, t) => a + (b - a) * t;
-
 /**
- * Build a winding, branching track:
- *   START → pre-fork colored tiles → SPHINX FORK
- *        ├─ short-cut (few tiles) ─┐
- *        └─ long detour (more) ────┴→ MERGE → post colored tiles → BOSS
+ * Assemble a full stage board:
+ *   - length from `totalTilesFor(grade, stage)`
+ *   - serpentine coordinates + periodic shortcuts from boardGenerator
+ *   - tile 0 = START, last tile = BOSS, shortcut sources = SPHINX FORKS, and
+ *     every other tile is a colored sub-topic prompt (colors cycle sequentially).
  *
- * Returns nodes (with x/y for the snaking render), edges (typed for drawing),
- * and the key fork/merge/boss indices.
- */
-function buildWindingTrack(topics, totalTiles) {
-  const colors = Object.keys(topics);
-  const postCount = totalTiles - 4 - PRE_COUNT - SHORTCUT_COUNT - DETOUR_COUNT;
-
-  const forkIndex = PRE_COUNT + 1;
-  const shortcutStart = forkIndex + 1;
-  const detourStart = shortcutStart + SHORTCUT_COUNT;
-  const mergeIndex = detourStart + DETOUR_COUNT;
-  const bossIndex = totalTiles - 1;
-
-  let colorCounter = 0;
-  const nextColor = () => colors[colorCounter++ % colors.length];
-  const coloredTile = (index) => {
-    const color = nextColor();
-    return { index, type: 'colored', color, topic: topics[color] };
-  };
-
-  const nodes = new Array(totalTiles);
-  nodes[0] = { index: 0, type: 'start', color: 'start', topic: null };
-  for (let i = 1; i < forkIndex; i += 1) nodes[i] = coloredTile(i);
-  nodes[forkIndex] = {
-    index: forkIndex,
-    type: 'fork',
-    color: 'fork',
-    topic: topics.green ?? null, // sphinx sub-topic when the realm has one
-  };
-  for (let i = shortcutStart; i < detourStart; i += 1) nodes[i] = coloredTile(i);
-  for (let i = detourStart; i < mergeIndex; i += 1) nodes[i] = coloredTile(i);
-  nodes[mergeIndex] = { index: mergeIndex, type: 'merge', color: 'merge', topic: null };
-  for (let i = mergeIndex + 1; i < bossIndex; i += 1) nodes[i] = coloredTile(i);
-  nodes[bossIndex] = { index: bossIndex, type: 'boss', color: 'boss', topic: null };
-
-  // ── next pointers ──────────────────────────────────────────────────────────
-  for (let i = 0; i < forkIndex; i += 1) nodes[i].next = i + 1; // …→ fork
-  nodes[forkIndex].next = { shortcut: shortcutStart, detour: detourStart };
-  for (let i = shortcutStart; i < detourStart - 1; i += 1) nodes[i].next = i + 1;
-  nodes[detourStart - 1].next = mergeIndex; // last shortcut tile → merge
-  for (let i = detourStart; i < mergeIndex - 1; i += 1) nodes[i].next = i + 1;
-  nodes[mergeIndex - 1].next = mergeIndex; // last detour tile → merge
-  for (let i = mergeIndex; i < bossIndex; i += 1) nodes[i].next = i + 1;
-  nodes[bossIndex].next = null;
-
-  // ── layout: detour is the long winding "main road"; shortcut arcs above ─────
-  const mainOrder = [
-    ...Array.from({ length: forkIndex + 1 }, (_, i) => i), // start..fork
-    ...Array.from({ length: DETOUR_COUNT }, (_, i) => detourStart + i),
-    ...Array.from({ length: totalTiles - mergeIndex }, (_, i) => mergeIndex + i), // merge..boss
-  ];
-  const cols = 5;
-  const rows = Math.max(1, Math.ceil(mainOrder.length / cols));
-  mainOrder.forEach((idx, k) => {
-    const row = Math.floor(k / cols);
-    const inRow = k % cols;
-    const col = row % 2 === 0 ? inRow : cols - 1 - inRow; // serpentine
-    nodes[idx].x = 10 + col * (80 / (cols - 1));
-    nodes[idx].y = rows > 1 ? 14 + row * (72 / (rows - 1)) : 50;
-  });
-  // Short-cut bridge arcs above, between the fork and the merge.
-  const fork = nodes[forkIndex];
-  const merge = nodes[mergeIndex];
-  for (let j = 0; j < SHORTCUT_COUNT; j += 1) {
-    const t = (j + 1) / (SHORTCUT_COUNT + 1);
-    const node = nodes[shortcutStart + j];
-    node.x = lerp(fork.x, merge.x, t);
-    node.y = Math.min(fork.y, merge.y) - 13;
-  }
-
-  // ── edges (typed for the renderer) ─────────────────────────────────────────
-  const edges = [];
-  const addEdge = (from, to, kind) => edges.push({ from, to, kind });
-  for (let i = 0; i < forkIndex; i += 1) addEdge(i, i + 1, 'main');
-  addEdge(forkIndex, shortcutStart, 'shortcut');
-  for (let i = shortcutStart; i < detourStart - 1; i += 1) addEdge(i, i + 1, 'shortcut');
-  addEdge(detourStart - 1, mergeIndex, 'shortcut');
-  addEdge(forkIndex, detourStart, 'detour');
-  for (let i = detourStart; i < mergeIndex - 1; i += 1) addEdge(i, i + 1, 'detour');
-  addEdge(mergeIndex - 1, mergeIndex, 'detour');
-  for (let i = mergeIndex; i < bossIndex; i += 1) addEdge(i, i + 1, 'main');
-
-  return { tileTrack: nodes, edges, forkIndex, mergeIndex, bossIndex };
-}
-
-/**
- * Safe stage lookup.
+ * Each tile carries `next` (a number, or `{ shortcut, detour }` at a fork) plus
+ * x/y for rendering. `edges` is typed (main | detour | shortcut) for the road.
+ *
  * @returns {{ realm, grade, stage, totalTiles, topics, tileTrack, edges,
- *   forkIndex, mergeIndex, bossIndex } | null}
+ *   rows, cols, bossIndex, shortcuts } | null}
  */
 export function getStageConfig(realm, grade = 1, stage = 1) {
   const cfg = REALM_CONFIG[realm];
   if (!cfg) return null;
-  const built = buildWindingTrack(cfg.topics, cfg.totalTiles);
-  return { realm, grade, stage, totalTiles: cfg.totalTiles, topics: cfg.topics, ...built };
+
+  const totalTiles = totalTilesFor(grade, stage);
+  const { positions, rows, cols, shortcuts } = generateSnakingLayout(totalTiles, GRID_WIDTH);
+  const forkTargets = new Map(shortcuts.map((s) => [s.from, s.to]));
+  const colors = Object.keys(cfg.topics);
+  const bossIndex = totalTiles - 1;
+
+  let colorCounter = 0;
+  const tileTrack = positions.map((p) => {
+    const base = { index: p.index, x: p.x, y: p.y, row: p.row, col: p.col };
+
+    if (p.index === 0) return { ...base, type: 'start', color: 'start', topic: null, next: 1 };
+    if (p.index === bossIndex) {
+      return { ...base, type: 'boss', color: 'boss', topic: null, next: null };
+    }
+    if (forkTargets.has(p.index)) {
+      return {
+        ...base,
+        type: 'fork',
+        color: 'fork',
+        topic: cfg.topics.green ?? null, // sphinx sub-topic when the realm has one
+        next: { shortcut: forkTargets.get(p.index), detour: p.index + 1 },
+      };
+    }
+    const color = colors[colorCounter % colors.length];
+    colorCounter += 1;
+    return { ...base, type: 'colored', color, topic: cfg.topics[color], next: p.index + 1 };
+  });
+
+  const edges = [];
+  tileTrack.forEach((t) => {
+    if (t.type === 'boss') return;
+    if (t.type === 'fork') {
+      edges.push({ from: t.index, to: t.next.detour, kind: 'detour' });
+      edges.push({ from: t.index, to: t.next.shortcut, kind: 'shortcut' });
+    } else {
+      edges.push({ from: t.index, to: t.index + 1, kind: 'main' });
+    }
+  });
+
+  return { realm, grade, stage, totalTiles, topics: cfg.topics, tileTrack, edges, rows, cols, bossIndex, shortcuts };
 }
 
 /** Colors that actually appear on a realm's track (drives the draw deck). */

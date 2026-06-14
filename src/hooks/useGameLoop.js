@@ -39,13 +39,13 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
   const [isMoving, setIsMoving] = useState(false);
   const [pendingSphinx, setPendingSphinx] = useState(null); // { forkIndex, color, count, question }
   const [pendingQuestion, setPendingQuestion] = useState(null); // { index, color, topic, question, fromIndex }
-  const [branchChoice, setBranchChoice] = useState(null); // 'shortcut' | 'detour' | null
+  const [branchChoice, setBranchChoice] = useState({}); // { [forkIndex]: 'shortcut' | 'detour' }
   const [bossActive, setBossActive] = useState(false);
   const [stageCleared, setStageCleared] = useState(false);
   const [fizzle, setFizzle] = useState(null);
 
   const positionRef = useRef(0);
-  const branchChoiceRef = useRef(null);
+  const branchChoiceRef = useRef({});
   const turnStartRef = useRef(0);
   const walkRef = useRef(null); // { color, count, matches } carried across the Sphinx
 
@@ -62,8 +62,8 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
     setIsMoving(false);
     setPendingSphinx(null);
     setPendingQuestion(null);
-    setBranchChoice(null);
-    branchChoiceRef.current = null;
+    setBranchChoice({});
+    branchChoiceRef.current = {};
     setBossActive(false);
     setStageCleared(false);
     setFizzle(null);
@@ -78,8 +78,8 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       const t = track[idx];
       if (!t || t.next == null) return -1;
       if (typeof t.next === 'object') {
-        const b = branchChoiceRef.current;
-        if (!b) return null; // fork undecided
+        const b = branchChoiceRef.current[idx];
+        if (!b) return null; // this fork is still undecided
         return b === 'shortcut' ? t.next.shortcut : t.next.detour;
       }
       return t.next;
@@ -96,7 +96,7 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const t = track[cur];
-        if (t.type === 'fork' && !branchChoiceRef.current) {
+        if (t.type === 'fork' && !branchChoiceRef.current[cur]) {
           return { stop: 'fork', forkIndex: cur, matches };
         }
         const nx = nextIndex(cur);
@@ -123,7 +123,7 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const t = track[cur];
-        if (t.type === 'fork' && !branchChoiceRef.current) return true;
+        if (t.type === 'fork' && !branchChoiceRef.current[cur]) return true;
         const nx = nextIndex(cur);
         if (nx == null || nx === -1) return false;
         cur = nx;
@@ -225,8 +225,8 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       const ps = pendingSphinx;
       if (!ps) return correct ? 'shortcut' : 'detour';
       const branch = correct ? 'shortcut' : 'detour';
-      branchChoiceRef.current = branch;
-      setBranchChoice(branch);
+      branchChoiceRef.current = { ...branchChoiceRef.current, [ps.forkIndex]: branch };
+      setBranchChoice(branchChoiceRef.current);
       setPendingSphinx(null);
       const carry = walkRef.current ?? { color: ps.color, count: ps.count, matches: 0 };
       // Resume from the fork, carrying the colors already matched pre-fork.
@@ -251,10 +251,13 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
         const back = turnStartRef.current;
         setPosition(back);
         positionRef.current = back;
-        if (stage && back <= stage.forkIndex) {
-          branchChoiceRef.current = null; // re-gate the Sphinx next time
-          setBranchChoice(null);
-        }
+        // Re-gate any Sphinx forks at or ahead of where we fell back to.
+        const kept = {};
+        Object.keys(branchChoiceRef.current).forEach((k) => {
+          if (Number(k) < back) kept[k] = branchChoiceRef.current[k];
+        });
+        branchChoiceRef.current = kept;
+        setBranchChoice(kept);
         triggerFizzle(pq.color);
         return 'fizzle';
       }

@@ -6,90 +6,14 @@ import { useGameLoop } from '../../hooks/useGameLoop.js';
 import { TILE_CLASS } from '../../data/realmConfig.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle } from '../BossBattle/index.js';
-import { MonsterNodeSprite } from '../../assets/gameSprites.jsx';
-import AvatarPawn from './AvatarPawn.jsx';
 import MovementDeck from './MovementDeck.jsx';
+import MapComponent from './MapComponent.jsx';
 import SphinxGateModal from './SphinxGateModal.jsx';
 import { getBoardTheme } from './boardTheme.js';
 
 const PERFECT_GEMS = 3;
 const REPLAY_GEM_BONUS = 25;
 const REPLAY_ENERGY_BONUS = 2;
-
-const EDGE_STROKE = { main: '#0f172a', shortcut: '#22c55e', detour: '#f97316' };
-
-/* ── Winding board render ──────────────────────────────────────────────────── */
-
-function TileDisc({ tile, isCurrent }) {
-  const colorClass = TILE_CLASS[tile.color] ?? 'bg-stone-300';
-  let content = tile.index;
-  if (tile.type === 'boss') content = <MonsterNodeSprite className="h-6 w-6" variant="boss" />;
-  else if (tile.type === 'fork') content = '🦁';
-  else if (tile.type === 'merge') content = '•';
-  else if (tile.type === 'start') content = 'S';
-
-  return (
-    <div
-      className={`
-        flex h-9 w-9 items-center justify-center rounded-full border-4 border-black text-[10px] font-black
-        shadow-[0_3px_0_rgba(0,0,0,0.3)] transition-transform ${colorClass}
-        ${isCurrent ? 'z-20 scale-125 ring-4 ring-black' : 'z-10'}
-      `}
-      title={tile.topic ?? tile.type}
-    >
-      {content}
-    </div>
-  );
-}
-
-function WindingTrack({ track, edges, position, branchChoice, palette }) {
-  return (
-    <div className={`relative mx-auto aspect-[5/4] w-full max-w-2xl rounded-xl border-4 border-black ${palette.track}`}>
-      <svg
-        className="absolute inset-0 h-full w-full"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        {edges.map((e, i) => {
-          const a = track[e.from];
-          const b = track[e.to];
-          if (!a || !b) return null;
-          const dimmed =
-            branchChoice &&
-            ((branchChoice === 'shortcut' && e.kind === 'detour') ||
-              (branchChoice === 'detour' && e.kind === 'shortcut'));
-          return (
-            <line
-              key={`${e.from}-${e.to}-${i}`}
-              x1={a.x}
-              y1={a.y}
-              x2={b.x}
-              y2={b.y}
-              stroke={EDGE_STROKE[e.kind] ?? '#0f172a'}
-              strokeWidth="0.9"
-              strokeDasharray={e.kind === 'main' ? undefined : '4 3'}
-              opacity={dimmed ? 0.2 : 0.9}
-            />
-          );
-        })}
-      </svg>
-
-      <div className="absolute inset-0">
-        {track.map((tile, i) => (
-          <div
-            key={tile.index}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
-            style={{ left: `${tile.x}%`, top: `${tile.y}%` }}
-          >
-            {i === position && <AvatarPawn />}
-            <TileDisc tile={tile} isCurrent={i === position} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 /* ── Tile question modal (Core Question Trigger) ──────────────────────────── */
 
@@ -172,8 +96,6 @@ export default function GameBoard({
 
   const {
     stage,
-    track,
-    edges,
     position,
     energy,
     drawnCard,
@@ -278,9 +200,8 @@ export default function GameBoard({
             </span>
           </div>
 
-          <WindingTrack
-            track={track}
-            edges={edges}
+          <MapComponent
+            stage={stage}
             position={position}
             branchChoice={branchChoice}
             palette={palette}
