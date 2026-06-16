@@ -139,7 +139,10 @@ export function getStageConfig(realm, grade = 1, stage = 1) {
   if (!cfg) return null;
 
   const totalTiles = totalTilesFor(grade, stage);
-  const { positions, rows, cols, shortcuts } = generateSnakingLayout(totalTiles, GRID_WIDTH);
+  const { positions, rows, cols, cellW, cellH, shortcuts } = generateSnakingLayout(
+    totalTiles,
+    GRID_WIDTH,
+  );
   const forkTargets = new Map(shortcuts.map((s) => [s.from, s.to]));
   const colors = Object.keys(cfg.topics);
   const bossIndex = totalTiles - 1;
@@ -177,7 +180,21 @@ export function getStageConfig(realm, grade = 1, stage = 1) {
     }
   });
 
-  return { realm, grade, stage, totalTiles, topics: cfg.topics, tileTrack, edges, rows, cols, bossIndex, shortcuts };
+  return {
+    realm,
+    grade,
+    stage,
+    totalTiles,
+    topics: cfg.topics,
+    tileTrack,
+    edges,
+    rows,
+    cols,
+    cellW,
+    cellH,
+    bossIndex,
+    shortcuts,
+  };
 }
 
 /** Colors that actually appear on a realm's track (drives the draw deck). */

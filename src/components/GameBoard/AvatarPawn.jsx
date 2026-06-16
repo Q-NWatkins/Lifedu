@@ -10,7 +10,7 @@ export default function AvatarPawn({ variant = 'astronaut' }) {
 
   return (
     <div
-      className="pointer-events-none absolute -top-9 left-1/2 z-30 h-11 w-11 -translate-x-1/2"
+      className="pointer-events-none absolute -top-9 left-1/2 z-[999] h-11 w-11 -translate-x-1/2"
       aria-label="Your hero — you are here"
       title="You are here"
     >

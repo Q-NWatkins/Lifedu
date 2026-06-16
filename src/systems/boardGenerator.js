@@ -7,22 +7,22 @@
  * periodic "shortcut" jump-ahead edges that the loop guards with the Sphinx.
  */
 
-const X_START = 10;
-const X_END = 90;
-const Y_START = 8;
-const Y_END = 92;
-
 /**
  * @param {number} totalTiles
  * @param {number} gridWidth  tiles per row (columns)
  * @returns {{ positions: Array<{index,row,col,x,y}>, rows: number, cols: number,
- *   shortcuts: Array<{from:number,to:number}> }}
+ *   cellW: number, cellH: number, shortcuts: Array<{from:number,to:number}> }}
+ *
+ * Coordinates are CELL CENTERS in 0–100 space: tile `i` sits at the center of
+ * its grid cell, and each cell is `100/cols` × `100/rows`. Rendering a tile at
+ * full cell size therefore makes consecutive tiles sit flush — a continuous,
+ * unbroken 2D ribbon ("The Game of Life" board).
  */
 export function generateSnakingLayout(totalTiles, gridWidth = 5) {
   const cols = Math.max(2, gridWidth);
   const rows = Math.max(1, Math.ceil(totalTiles / cols));
-  const colGap = cols > 1 ? (X_END - X_START) / (cols - 1) : 0;
-  const rowGap = rows > 1 ? (Y_END - Y_START) / (rows - 1) : 0;
+  const cellW = 100 / cols;
+  const cellH = 100 / rows;
 
   const positions = [];
   for (let i = 0; i < totalTiles; i += 1) {
@@ -34,8 +34,8 @@ export function generateSnakingLayout(totalTiles, gridWidth = 5) {
       index: i,
       row,
       col,
-      x: X_START + col * colGap,
-      y: rows > 1 ? Y_START + row * rowGap : 50,
+      x: (col + 0.5) * cellW, // cell center
+      y: (row + 0.5) * cellH,
     });
   }
 
@@ -49,5 +49,5 @@ export function generateSnakingLayout(totalTiles, gridWidth = 5) {
     if (to > from + 1) shortcuts.push({ from, to });
   }
 
-  return { positions, rows, cols, shortcuts };
+  return { positions, rows, cols, cellW, cellH, shortcuts };
 }
