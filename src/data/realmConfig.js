@@ -62,6 +62,66 @@ export const REALM_CONFIG = {
 };
 
 /**
+ * Themed environment per realm — rich CSS terrain/pattern backgrounds (no image
+ * assets). Applied to the board surface so each Subject Realm feels distinct.
+ */
+export const REALM_ENV = {
+  science: {
+    // Starry cosmos: layered star dots over a deep-space gradient.
+    background:
+      'radial-gradient(1.5px 1.5px at 18% 22%, #ffffffcc 50%, transparent 51%),' +
+      'radial-gradient(1.5px 1.5px at 68% 58%, #c7d2fecc 50%, transparent 51%),' +
+      'radial-gradient(1px 1px at 42% 80%, #ffffff99 50%, transparent 51%),' +
+      'linear-gradient(160deg, #0b1026 0%, #1e1b4b 60%, #312e81 100%)',
+    backgroundSize: '70px 70px, 110px 110px, 50px 50px, 100% 100%',
+    text: 'text-indigo-50',
+  },
+  reading: {
+    // Lush magical forest: leafy radial glows over a deep green canopy.
+    background:
+      'radial-gradient(circle at 82% 12%, #86efac55 0%, transparent 38%),' +
+      'radial-gradient(circle at 12% 88%, #4ade8044 0%, transparent 40%),' +
+      'linear-gradient(180deg, #14532d 0%, #166534 70%, #15803d 100%)',
+    text: 'text-emerald-50',
+  },
+  history: {
+    // Aged parchment map: warm tan with a faint cartographer's grid + vignette.
+    background:
+      'repeating-linear-gradient(0deg, #00000010 0 1px, transparent 1px 28px),' +
+      'repeating-linear-gradient(90deg, #00000010 0 1px, transparent 1px 28px),' +
+      'radial-gradient(circle at 50% 40%, #fdf3da 0%, #e8cf9f 70%, #d8b878 100%)',
+    text: 'text-amber-950',
+  },
+  math: {
+    // Blueprint: cyan grid lines over a blueprint-blue gradient.
+    background:
+      'repeating-linear-gradient(0deg, #38bdf833 0 1px, transparent 1px 26px),' +
+      'repeating-linear-gradient(90deg, #38bdf833 0 1px, transparent 1px 26px),' +
+      'linear-gradient(180deg, #082f49 0%, #0c4a6e 60%, #075985 100%)',
+    text: 'text-sky-50',
+  },
+};
+
+export function getRealmEnv(realm) {
+  return REALM_ENV[realm] ?? REALM_ENV.math;
+}
+
+/**
+ * The Guardian that stands on each realm's Sphinx fork tiles and poses the
+ * gated challenge question.
+ */
+export const GUARDIANS = {
+  science: { emoji: '🤖', name: 'The Nebula Mech' },
+  math: { emoji: '🦉', name: 'The Number Owl' },
+  reading: { emoji: '🧙‍♂️', name: 'The Word Wizard' },
+  history: { emoji: '🐉', name: 'The Timeless Dragon' },
+};
+
+export function getGuardian(realm) {
+  return GUARDIANS[realm] ?? { emoji: '🦁', name: 'The Sphinx' };
+}
+
+/**
  * Assemble a full stage board:
  *   - length from `totalTilesFor(grade, stage)`
  *   - serpentine coordinates + periodic shortcuts from boardGenerator

@@ -7,11 +7,13 @@ import { neuCard } from '../../styles/neubrutalism.js';
  *   - Correct → routed down the SHORT-CUT branch.
  *   - Wrong   → routed down the long DETOUR branch.
  */
-export default function SphinxGateModal({ question, onResolve }) {
+export default function SphinxGateModal({ question, guardian, onResolve }) {
   const [selected, setSelected] = useState(null);
   const [locked, setLocked] = useState(false);
 
   if (!question) return null;
+
+  const keeper = guardian ?? { emoji: '🦁', name: 'The Sphinx' };
 
   const choose = (i) => {
     if (locked) return;
@@ -40,14 +42,14 @@ export default function SphinxGateModal({ question, onResolve }) {
       <div className={`w-full max-w-sm ${neuCard} bg-white p-6`}>
         <div className="text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-black bg-amber-400 text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-            🦁
+            {keeper.emoji}
           </div>
           <p className="mt-3 text-[10px] font-black uppercase tracking-[0.3em] text-amber-700">
-            Sphinx Gate
+            Gatekeeper Challenge
           </p>
-          <h3 className="mt-1 text-lg font-black text-black">Answer to take the short-cut!</h3>
+          <h3 className="mt-1 text-lg font-black text-black">{keeper.name} blocks the path!</h3>
           <p className="mt-1 text-xs font-semibold text-black/60">
-            Correct unlocks the quick path — miss it and you take the long way around.
+            Answer correctly to cross the 🌈 short-cut — miss it and take the long detour.
           </p>
         </div>
 

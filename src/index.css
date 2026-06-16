@@ -219,6 +219,17 @@ body {
   animation: card-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
+/* Flowing dashes for the Candyland rainbow short-cut bridge. */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+
+.animate-dash-flow {
+  animation: dash-flow 0.8s linear infinite;
+}
+
 /* ── Confetti + celebration ───────────────────────────────────────────────── */
 
 @keyframes confetti-fall {

@@ -3,7 +3,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
-import { TILE_CLASS } from '../../data/realmConfig.js';
+import { TILE_CLASS, getRealmEnv, getGuardian } from '../../data/realmConfig.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle } from '../BossBattle/index.js';
 import MovementDeck from './MovementDeck.jsx';
@@ -126,6 +126,10 @@ export default function GameBoard({
     if (outcome === 'perfect' || outcome === 'boss') addGems(PERFECT_GEMS);
   };
 
+  const realm = course?.subject;
+  const env = getRealmEnv(realm);
+  const guardian = getGuardian(realm);
+
   if (!stage) {
     return (
       <section className="flex min-h-[40vh] items-center justify-center p-6">
@@ -143,7 +147,11 @@ export default function GameBoard({
     >
       {pendingQuestion && <TileQuestionModal pending={pendingQuestion} onAnswer={handleTileAnswer} />}
       {pendingSphinx && (
-        <SphinxGateModal question={pendingSphinx.question} onResolve={resolveSphinx} />
+        <SphinxGateModal
+          question={pendingSphinx.question}
+          guardian={guardian}
+          onResolve={resolveSphinx}
+        />
       )}
 
       {bossActive && course && (
@@ -182,7 +190,10 @@ export default function GameBoard({
           </header>
         )}
 
-        <div className={`${neuCard} relative ${palette.board} p-4 sm:p-6`}>
+        <div
+          className={`${neuCard} relative overflow-hidden p-4 sm:p-6`}
+          style={{ background: env.background, backgroundSize: env.backgroundSize }}
+        >
           {/* Sub-topic legend (color → topic) + branch key */}
           <div className="mb-3 flex flex-wrap justify-center gap-2">
             {Object.entries(stage.topics).map(([color, topic]) => (
@@ -195,13 +206,13 @@ export default function GameBoard({
               </span>
             ))}
             <span className="flex items-center gap-1 rounded-full border-2 border-black bg-white/90 px-2 py-0.5 text-[10px] font-black text-black">
-              🦁 Sphinx · <span className="text-green-700">short-cut</span> /{' '}
-              <span className="text-orange-600">detour</span>
+              {guardian.emoji} {guardian.name} · 🌈 short-cut / detour
             </span>
           </div>
 
           <MapComponent
             stage={stage}
+            realm={realm}
             position={position}
             branchChoice={branchChoice}
             palette={palette}
@@ -230,10 +241,10 @@ export default function GameBoard({
             />
           )}
 
-          <footer className={`mt-4 flex flex-wrap justify-center gap-3 text-[10px] font-bold ${palette.subtitle}`}>
+          <footer className={`mt-4 flex flex-wrap justify-center gap-3 text-[10px] font-black ${env.text}`}>
             <span>🎴 Draw a color card</span>
             <span>❓ Land = answer its topic</span>
-            <span>🦁 Sphinx fork = short-cut or detour</span>
+            <span>{guardian.emoji} Guardian gate = short-cut or detour</span>
             <span>💥 Wrong = fizzle back</span>
             <span>👹 {bossName} at the end</span>
           </footer>
