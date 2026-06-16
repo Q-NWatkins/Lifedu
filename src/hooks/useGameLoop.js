@@ -1,324 +1,317 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { rollLoot } from '../systems/lootSystem.js';
-import {
-  buildConstellationLayout,
-  getPathForBranch,
-  stepAtPathIndex,
-} from '../systems/constellationMap.js';
+import { getStageConfig, getStageColors } from '../data/realmConfig.js';
+import { getTileQuestion, getBossQuestions } from '../data/questions/index.js';
+import { drawColorCard } from '../systems/movementCards.js';
 
-const STEP_DELAY_MS = 350;
-const RETREAT_STEPS = 3;
+const MOVE_STEP_MS = 240;
+const REVEAL_MS = 500;
+const FIZZLE_MS = 700;
+const PERFECT_ENERGY = 1;
 const MEGA_ROLL_BONUS = 3;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function isLootNode(node) {
-  return node?.type === 'chest' || node?.type === 'mysteryChest';
-}
-
 /**
- * Constellation-aware game loop with movement cards, branching paths, and
- * interactive obstacle nodes (Mini-Boss gates + optional Side-Boss skirmishes).
+ * Board game loop: Game-of-Life winding paths + Monopoly central draw deck +
+ * Candyland color movement.
+ *
+ * - `drawCard()` flips one color card from the central pile and fires movement.
+ * - Movement scans the track for the card's color; if a SPHINX FORK is reached
+ *   first it pauses for a gated question (`pendingSphinx`); a correct answer
+ *   routes the player down the short-cut, a wrong answer down the long detour.
+ * - Landing on any colored tile triggers that sub-topic's question
+ *   (`pendingQuestion`); a wrong answer FIZZLES the player back to the turn's
+ *   starting tile.
  */
-export function useGameLoop(course, { initialEnergy = 10, skipBossEncounter = false } = {}) {
-  const layout = buildConstellationLayout(course);
-  const bossStep = layout.bossStep;
-  // Animation pace scales with grade (slower on Grade 1, snappier on Grade 5).
-  const stepDelay = course.stepDelayMs ?? STEP_DELAY_MS;
+export function useGameLoop(course, { initialEnergy = 10 } = {}) {
+  const stage = getStageConfig(course.subject, course.grade, course.stage);
+  const track = stage?.tileTrack ?? [];
+  const trackColors = getStageColors(course.subject);
+  const bossIndex = stage?.bossIndex ?? track.length - 1;
+  const bank = course.questionBankId;
 
-  const [pathBranch, setPathBranch] = useState(null);
-  const [pathIndex, setPathIndex] = useState(0);
+  const [position, setPosition] = useState(0);
   const [energy, setEnergy] = useState(initialEnergy);
+  const [drawnCard, setDrawnCard] = useState(null);
+  const [isRevealing, setIsRevealing] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
-  const [lastMoveSteps, setLastMoveSteps] = useState(null);
-  const [pendingLoot, setPendingLoot] = useState(null);
-  const [bossEncounterActive, setBossEncounterActive] = useState(false);
-  const [forkChoicePending, setForkChoicePending] = useState(false);
-  const [miniBossEncounter, setMiniBossEncounter] = useState(null);
-  const [sideBossEncounter, setSideBossEncounter] = useState(null);
-  const [pendingHazard, setPendingHazard] = useState(null);
-  const [clearedNodes, setClearedNodes] = useState([]);
+  const [pendingSphinx, setPendingSphinx] = useState(null); // { forkIndex, color, count, question }
+  const [pendingQuestion, setPendingQuestion] = useState(null); // { index, color, topic, question, fromIndex }
+  const [branchChoice, setBranchChoice] = useState({}); // { [forkIndex]: 'shortcut' | 'detour' }
+  const [bossActive, setBossActive] = useState(false);
+  const [stageCleared, setStageCleared] = useState(false);
+  const [fizzle, setFizzle] = useState(null);
 
-  const movingRef = useRef(false);
-  const pathIndexRef = useRef(0);
-  const pathBranchRef = useRef(null);
-  const openedChestsRef = useRef(new Set());
-  const lootResolveRef = useRef(null);
-  const hazardResolveRef = useRef(null);
-  const triggeredHazardsRef = useRef(new Set());
-  const skipBossRef = useRef(skipBossEncounter);
-  const clearedNodesRef = useRef(new Set());
-
-  const activePath = getPathForBranch(layout, pathBranch ?? 'short');
-
-  const getNodeAt = useCallback(
-    (index) => {
-      const nodeId = activePath[index];
-      return layout.nodes.find((n) => n.id === nodeId);
-    },
-    [activePath, layout.nodes],
-  );
-
-  const currentStep = stepAtPathIndex(layout, activePath, pathIndex);
+  const positionRef = useRef(0);
+  const branchChoiceRef = useRef({});
+  const turnStartRef = useRef(0);
+  const walkRef = useRef(null); // { color, count, matches } carried across the Sphinx
 
   useEffect(() => {
-    skipBossRef.current = skipBossEncounter;
-  }, [skipBossEncounter]);
+    positionRef.current = position;
+  }, [position]);
 
   useEffect(() => {
-    pathIndexRef.current = pathIndex;
-  }, [pathIndex]);
-
-  useEffect(() => {
-    pathBranchRef.current = pathBranch;
-  }, [pathBranch]);
-
-  useEffect(() => {
-    setPathBranch(null);
-    setPathIndex(0);
+    setPosition(0);
+    positionRef.current = 0;
     setEnergy(initialEnergy);
+    setDrawnCard(null);
+    setIsRevealing(false);
     setIsMoving(false);
-    setLastMoveSteps(null);
-    setPendingLoot(null);
-    setBossEncounterActive(false);
-    setForkChoicePending(false);
-    setMiniBossEncounter(null);
-    setSideBossEncounter(null);
-    setPendingHazard(null);
-    setClearedNodes([]);
-    movingRef.current = false;
-    pathIndexRef.current = 0;
-    pathBranchRef.current = null;
-    openedChestsRef.current = new Set();
-    lootResolveRef.current = null;
-    hazardResolveRef.current = null;
-    triggeredHazardsRef.current = new Set();
-    clearedNodesRef.current = new Set();
+    setPendingSphinx(null);
+    setPendingQuestion(null);
+    setBranchChoice({});
+    branchChoiceRef.current = {};
+    setBossActive(false);
+    setStageCleared(false);
+    setFizzle(null);
+    turnStartRef.current = 0;
+    walkRef.current = null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on stage swap only
   }, [course.id, initialEnergy]);
 
-  const closeLootReveal = useCallback(() => {
-    setPendingLoot(null);
-    lootResolveRef.current?.();
-    lootResolveRef.current = null;
+  /** Resolve the next tile index, honoring the chosen branch at the fork. */
+  const nextIndex = useCallback(
+    (idx) => {
+      const t = track[idx];
+      if (!t || t.next == null) return -1;
+      if (typeof t.next === 'object') {
+        const b = branchChoiceRef.current[idx];
+        if (!b) return null; // this fork is still undecided
+        return b === 'shortcut' ? t.next.shortcut : t.next.detour;
+      }
+      return t.next;
+    },
+    [track],
+  );
+
+  /** Walk forward seeking the `count`-th tile of `color` (clamped to last colored). */
+  const scanColorPath = useCallback(
+    (from, color, count, startMatches) => {
+      let cur = from;
+      let matches = startMatches;
+      let lastColored = -1;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const t = track[cur];
+        if (t.type === 'fork' && !branchChoiceRef.current[cur]) {
+          return { stop: 'fork', forkIndex: cur, matches };
+        }
+        const nx = nextIndex(cur);
+        if (nx == null || nx === -1) break;
+        cur = nx;
+        const tile = track[cur];
+        if (tile.type === 'boss') break;
+        if (tile.topic) {
+          lastColored = cur;
+          if (tile.color === color) {
+            matches += 1;
+            if (matches >= count) return { stop: 'target', target: cur };
+          }
+        }
+      }
+      return lastColored >= 0 ? { stop: 'target', target: lastColored } : { stop: 'none' };
+    },
+    [track, nextIndex],
+  );
+
+  const hasColoredAhead = useCallback(
+    (idx) => {
+      let cur = idx;
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const t = track[cur];
+        if (t.type === 'fork' && !branchChoiceRef.current[cur]) return true;
+        const nx = nextIndex(cur);
+        if (nx == null || nx === -1) return false;
+        cur = nx;
+        const tile = track[cur];
+        if (tile.type === 'boss') return false;
+        if (tile.topic) return true;
+      }
+    },
+    [track, nextIndex],
+  );
+
+  const triggerFizzle = useCallback((fromColor) => {
+    setFizzle({ fromColor });
+    setTimeout(() => setFizzle(null), FIZZLE_MS);
   }, []);
 
-  /** Acknowledge a hazard/trap: apply the energy penalty and resume movement. */
-  const closeHazard = useCallback(() => {
-    setEnergy((e) => Math.max(0, e - 1));
-    setPendingHazard(null);
-    hazardResolveRef.current?.();
-    hazardResolveRef.current = null;
+  const animatePath = useCallback(
+    async (from, to) => {
+      let cur = from;
+      let guard = 0;
+      while (cur !== to && guard < 64) {
+        const nx = nextIndex(cur);
+        if (nx == null || nx === -1) break;
+        // eslint-disable-next-line no-await-in-loop
+        await sleep(MOVE_STEP_MS);
+        cur = nx;
+        setPosition(cur);
+        positionRef.current = cur;
+        guard += 1;
+      }
+    },
+    [nextIndex],
+  );
+
+  /** Core movement: walk toward the color target, pausing at the Sphinx fork. */
+  const beginMovement = useCallback(
+    async (color, count, startMatches, from) => {
+      const res = scanColorPath(from, color, count, startMatches);
+
+      if (res.stop === 'fork') {
+        setIsMoving(true);
+        await animatePath(from, res.forkIndex);
+        setIsMoving(false);
+        walkRef.current = { color, count, matches: res.matches };
+        setPendingSphinx({
+          forkIndex: res.forkIndex,
+          color,
+          count,
+          question: getBossQuestions(bank, 1)[0] ?? getTileQuestion(bank, track[res.forkIndex].topic),
+        });
+        return;
+      }
+
+      if (res.stop === 'none') {
+        triggerFizzle(color); // card whiffs — nothing of that color ahead
+        return;
+      }
+
+      setIsMoving(true);
+      await animatePath(from, res.target);
+      setIsMoving(false);
+      const tile = track[res.target];
+      setPendingQuestion({
+        index: res.target,
+        color: tile.color,
+        topic: tile.topic,
+        question: getTileQuestion(bank, tile.topic),
+        fromIndex: turnStartRef.current,
+      });
+    },
+    [scanColorPath, animatePath, triggerFizzle, bank, track],
+  );
+
+  const canDraw =
+    energy > 0 &&
+    !isRevealing &&
+    !isMoving &&
+    !pendingSphinx &&
+    !pendingQuestion &&
+    !bossActive &&
+    !stageCleared;
+
+  /** Monopoly-style: flip one card from the central pile, then move. */
+  const drawCard = useCallback(async () => {
+    if (!canDraw) return;
+    const card = drawColorCard(trackColors);
+    turnStartRef.current = positionRef.current;
+    setEnergy((e) => Math.max(0, e - 1)); // a drawn card is consumed
+    setDrawnCard(card);
+    setIsRevealing(true);
+    await sleep(REVEAL_MS);
+    setIsRevealing(false);
+    await beginMovement(card.color, card.count, 0, positionRef.current);
+  }, [canDraw, trackColors, beginMovement]);
+
+  /** Sphinx answered → route the branch and resume the queued movement. */
+  const resolveSphinx = useCallback(
+    (correct) => {
+      const ps = pendingSphinx;
+      if (!ps) return correct ? 'shortcut' : 'detour';
+      const branch = correct ? 'shortcut' : 'detour';
+      branchChoiceRef.current = { ...branchChoiceRef.current, [ps.forkIndex]: branch };
+      setBranchChoice(branchChoiceRef.current);
+      setPendingSphinx(null);
+      const carry = walkRef.current ?? { color: ps.color, count: ps.count, matches: 0 };
+      // Resume from the fork, carrying the colors already matched pre-fork.
+      beginMovement(carry.color, carry.count, carry.matches, ps.forkIndex);
+      return branch;
+    },
+    [pendingSphinx, beginMovement],
+  );
+
+  /**
+   * Resolve a tile question.
+   * @returns {'perfect'|'boss'|'fizzle'}
+   */
+  const resolveAnswer = useCallback(
+    (correct) => {
+      const pq = pendingQuestion;
+      setPendingQuestion(null);
+      if (!pq) return 'fizzle';
+
+      if (!correct) {
+        // The Fizzle: snap back to the turn's starting tile.
+        const back = turnStartRef.current;
+        setPosition(back);
+        positionRef.current = back;
+        // Re-gate any Sphinx forks at or ahead of where we fell back to.
+        const kept = {};
+        Object.keys(branchChoiceRef.current).forEach((k) => {
+          if (Number(k) < back) kept[k] = branchChoiceRef.current[k];
+        });
+        branchChoiceRef.current = kept;
+        setBranchChoice(kept);
+        triggerFizzle(pq.color);
+        return 'fizzle';
+      }
+
+      setEnergy((e) => e + PERFECT_ENERGY);
+      if (!hasColoredAhead(pq.index)) {
+        setPosition(bossIndex);
+        positionRef.current = bossIndex;
+        setBossActive(true);
+        return 'boss';
+      }
+      return 'perfect';
+    },
+    [pendingQuestion, hasColoredAhead, bossIndex, stage, triggerFizzle],
+  );
+
+  const dismissBossEncounter = useCallback(() => {
+    setBossActive(false);
+    setStageCleared(true);
   }, []);
 
   const retreatFromBoss = useCallback(() => {
-    setBossEncounterActive(false);
-    setPathIndex((idx) => {
-      const next = Math.max(0, idx - RETREAT_STEPS);
-      pathIndexRef.current = next;
-      return next;
-    });
+    setBossActive(false);
+    setPosition((p) => Math.max(0, p - 1));
   }, []);
 
-  const dismissBossEncounter = useCallback(() => {
-    setBossEncounterActive(false);
-  }, []);
-
-  const grantMegaRoll = useCallback(() => {
-    setEnergy((e) => e + MEGA_ROLL_BONUS);
-  }, []);
-
-  /** Generic energy grant (used for the replay-mastery bonus). */
+  const grantMegaRoll = useCallback(() => setEnergy((e) => e + MEGA_ROLL_BONUS), []);
   const addEnergy = useCallback((amount) => {
-    if (!amount) return;
-    setEnergy((e) => Math.max(0, e + amount));
+    if (amount) setEnergy((e) => Math.max(0, e + amount));
   }, []);
-
-  const markNodeCleared = useCallback((nodeId) => {
-    if (nodeId == null) return;
-    clearedNodesRef.current.add(nodeId);
-    setClearedNodes((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
-  }, []);
-
-  /** Mini-Boss defeated → unlock the path past it. */
-  const resolveMiniBoss = useCallback(
-    (nodeId) => {
-      markNodeCleared(nodeId);
-      setMiniBossEncounter(null);
-    },
-    [markNodeCleared],
-  );
-
-  /** Side-Boss resolved (won or skipped) → allow passing. */
-  const resolveSideBoss = useCallback(
-    (nodeId) => {
-      markNodeCleared(nodeId);
-      setSideBossEncounter(null);
-    },
-    [markNodeCleared],
-  );
-
-  const chooseForkBranch = useCallback((branch) => {
-    setPathBranch(branch);
-    pathBranchRef.current = branch;
-    setForkChoicePending(false);
-  }, []);
-
-  const moveAlongPath = useCallback(
-    async (steps) => {
-      if (
-        movingRef.current ||
-        energy <= 0 ||
-        bossEncounterActive ||
-        pendingLoot ||
-        pendingHazard ||
-        miniBossEncounter ||
-        sideBossEncounter
-      ) {
-        return false;
-      }
-
-      let branch = pathBranchRef.current ?? 'short';
-      let path = getPathForBranch(layout, branch);
-      let fromIndex = pathIndexRef.current;
-
-      const atFork =
-        !pathBranchRef.current &&
-        layout.nodes.find((n) => n.id === path[fromIndex])?.type === 'fork';
-
-      if (atFork) {
-        setForkChoicePending(true);
-        return false;
-      }
-
-      movingRef.current = true;
-      setIsMoving(true);
-      setEnergy((e) => e - 1);
-      setLastMoveSteps(steps);
-
-      const targetIndex = Math.min(fromIndex + steps, path.length - 1);
-
-      for (let i = fromIndex + 1; i <= targetIndex; i++) {
-        await sleep(stepDelay);
-
-        branch = pathBranchRef.current ?? 'short';
-        path = getPathForBranch(layout, branch);
-        const node = layout.nodes.find((n) => n.id === path[i]);
-
-        setPathIndex(i);
-        pathIndexRef.current = i;
-
-        if (node?.type === 'fork' && !pathBranchRef.current) {
-          setForkChoicePending(true);
-          movingRef.current = false;
-          setIsMoving(false);
-          return true;
-        }
-
-        // Mini-Boss gate — stop dead and require a win before moving on.
-        if (node?.type === 'miniBoss' && !clearedNodesRef.current.has(node.id)) {
-          setMiniBossEncounter(node);
-          movingRef.current = false;
-          setIsMoving(false);
-          return true;
-        }
-
-        // Side-Boss — optional skirmish on arrival.
-        if (node?.type === 'sideBoss' && !clearedNodesRef.current.has(node.id)) {
-          setSideBossEncounter(node);
-          movingRef.current = false;
-          setIsMoving(false);
-          return true;
-        }
-
-        // Hazard / trap — pause, warn, and dock 1 energy on acknowledge.
-        if (node?.type === 'hazard' && !triggeredHazardsRef.current.has(node.id)) {
-          triggeredHazardsRef.current.add(node.id);
-          await new Promise((resolve) => {
-            hazardResolveRef.current = resolve;
-            setPendingHazard({ node, tile: node.step });
-          });
-        }
-
-        const chestKey = `${branch}-${node?.id}`;
-        if (node && isLootNode(node) && !openedChestsRef.current.has(chestKey)) {
-          openedChestsRef.current.add(chestKey);
-          const item = rollLoot();
-          const isMystery = node.type === 'mysteryChest';
-
-          await new Promise((resolve) => {
-            lootResolveRef.current = resolve;
-            setPendingLoot({ item, tile: node.step, isMystery });
-          });
-        }
-      }
-
-      branch = pathBranchRef.current ?? 'short';
-      path = getPathForBranch(layout, branch);
-      const landedIndex = pathIndexRef.current;
-      const landedNode = layout.nodes.find((n) => n.id === path[landedIndex]);
-
-      if (landedNode?.type === 'boss' && !skipBossRef.current) {
-        setBossEncounterActive(true);
-      }
-
-      movingRef.current = false;
-      setIsMoving(false);
-      return true;
-    },
-    [
-      bossEncounterActive,
-      energy,
-      layout,
-      pendingLoot,
-      pendingHazard,
-      miniBossEncounter,
-      sideBossEncounter,
-      stepDelay,
-    ],
-  );
-
-  const lootRevealActive = Boolean(pendingLoot);
-  const canMove =
-    energy > 0 &&
-    !isMoving &&
-    !bossEncounterActive &&
-    !lootRevealActive &&
-    !forkChoicePending &&
-    !pendingHazard &&
-    !miniBossEncounter &&
-    !sideBossEncounter;
 
   return {
-    layout,
-    pathBranch,
-    pathIndex,
-    currentStep,
-    activePath,
+    stage,
+    track,
+    edges: stage?.edges ?? [],
+    position,
     energy,
+    drawnCard,
+    isRevealing,
     isMoving,
-    lastMoveSteps,
-    pendingLoot,
-    lootRevealActive,
-    canMove,
-    bossStep,
-    bossEncounterActive,
-    forkChoicePending,
-    miniBossEncounter,
-    sideBossEncounter,
-    pendingHazard,
-    clearedNodes,
-    moveAlongPath,
-    chooseForkBranch,
-    closeLootReveal,
-    closeHazard,
-    retreatFromBoss,
+    pendingSphinx,
+    pendingQuestion,
+    branchChoice,
+    bossActive,
+    stageCleared,
+    fizzle,
+    bossIndex,
+    canDraw,
+    drawCard,
+    resolveSphinx,
+    resolveAnswer,
     dismissBossEncounter,
+    retreatFromBoss,
     grantMegaRoll,
     addEnergy,
-    resolveMiniBoss,
-    resolveSideBoss,
-    getNodeAt,
   };
 }

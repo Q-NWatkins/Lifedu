@@ -1,203 +1,125 @@
-import { useMemo } from 'react';
 import AvatarPawn from './AvatarPawn.jsx';
-import {
-  ForkSignSprite,
-  HazardSpikeSprite,
-  MonsterNodeSprite,
-  StarSprite,
-  TreasureChestSprite,
-} from '../../assets/gameSprites.jsx';
+import BoardTile from './BoardTile.jsx';
 
-/** Resolve the inline SVG sprite for a board node (emoji-free). */
-function NodeGlyph({ node, opened }) {
-  switch (node.type) {
-    case 'mysteryChest':
-      return <StarSprite className="h-7 w-7" title="Mystery reward" />;
-    case 'chest':
-      return <TreasureChestSprite className="h-7 w-7" open={opened} />;
-    case 'boss':
-      return <MonsterNodeSprite className="h-8 w-8" variant="boss" title="Boss" />;
-    case 'miniBoss':
-      return <MonsterNodeSprite className="h-7 w-7" variant="miniBoss" title="Mini-Boss" />;
-    case 'sideBoss':
-      return <MonsterNodeSprite className="h-7 w-7" variant="sideBoss" title="Side-Boss" />;
-    case 'hazard':
-      return <HazardSpikeSprite className="h-7 w-7" />;
-    case 'fork':
-      return <ForkSignSprite className="h-7 w-7" />;
-    default:
-      return <span className="text-[10px] font-black">{node.label}</span>;
-  }
-}
+// Tiles are full cell WIDTH (so sequential neighbors sit flush in a row) but
+// only a fraction of cell HEIGHT — leaving negative space between rows so the
+// themed terrain shows through and the path reads as a winding board, not a grid.
+const TILE_HEIGHT_FRACTION = 0.58;
 
-const NODE_COLORS = {
-  lesson: 'bg-green-400',
-  quiz: 'bg-yellow-300',
-  chest: 'bg-amber-400',
-  mysteryChest: 'bg-fuchsia-400',
-  fork: 'bg-white',
-  boss: 'bg-red-500 text-white',
-  miniBoss: 'bg-orange-500 text-white',
-  sideBoss: 'bg-purple-500 text-white',
-  hazard: 'bg-rose-300 text-black',
-};
+/**
+ * Renders the winding "Game of Life" board.
+ *
+ * Layers (low → high z):
+ *   0  main road  — a continuous ribbon line under the tiles; its vertical
+ *                   segments bridge the negative space at each row turn.
+ *   10 tiles      — flush-in-row rounded blocks (active tile pops to z-30).
+ *   20 shortcuts  — the elevated rainbow bridge, drop-shadowed to hover.
+ *   999 pawn      — always on top, even over a raised active tile.
+ */
+export default function MapComponent({ stage, realm, position, branchChoice = {} }) {
+  const { tileTrack, edges, rows, cols } = stage;
+  const cellW = 100 / cols;
+  const cellH = 100 / rows;
+  const tileHeightPct = cellH * TILE_HEIGHT_FRACTION;
 
-function NodeShape({ shape, className, children }) {
-  const base = `flex items-center justify-center border-4 border-black font-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${className}`;
-
-  if (shape === 'hexagon') {
-    return (
-      <div className={`${base} h-12 w-12 rotate-0 clip-hex`} style={{ clipPath: 'polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%)' }}>
-        {children}
-      </div>
-    );
-  }
-  if (shape === 'diamond') {
-    return (
-      <div className={`${base} h-11 w-11 rotate-45`}>
-        <span className="-rotate-45">{children}</span>
-      </div>
-    );
-  }
-  if (shape === 'square') {
-    return <div className={`${base} h-11 w-11 rounded-lg`}>{children}</div>;
-  }
-  return <div className={`${base} h-12 w-12 rounded-full`}>{children}</div>;
-}
-
-function MapNode({ node, isActive, isPassed, isOnPath, isCleared, palette }) {
-  const color = NODE_COLORS[node.type] ?? 'bg-sky-300';
-  const dimmed = !isOnPath && node.branch !== 'shared';
-  const opened = isPassed && (node.type === 'chest' || node.type === 'mysteryChest');
-  const isObstacle = node.type === 'miniBoss' || node.type === 'sideBoss';
+  const mainEdges = edges.filter((e) => e.kind === 'main');
+  const shortcutEdges = edges.filter((e) => e.kind === 'shortcut');
 
   return (
     <div
-      className={`
-        absolute -translate-x-1/2 -translate-y-1/2 transition-transform duration-300
-        ${isActive ? 'z-20 scale-110' : 'z-10'}
-        ${dimmed ? 'opacity-40' : 'opacity-100'}
-        ${!isActive ? 'animate-float-node hover:scale-105' : ''}
-      `}
-      style={{ left: `${node.x}%`, top: `${node.y}%` }}
-      title={node.label}
+      className="relative mx-auto w-full max-w-md"
+      style={{ aspectRatio: `${cols} / ${rows}` }}
     >
-      {isActive && (
-        <div className="absolute -top-5 left-1/2 z-30 -translate-x-1/2">
-          <AvatarPawn palette={palette} />
-        </div>
-      )}
-
-      {/* Cleared obstacle marker */}
-      {isObstacle && isCleared && (
-        <span className="absolute -top-2 -right-2 z-30 flex h-5 w-5 items-center justify-center rounded-full border-2 border-black bg-green-400 text-[10px] font-black">
-          ✓
-        </span>
-      )}
-
-      <NodeShape
-        shape={node.shape}
-        className={`
-          ${color}
-          ${opened || (isObstacle && isCleared) ? 'opacity-50' : ''}
-          ${isActive ? 'ring-4 ring-black' : ''}
-          ${isObstacle && !isCleared ? 'animate-pulse ring-4 ring-black/30' : ''}
-        `}
-      >
-        <NodeGlyph node={node} opened={opened} />
-      </NodeShape>
-    </div>
-  );
-}
-
-export default function MapComponent({
-  layout,
-  activePath,
-  pathIndex,
-  pathBranch,
-  palette,
-  clearedNodes = [],
-}) {
-  const pathSet = useMemo(() => new Set(activePath), [activePath]);
-  const clearedSet = useMemo(() => new Set(clearedNodes), [clearedNodes]);
-  const activeNodeId = activePath[pathIndex];
-
-  const visibleEdges = useMemo(() => {
-    if (!pathBranch) return layout.edges;
-    return layout.edges.filter(
-      (e) => e.branch === 'shared' || e.branch === pathBranch,
-    );
-  }, [layout.edges, pathBranch]);
-
-  // Each subject layout supplies its own aspect ratio + max width so vertical
-  // trees/towers get tall frames and the orbital spiral gets a square one —
-  // this keeps absolutely-positioned nodes contained and avoids overlap.
-  const aspectClass = layout.view?.aspectClass ?? 'aspect-[5/4]';
-  const maxWClass = layout.view?.maxWClass ?? 'max-w-2xl';
-
-  return (
-    <div className={`relative mx-auto w-full ${aspectClass} ${maxWClass}`}>
+      {/* Layer 0 — continuous road under the tiles (shows the winding turns). */}
       <svg
-        className="absolute inset-0 h-full w-full"
+        className="absolute inset-0 z-0 h-full w-full"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
         aria-hidden="true"
       >
-        {visibleEdges.map((edge) => {
-          const from = layout.nodes.find((n) => n.id === edge.from);
-          const to = layout.nodes.find((n) => n.id === edge.to);
-          if (!from || !to) return null;
-
-          const isShort = edge.branch === 'short';
-          const isLong = edge.branch === 'long';
-          const stroke =
-            isShort ? '#22c55e' : isLong ? '#a855f7' : '#000';
-          const dash = isLong ? '4 3' : undefined;
-
+        {mainEdges.map((edge, i) => {
+          const a = tileTrack[edge.from];
+          const b = tileTrack[edge.to];
+          if (!a || !b) return null;
           return (
             <line
-              key={`${edge.from}-${edge.to}`}
-              x1={from.x}
-              y1={from.y}
-              x2={to.x}
-              y2={to.y}
-              stroke={stroke}
-              strokeWidth="0.6"
-              strokeDasharray={dash}
-              opacity={pathBranch || edge.branch === 'shared' ? 0.9 : 0.25}
+              key={`m-${edge.from}-${edge.to}-${i}`}
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+              stroke="#000000"
+              strokeOpacity="0.28"
+              strokeWidth="5"
+              strokeLinecap="round"
             />
           );
         })}
       </svg>
 
-      <div className="absolute inset-0">
-        {layout.nodes.map((node) => {
-          const nodePathIndex = activePath.indexOf(node.id);
-          const isOnPath = pathSet.has(node.id);
-          const isActive = node.id === activeNodeId;
-          const isPassed = nodePathIndex >= 0 && nodePathIndex < pathIndex;
+      {/* Layer 20 — elevated rainbow shortcut bridges (hovering over the board). */}
+      <svg
+        className="pointer-events-none absolute inset-0 z-20 h-full w-full overflow-visible"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <defs>
+          <linearGradient id="rainbow-bridge" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ef4444" />
+            <stop offset="25%" stopColor="#f59e0b" />
+            <stop offset="50%" stopColor="#22c55e" />
+            <stop offset="75%" stopColor="#38bdf8" />
+            <stop offset="100%" stopColor="#a855f7" />
+          </linearGradient>
+        </defs>
 
+        {shortcutEdges.map((edge, i) => {
+          const a = tileTrack[edge.from];
+          const b = tileTrack[edge.to];
+          if (!a || !b) return null;
+          const dimmed = branchChoice[edge.from] === 'detour';
+          const mx = (a.x + b.x) / 2;
+          const my = Math.min(a.y, b.y) - cellH * 0.9;
+          const d = `M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}`;
           return (
-            <MapNode
-              key={node.id}
-              node={node}
-              isActive={isActive}
-              isPassed={isPassed}
-              isOnPath={isOnPath || node.branch === 'shared'}
-              isCleared={clearedSet.has(node.id)}
-              palette={palette}
-            />
+            <g
+              key={`s-${edge.from}-${edge.to}-${i}`}
+              opacity={dimmed ? 0.2 : 1}
+              style={{ filter: 'drop-shadow(0 4px 3px rgba(0,0,0,0.45))' }}
+            >
+              <path d={d} fill="none" stroke="url(#rainbow-bridge)" strokeWidth="3.6" strokeLinecap="round" opacity="0.35" />
+              <path
+                d={d}
+                fill="none"
+                stroke="url(#rainbow-bridge)"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeDasharray="3 2.5"
+                className="animate-dash-flow"
+              />
+            </g>
           );
         })}
-      </div>
+      </svg>
 
-      <div className="absolute bottom-1 left-2 flex gap-2 text-[9px] font-black text-black/60">
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 bg-green-500" /> Short path
-        </span>
-        <span className="flex items-center gap-1">
-          <span className="inline-block h-2 w-4 border border-dashed border-purple-500 bg-purple-300" /> Treasure loop
-        </span>
+      {/* Layer 10 — the flush rounded tile ribbon (pawn z-999 lives on the active tile). */}
+      <div className="absolute inset-0 z-10">
+        {tileTrack.map((tile, i) => (
+          <div
+            key={tile.index}
+            className="absolute -translate-x-1/2 -translate-y-1/2"
+            style={{
+              left: `${tile.x}%`,
+              top: `${tile.y}%`,
+              width: `${cellW}%`,
+              height: `${tileHeightPct}%`,
+            }}
+          >
+            {i === position && <AvatarPawn />}
+            <BoardTile tile={tile} isCurrent={i === position} realm={realm} />
+          </div>
+        ))}
       </div>
     </div>
   );

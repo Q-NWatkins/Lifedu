@@ -1,4 +1,5 @@
 import { FALLBACK_QUESTIONS } from './fallback.js';
+import { getRandomQuestion } from './multiSubject.js';
 import singleDigitMultiplication from './math/single-digit-multiplication.js';
 import tripleDigitMultiplication from './math/triple-digit-multiplication.js';
 import solarSystem from './science/solar-system.js';
@@ -126,6 +127,22 @@ export function getStageQuestionPools(questionBankId, subjectLabel = '') {
   };
 
   return { easy: tier('easy'), medium: tier('medium'), hard: tier('hard') };
+}
+
+/**
+ * Pull ONE question for a board tile, matching the tile's sub-topic color when
+ * possible. Banks may tag questions with `subTopic`; until they do, this draws a
+ * random question from the active stage bank (and falls back to the generic
+ * multi-subject pool if the bank is missing). This is the Core Question Trigger.
+ */
+export function getTileQuestion(questionBankId, subTopic) {
+  const bank = QUESTION_BANKS[questionBankId];
+  if (bank && bank.length > 0) {
+    const tagged = subTopic ? bank.filter((q) => q.subTopic === subTopic) : [];
+    const pool = tagged.length > 0 ? tagged : bank;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+  return getRandomQuestion();
 }
 
 export const BOSS_PASS_THRESHOLD = 0.8;
