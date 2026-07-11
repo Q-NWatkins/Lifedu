@@ -6,14 +6,12 @@
  *
  * Pillar 1 (Isolated Realms): color → sub-topic is scoped to the realm.
  */
-import { generateSnakingLayout } from '../systems/boardGenerator.js';
+import { resolveLayout, staticTileCount, layoutProfileFor } from '../systems/boardGenerator.js';
 
 /** Dynamic length: longer boards for higher grades/stages. */
 export function totalTilesFor(grade = 1, stage = 1) {
   return 10 + grade * 3 + stage * 2;
 }
-
-const GRID_WIDTH = 5; // tiles per serpentine row
 
 export const TILE_HEX = {
   red: '#ef4444',
@@ -67,38 +65,57 @@ export const REALM_CONFIG = {
  */
 export const REALM_ENV = {
   science: {
-    // Starry cosmos: layered star dots over a deep-space gradient.
+    // Cosmic retro space playground: glowing neon nebula swirls + scattered stars.
     background:
-      'radial-gradient(1.5px 1.5px at 18% 22%, #ffffffcc 50%, transparent 51%),' +
-      'radial-gradient(1.5px 1.5px at 68% 58%, #c7d2fecc 50%, transparent 51%),' +
-      'radial-gradient(1px 1px at 42% 80%, #ffffff99 50%, transparent 51%),' +
-      'linear-gradient(160deg, #0b1026 0%, #1e1b4b 60%, #312e81 100%)',
-    backgroundSize: '70px 70px, 110px 110px, 50px 50px, 100% 100%',
-    text: 'text-indigo-50',
+      'radial-gradient(2px 2px at 18% 22%, #ffffffdd 50%, transparent 51%),' +
+      'radial-gradient(1.5px 1.5px at 68% 58%, #a5f3fcdd 50%, transparent 51%),' +
+      'radial-gradient(1.5px 1.5px at 42% 80%, #f5d0fecc 50%, transparent 51%),' +
+      'radial-gradient(circle at 78% 28%, #d946ef55 0%, transparent 42%),' +
+      'radial-gradient(circle at 22% 72%, #22d3ee55 0%, transparent 44%),' +
+      'linear-gradient(160deg, #1a0b3b 0%, #2e1065 55%, #4c1d95 100%)',
+    backgroundSize: '70px 70px, 110px 110px, 90px 90px, 100% 100%, 100% 100%, 100% 100%',
+    text: 'text-fuchsia-50',
+    // Neon nebula-dust track.
+    road: { border: '#0b0420', fill: '#a855f7', dash: '#22d3ee' },
+    tileShape: 'disc', // glowing planetoid bubbles
   },
   reading: {
-    // Lush magical forest: leafy radial glows over a deep green canopy.
+    // Vibrant enchanted jungle: sunlit canopy with leafy glows.
     background:
-      'radial-gradient(circle at 82% 12%, #86efac55 0%, transparent 38%),' +
-      'radial-gradient(circle at 12% 88%, #4ade8044 0%, transparent 40%),' +
-      'linear-gradient(180deg, #14532d 0%, #166534 70%, #15803d 100%)',
-    text: 'text-emerald-50',
+      'radial-gradient(circle at 80% 10%, #fde68a66 0%, transparent 30%),' +
+      'radial-gradient(circle at 84% 16%, #bef26466 0%, transparent 40%),' +
+      'radial-gradient(circle at 10% 86%, #4ade8055 0%, transparent 42%),' +
+      'radial-gradient(circle at 50% 50%, #65a30d33 0%, transparent 60%),' +
+      'linear-gradient(180deg, #14532d 0%, #15803d 60%, #4d7c0f 100%)',
+    text: 'text-lime-50',
+    // Thick leafy woodland vine trail.
+    road: { border: '#1a2e05', fill: '#65a30d', dash: '#bef264' },
+    tileShape: 'block', // mossy wooden signposts
   },
   history: {
-    // Aged parchment map: warm tan with a faint cartographer's grid + vignette.
+    // Treasure Island / Dino-Age adventure map: sun-bleached parchment + sand.
     background:
-      'repeating-linear-gradient(0deg, #00000010 0 1px, transparent 1px 28px),' +
-      'repeating-linear-gradient(90deg, #00000010 0 1px, transparent 1px 28px),' +
-      'radial-gradient(circle at 50% 40%, #fdf3da 0%, #e8cf9f 70%, #d8b878 100%)',
+      'radial-gradient(circle at 22% 18%, #fef3c7 0%, transparent 35%),' +
+      'radial-gradient(circle at 82% 84%, #fcd34d55 0%, transparent 40%),' +
+      'radial-gradient(circle at 50% 45%, #fde8b8 0%, #e8cf9f 62%, #cda86a 100%)',
     text: 'text-amber-950',
+    // Dotted "X marks the spot" sandy island trail.
+    road: { border: '#5b3d1a', fill: '#d4a056', dash: '#fef3c7' },
+    tileShape: 'block', // weathered treasure-map placards
   },
   math: {
-    // Blueprint: cyan grid lines over a blueprint-blue gradient.
+    // Candy Land toy wonderland: pastel frosted sky with sprinkle dots.
     background:
-      'repeating-linear-gradient(0deg, #38bdf833 0 1px, transparent 1px 26px),' +
-      'repeating-linear-gradient(90deg, #38bdf833 0 1px, transparent 1px 26px),' +
-      'linear-gradient(180deg, #082f49 0%, #0c4a6e 60%, #075985 100%)',
-    text: 'text-sky-50',
+      'radial-gradient(3px 3px at 20% 30%, #f472b6aa 50%, transparent 51%),' +
+      'radial-gradient(3px 3px at 72% 64%, #818cf8aa 50%, transparent 51%),' +
+      'radial-gradient(2.5px 2.5px at 50% 18%, #34d399aa 50%, transparent 51%),' +
+      'radial-gradient(circle at 80% 20%, #fbcfe8 0%, transparent 45%),' +
+      'linear-gradient(180deg, #fdf2f8 0%, #fbcfe8 55%, #ddd6fe 100%)',
+    backgroundSize: '64px 64px, 88px 88px, 52px 52px, 100% 100%, 100% 100%',
+    text: 'text-fuchsia-950',
+    // Frosted pastel candy ribbon.
+    road: { border: '#9d174d', fill: '#f9a8d4', dash: '#ffffff' },
+    tileShape: 'disc', // smooth candy discs
   },
 };
 
@@ -132,16 +149,22 @@ export function getGuardian(realm) {
  * x/y for rendering. `edges` is typed (main | detour | shortcut) for the road.
  *
  * @returns {{ realm, grade, stage, totalTiles, topics, tileTrack, edges,
- *   rows, cols, bossIndex, shortcuts } | null}
+ *   spacing, bossIndex, shortcuts } | null}
  */
 export function getStageConfig(realm, grade = 1, stage = 1) {
   const cfg = REALM_CONFIG[realm];
   if (!cfg) return null;
 
-  const totalTiles = totalTilesFor(grade, stage);
-  const { positions, rows, cols, cellW, cellH, shortcuts } = generateSnakingLayout(
+  // Static asset-backed maps fix the tile count to their hand-tuned coordinate
+  // list; otherwise the length scales procedurally with grade/stage.
+  const totalTiles = staticTileCount(realm, grade, stage) ?? totalTilesFor(grade, stage);
+  const profile = layoutProfileFor(grade); // grade-adaptive maze complexity
+  const { positions, spacing, shortcuts, background, aspect, isStatic } = resolveLayout(
+    realm,
+    grade,
+    stage,
     totalTiles,
-    GRID_WIDTH,
+    profile,
   );
   const forkTargets = new Map(shortcuts.map((s) => [s.from, s.to]));
   const colors = Object.keys(cfg.topics);
@@ -149,7 +172,7 @@ export function getStageConfig(realm, grade = 1, stage = 1) {
 
   let colorCounter = 0;
   const tileTrack = positions.map((p) => {
-    const base = { index: p.index, x: p.x, y: p.y, row: p.row, col: p.col };
+    const base = { index: p.index, x: p.x, y: p.y };
 
     if (p.index === 0) return { ...base, type: 'start', color: 'start', topic: null, next: 1 };
     if (p.index === bossIndex) {
@@ -188,12 +211,12 @@ export function getStageConfig(realm, grade = 1, stage = 1) {
     topics: cfg.topics,
     tileTrack,
     edges,
-    rows,
-    cols,
-    cellW,
-    cellH,
+    spacing,
     bossIndex,
     shortcuts,
+    background, // static asset URL when asset-backed, else null
+    aspect, // CSS aspect-ratio string locking the board to the art proportions
+    isStatic,
   };
 }
 
