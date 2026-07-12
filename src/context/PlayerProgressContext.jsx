@@ -110,6 +110,8 @@ export function PlayerProgressProvider({ children }) {
   // The active Clerk account drives which row / cache we read/write.
   const { session, getToken } = useAuth();
   const userId = session?.userId ?? null;
+  // Multi-tenant boundary: every cloud row is stamped with the active school.
+  const schoolId = session?.schoolId ?? null;
 
   // One Supabase client for the app's lifetime. Its fetch interceptor reads the
   // latest token via a ref, so the client instance stays stable while the token
@@ -173,8 +175,12 @@ export function PlayerProgressProvider({ children }) {
     hydratedUserRef.current = userId;
     justHydratedRef.current = true; // skip the immediate persist (still stale state)
 
-    // No cloud (logged out or Supabase unconfigured) → offline cache only.
-    if (!cloudEnabled || !userId || !supabaseRef.current) {
+    // No cloud → offline cache only. A row REQUIRES a school_id (school-district
+    // isolation), so without an active organization we stay local.
+    if (!cloudEnabled || !userId || !schoolId || !supabaseRef.current) {
+      if (cloudEnabled && userId && !schoolId) {
+        console.warn('[progress] no active school (organization); staying offline.');
+      }
       cloudReadyRef.current = true;
       return undefined;
     }
@@ -187,7 +193,7 @@ export function PlayerProgressProvider({ children }) {
         const { data: row, error } = await supabaseRef.current
           .from(PROGRESS_TABLE)
           .select('gems, unlocked_grades, completed_courses, inventory')
-          .eq('user_id', userId)
+          .eq('clerk_user_id', userId)
           .maybeSingle();
 
         if (cancelled) return;
@@ -204,16 +210,17 @@ export function PlayerProgressProvider({ children }) {
           if (Array.isArray(row.completed_courses)) setCompletedCourses(row.completed_courses);
           if (Array.isArray(row.inventory)) setInventory(row.inventory);
         } else {
-          // First sign-in for this student → seed their row from defaults.
+          // First sign-in for this student → seed their school-stamped row.
           await supabaseRef.current.from(PROGRESS_TABLE).upsert(
             {
-              user_id: userId,
+              clerk_user_id: userId,
+              school_id: schoolId,
               gems: 0,
               unlocked_grades: DEFAULT_UNLOCKED_GRADES,
               completed_courses: [],
               inventory: [],
             },
-            { onConflict: 'user_id' },
+            { onConflict: 'clerk_user_id' },
           );
         }
       } catch (err) {
@@ -226,7 +233,7 @@ export function PlayerProgressProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, [userId, cloudEnabled]);
+  }, [userId, schoolId, cloudEnabled]);
 
   // Offline cache write to the active user's namespaced key. Skipped when logged
   // out, before hydration, and on the hydration tick (so one account never
@@ -283,7 +290,7 @@ export function PlayerProgressProvider({ children }) {
   // to `student_progress`. Gated on `cloudReadyRef` so we never overwrite the DB
   // row with local defaults before the initial pull resolves.
   useEffect(() => {
-    if (!cloudEnabled || !userId || !supabaseRef.current) return undefined;
+    if (!cloudEnabled || !userId || !schoolId || !supabaseRef.current) return undefined;
     if (hydratedUserRef.current !== userId || !cloudReadyRef.current) return undefined;
 
     const handle = setTimeout(() => {
@@ -291,13 +298,14 @@ export function PlayerProgressProvider({ children }) {
         .from(PROGRESS_TABLE)
         .upsert(
           {
-            user_id: userId,
+            clerk_user_id: userId,
+            school_id: schoolId,
             gems,
             unlocked_grades: unlockedGrades,
             completed_courses: completedCourses,
             inventory,
           },
-          { onConflict: 'user_id' },
+          { onConflict: 'clerk_user_id' },
         )
         .then(({ error }) => {
           if (error) console.error('[progress] cloud push failed:', error.message);
@@ -305,7 +313,7 @@ export function PlayerProgressProvider({ children }) {
     }, 600);
 
     return () => clearTimeout(handle);
-  }, [cloudEnabled, userId, gems, unlockedGrades, completedCourses, inventory]);
+  }, [cloudEnabled, userId, schoolId, gems, unlockedGrades, completedCourses, inventory]);
 
   const addToInventory = useCallback((item) => {
     if (!item?.id) return;

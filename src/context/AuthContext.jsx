@@ -34,12 +34,18 @@ export function AuthProvider({ children }) {
       fullName: user.fullName ?? null,
       imageUrl: user.imageUrl ?? null,
       role: isAdmin ? 'admin' : 'user',
+      // Multi-tenant school boundary. Prefer an explicit `school_id` in the org's
+      // public metadata; fall back to the Clerk organization id itself.
+      schoolId: organization
+        ? organization.publicMetadata?.school_id ?? organization.id
+        : null,
       org: organization
         ? Object.freeze({
             id: organization.id,
             slug: organization.slug ?? orgSlug ?? null,
             name: organization.name,
             role: orgRole ?? null,
+            schoolId: organization.publicMetadata?.school_id ?? organization.id,
           })
         : null,
     });

@@ -1,19 +1,33 @@
-import { useMemo } from 'react';
+import { useOrganization } from '@clerk/clerk-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
-import { listUserSummaries } from '../../systems/mockAuthService.js';
 
 /**
- * Admin-only console. Renders only inside <AdminGuard>. It surfaces the user
- * directory as { username, role } summaries — password hashes are never exposed
- * by the service, so they can't be read here either.
+ * Admin-only console. Renders only inside <AdminGuard>. It lists the REAL
+ * members of the admin's active Clerk organization (the school cohort) — sourced
+ * live from Clerk, never from any local mock directory.
  */
 export default function AdminPanel() {
   const { session } = useAuth();
   const { themeConfig } = useTheme();
-  const users = useMemo(() => listUserSummaries(), []);
+  const { organization, memberships, isLoaded } = useOrganization({
+    memberships: { infinite: true },
+  });
 
   const cardCls = `rounded-2xl border-4 ${themeConfig.border_color} ${themeConfig.bg_card} ${themeConfig.text_card} shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`;
+
+  const members = memberships?.data ?? [];
+
+  const displayName = (m) => {
+    const u = m.publicUserData;
+    if (!u) return 'Pending invite';
+    return (
+      [u.firstName, u.lastName].filter(Boolean).join(' ') ||
+      u.identifier ||
+      u.userId
+    );
+  };
+  const isAdminRole = (role) => role === 'org:admin' || role === 'admin';
 
   return (
     <div className="space-y-6">
@@ -27,31 +41,46 @@ export default function AdminPanel() {
       </header>
 
       <div className={`${cardCls} p-5`}>
-        <h2 className="text-lg font-black">Registered Accounts ({users.length})</h2>
+        <h2 className="text-lg font-black">
+          {organization ? organization.name : 'Your Organization'} — Members ({members.length})
+        </h2>
         <p className="mt-1 text-xs font-semibold opacity-70">
-          Password hashes are never sent to this view.
+          Live roster from your active Clerk organization (school cohort).
         </p>
 
-        <ul className="mt-4 space-y-2">
-          {users.map((u) => (
-            <li
-              key={u.username}
-              className="flex items-center justify-between gap-2 rounded-xl border-4 border-black bg-white px-4 py-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-            >
-              <span className="flex items-center gap-2 text-sm font-black">
-                <span>{u.role === 'admin' ? '🛡️' : '🧒'}</span>
-                {u.username}
-              </span>
-              <span
-                className={`rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase ${
-                  u.role === 'admin' ? 'bg-red-400 text-white' : 'bg-lime-300 text-black'
-                }`}
-              >
-                {u.role}
-              </span>
-            </li>
-          ))}
-        </ul>
+        {!organization ? (
+          <p className="mt-4 rounded-xl border-4 border-black bg-white px-4 py-3 text-sm font-bold text-black">
+            No active organization. Select a school/organization in Clerk to view its members.
+          </p>
+        ) : !isLoaded ? (
+          <p className="mt-4 text-sm font-bold opacity-70">Loading members…</p>
+        ) : members.length === 0 ? (
+          <p className="mt-4 text-sm font-bold opacity-70">No members found.</p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {members.map((m) => {
+              const admin = isAdminRole(m.role);
+              return (
+                <li
+                  key={m.id}
+                  className="flex items-center justify-between gap-2 rounded-xl border-4 border-black bg-white px-4 py-2.5 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                >
+                  <span className="flex items-center gap-2 text-sm font-black">
+                    <span>{admin ? '🛡️' : '🧒'}</span>
+                    {displayName(m)}
+                  </span>
+                  <span
+                    className={`rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase ${
+                      admin ? 'bg-red-400 text-white' : 'bg-lime-300 text-black'
+                    }`}
+                  >
+                    {m.role?.replace('org:', '') ?? 'member'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );
