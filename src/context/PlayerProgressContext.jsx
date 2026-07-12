@@ -10,9 +10,18 @@ import {
 import { CURRICULUMS } from '../config/index.js';
 import { BASE_THEME_IDS } from './ThemeContext.jsx';
 import { useAuth } from './AuthContext.jsx';
+import {
+  createClerkSupabaseClient,
+  isSupabaseConfigured,
+} from '../services/supabaseClient.js';
 
-// Storage is namespaced PER USER so accounts sharing a device never inherit each
-// other's gems / courses / unlocks. Key shape: `wit-progress:<userId>`.
+// Cloud table (Phase 3). RLS scopes rows to the Clerk `sub` claim carried by the
+// Supabase TPA client, so each student only ever reads/writes their own row.
+const PROGRESS_TABLE = 'student_progress';
+
+// Offline cache is namespaced PER USER so accounts sharing a device never inherit
+// each other's gems / courses / unlocks. When Supabase is configured this is a
+// fast local cache; the DB row is the source of truth. Key: `wit-progress:<id>`.
 const STORAGE_NS = 'wit-progress';
 const keyFor = (userId) => `${STORAGE_NS}:${userId}`;
 
@@ -98,9 +107,25 @@ function loadProgress(userId) {
 const PlayerProgressContext = createContext(null);
 
 export function PlayerProgressProvider({ children }) {
-  // The active account drives which namespaced store we read/write.
-  const { session } = useAuth();
-  const userId = session?.username ?? null;
+  // The active Clerk account drives which row / cache we read/write.
+  const { session, getToken } = useAuth();
+  const userId = session?.userId ?? null;
+
+  // One Supabase client for the app's lifetime. Its fetch interceptor reads the
+  // latest token via a ref, so the client instance stays stable while the token
+  // it sends is always current.
+  const cloudEnabled = isSupabaseConfigured();
+  const getTokenRef = useRef(getToken);
+  getTokenRef.current = getToken;
+  const supabaseRef = useRef(null);
+  if (cloudEnabled && !supabaseRef.current) {
+    supabaseRef.current = createClerkSupabaseClient({
+      getToken: () => getTokenRef.current(),
+    });
+  }
+  // Gates the debounced cloud push until the initial pull has resolved, so we
+  // never clobber the DB row with stale local defaults during load.
+  const cloudReadyRef = useRef(false);
 
   // Start from a clean slate; the hydrate effect loads the active user's data.
   const initial = defaultProgress();
@@ -124,6 +149,11 @@ export function PlayerProgressProvider({ children }) {
 
   // Hydrate (or reset) the entire store whenever the signed-in account changes
   // — login, account switch, or logout. No user → pristine defaults.
+  //
+  // Step 1 (sync): hydrate instantly from the per-user offline cache so the UI
+  // never flashes empty. Step 2 (async): when Supabase is configured, pull the
+  // canonical cloud fields (gems / unlocked_grades / completed_courses /
+  // inventory) and reconcile — the DB row wins.
   useEffect(() => {
     const data = loadProgress(userId);
     setSkills(data.skills);
@@ -142,10 +172,66 @@ export function PlayerProgressProvider({ children }) {
     setUnlockedGrades(data.unlockedGrades);
     hydratedUserRef.current = userId;
     justHydratedRef.current = true; // skip the immediate persist (still stale state)
-  }, [userId]);
 
-  // Persist to the active user's namespaced key. Skipped when logged out, before
-  // hydration, and on the hydration tick (so one account never overwrites another).
+    // No cloud (logged out or Supabase unconfigured) → offline cache only.
+    if (!cloudEnabled || !userId || !supabaseRef.current) {
+      cloudReadyRef.current = true;
+      return undefined;
+    }
+
+    cloudReadyRef.current = false;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data: row, error } = await supabaseRef.current
+          .from(PROGRESS_TABLE)
+          .select('gems, unlocked_grades, completed_courses, inventory')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (cancelled) return;
+        if (error) {
+          console.error('[progress] cloud pull failed:', error.message);
+          return;
+        }
+
+        if (row) {
+          if (typeof row.gems === 'number') setGems(row.gems);
+          if (row.unlocked_grades) {
+            setUnlockedGrades({ ...DEFAULT_UNLOCKED_GRADES, ...row.unlocked_grades });
+          }
+          if (Array.isArray(row.completed_courses)) setCompletedCourses(row.completed_courses);
+          if (Array.isArray(row.inventory)) setInventory(row.inventory);
+        } else {
+          // First sign-in for this student → seed their row from defaults.
+          await supabaseRef.current.from(PROGRESS_TABLE).upsert(
+            {
+              user_id: userId,
+              gems: 0,
+              unlocked_grades: DEFAULT_UNLOCKED_GRADES,
+              completed_courses: [],
+              inventory: [],
+            },
+            { onConflict: 'user_id' },
+          );
+        }
+      } catch (err) {
+        console.error('[progress] cloud pull error:', err);
+      } finally {
+        if (!cancelled) cloudReadyRef.current = true;
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, cloudEnabled]);
+
+  // Offline cache write to the active user's namespaced key. Skipped when logged
+  // out, before hydration, and on the hydration tick (so one account never
+  // overwrites another). This is a local mirror; the DB is the source of truth
+  // for the cloud fields once Supabase is configured.
   useEffect(() => {
     if (!userId || hydratedUserRef.current !== userId) return;
     if (justHydratedRef.current) {
@@ -192,6 +278,34 @@ export function PlayerProgressProvider({ children }) {
     unlockedGrades,
     consumableCharges,
   ]);
+
+  // Cloud push (Phase 3): debounced upsert of the canonical progression fields
+  // to `student_progress`. Gated on `cloudReadyRef` so we never overwrite the DB
+  // row with local defaults before the initial pull resolves.
+  useEffect(() => {
+    if (!cloudEnabled || !userId || !supabaseRef.current) return undefined;
+    if (hydratedUserRef.current !== userId || !cloudReadyRef.current) return undefined;
+
+    const handle = setTimeout(() => {
+      supabaseRef.current
+        .from(PROGRESS_TABLE)
+        .upsert(
+          {
+            user_id: userId,
+            gems,
+            unlocked_grades: unlockedGrades,
+            completed_courses: completedCourses,
+            inventory,
+          },
+          { onConflict: 'user_id' },
+        )
+        .then(({ error }) => {
+          if (error) console.error('[progress] cloud push failed:', error.message);
+        });
+    }, 600);
+
+    return () => clearTimeout(handle);
+  }, [cloudEnabled, userId, gems, unlockedGrades, completedCourses, inventory]);
 
   const addToInventory = useCallback((item) => {
     if (!item?.id) return;
