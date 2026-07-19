@@ -20,7 +20,7 @@ export default function AvatarPawn({ variant = 'astronaut' }) {
       <span className="absolute inset-0 -m-1 animate-ping rounded-full border-2 border-cyan-300/70" />
       <span className="absolute inset-0 rounded-full border-2 border-white/60" />
       {/* Bobbing hero sprite */}
-      <div className="animate-avatar-bob relative h-full w-full drop-shadow-[0_0_6px_rgba(34,211,238,0.9)]">
+      <div className="animate-avatar-bob relative h-full w-full [filter:drop-shadow(4px_4px_0px_rgba(0,0,0,0.85))_drop-shadow(0_0_6px_rgba(34,211,238,0.9))]">
         <Sprite className="h-full w-full" />
       </div>
     </div>

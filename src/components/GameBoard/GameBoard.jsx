@@ -168,7 +168,7 @@ export default function GameBoard({
 
       <div
         className={`
-          mx-auto max-w-4xl transition-all duration-700 ease-in-out
+          mx-auto w-[95%] max-w-6xl transition-all duration-700 ease-in-out
           ${bossActive ? '-translate-x-full scale-95 opacity-0' : 'translate-x-0 scale-100 opacity-100'}
         `}
       >

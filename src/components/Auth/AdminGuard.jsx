@@ -1,6 +1,5 @@
 import { useAuth } from '../../context/AuthContext.jsx';
 import { neuBtn } from '../../styles/neubrutalism.js';
-import LoginForm from './LoginForm.jsx';
 
 function AccessDenied({ authed, onLeave }) {
   return (
@@ -12,19 +11,17 @@ function AccessDenied({ authed, onLeave }) {
       <p className="max-w-xs text-sm font-semibold opacity-70">
         {authed
           ? 'This console is for administrators only. Your account does not have admin access.'
-          : 'You must log in with an administrator account to view this console.'}
+          : 'You must sign in with an administrator account to view this console.'}
       </p>
-      {authed
-        ? onLeave && (
-            <button
-              type="button"
-              onClick={onLeave}
-              className={`${neuBtn} bg-white px-6 py-2.5 text-black hover:bg-stone-100`}
-            >
-              ← Back to safety
-            </button>
-          )
-        : <LoginForm compact />}
+      {onLeave && (
+        <button
+          type="button"
+          onClick={onLeave}
+          className={`${neuBtn} bg-white px-6 py-2.5 text-black hover:bg-stone-100`}
+        >
+          ← Back to safety
+        </button>
+      )}
     </div>
   );
 }
