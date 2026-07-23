@@ -25,6 +25,12 @@ export function initInstrumentation() {
   if (started) return;
   started = true;
 
+  // Expose the Sentry SDK on the global window (dev + prod) for manual capture
+  // and console debugging, e.g. `window.Sentry.captureMessage('test')`.
+  if (typeof window !== 'undefined') {
+    window.Sentry = Sentry;
+  }
+
   // ── Sentry — crash & performance monitoring ──────────────────────────────
   if (isReal(SENTRY_DSN)) {
     Sentry.init({
