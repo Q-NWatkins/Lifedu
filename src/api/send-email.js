@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   try {
     const data = await resend.emails.send({
       from: 'Oedipus <onboarding@resend.dev>',
-      to: ['nathaniel.watkins001@mymdc.net'],
+      to: [process.env.TEST_EMAIL], // ⚠️ REPLACE THIS WITH THE EXACT EMAIL YOU SIGNED UP TO RESEND WITH
       subject: '🎮 Oedipus Test Email!',
       html: '<h1>Welcome to Oedipus!</h1><p>Your Resend email engine is officially live and working!</p>',
     });
