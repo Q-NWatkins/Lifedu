@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
+import { useAdminDev } from '../../context/AdminDevContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
 import { TILE_CLASS, getRealmEnv, getGuardian } from '../../data/realmConfig.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
@@ -80,6 +81,7 @@ export default function GameBoard({
   const palette = getBoardTheme(theme);
   const { themeConfig } = useTheme();
   const { playTrack } = useGameAudio();
+  const { isGodMode, skipToBossNonce } = useAdminDev();
   const { completedCourses, addGems, stepCards, consumeStepCards } = usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
 
@@ -110,11 +112,22 @@ export default function GameBoard({
     drawCard,
     resolveSphinx,
     resolveAnswer,
+    jumpToBoss,
     dismissBossEncounter,
     retreatFromBoss,
     grantMegaRoll,
     addEnergy,
-  } = useGameLoop(course, { initialEnergy: startEnergyRef.current });
+  } = useGameLoop(course, { initialEnergy: startEnergyRef.current, godMode: isGodMode });
+
+  // Admin "Skip to Boss": jump to the final encounter only when the signal
+  // CHANGES while this board is mounted (not on a fresh mount with a stale nonce).
+  const lastSkipRef = useRef(skipToBossNonce);
+  useEffect(() => {
+    if (skipToBossNonce !== lastSkipRef.current) {
+      lastSkipRef.current = skipToBossNonce;
+      jumpToBoss();
+    }
+  }, [skipToBossNonce, jumpToBoss]);
 
   const handleReplayReward = () => {
     addGems(REPLAY_GEM_BONUS);

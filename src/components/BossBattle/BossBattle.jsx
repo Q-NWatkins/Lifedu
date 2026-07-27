@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getThemeUnlockForRarity, RARITY_STYLES, rollLoot } from '../../systems/lootSystem.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
+import { useAdminDev } from '../../context/AdminDevContext.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
 import { getStageQuestionPools } from '../../data/questions/index.js';
@@ -253,6 +254,7 @@ export default function BossBattle({
     consumableCharges,
     consumeConsumable,
   } = usePlayerProgress();
+  const { isGodMode } = useAdminDev();
 
   const PlayerSprite = getPlayerSprite('astronaut');
 
@@ -421,6 +423,12 @@ export default function BossBattle({
           setFeedback('blocked');
           setShieldActive(false);
           setTimeout(closeQuestion, 1100);
+        } else if (isGodMode) {
+          // God mode: register the miss but never lose a heart.
+          setFeedback('wrong');
+          setPlayerShaking(true);
+          setTimeout(() => setPlayerShaking(false), 600);
+          setTimeout(closeQuestion, 1000);
         } else {
           setFeedback('wrong');
           setPlayerShaking(true);
@@ -446,6 +454,7 @@ export default function BossBattle({
       dmgBonus,
       closeQuestion,
       triggerVictory,
+      isGodMode,
     ],
   );
 
