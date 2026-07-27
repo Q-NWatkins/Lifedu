@@ -25,7 +25,7 @@ function sleep(ms) {
  *   (`pendingQuestion`); a wrong answer FIZZLES the player back to the turn's
  *   starting tile.
  */
-export function useGameLoop(course, { initialEnergy = 10 } = {}) {
+export function useGameLoop(course, { initialEnergy = 10, godMode = false } = {}) {
   const stage = getStageConfig(course.subject, course.grade, course.stage);
   const track = stage?.tileTrack ?? [];
   const trackColors = getStageColors(course.subject);
@@ -247,6 +247,9 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       if (!pq) return 'fizzle';
 
       if (!correct) {
+        // God mode: a wrong answer costs nothing — stay put, no fizzle.
+        if (godMode) return 'blocked';
+
         // The Fizzle: snap back to the turn's starting tile.
         const back = turnStartRef.current;
         setPosition(back);
@@ -271,8 +274,18 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       }
       return 'perfect';
     },
-    [pendingQuestion, hasColoredAhead, bossIndex, stage, triggerFizzle],
+    [pendingQuestion, hasColoredAhead, bossIndex, stage, triggerFizzle, godMode],
   );
+
+  /** Admin: jump straight to the final boss encounter of the active stage. */
+  const jumpToBoss = useCallback(() => {
+    setPendingQuestion(null);
+    setPendingSphinx(null);
+    setIsMoving(false);
+    setPosition(bossIndex);
+    positionRef.current = bossIndex;
+    setBossActive(true);
+  }, [bossIndex]);
 
   const dismissBossEncounter = useCallback(() => {
     setBossActive(false);
@@ -309,6 +322,7 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
     drawCard,
     resolveSphinx,
     resolveAnswer,
+    jumpToBoss,
     dismissBossEncounter,
     retreatFromBoss,
     grantMegaRoll,
