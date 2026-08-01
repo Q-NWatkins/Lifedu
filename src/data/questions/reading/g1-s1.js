@@ -5,6 +5,7 @@ export default [
     options: ['dog', 'hat', 'sun', 'pen'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-s1-002',
@@ -12,6 +13,7 @@ export default [
     options: ['apple', 'ball', 'cat', 'dog'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-s1-003',
@@ -19,6 +21,7 @@ export default [
     options: ['chair', 'tiger', 'table', 'book'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s1-004',
@@ -26,6 +29,7 @@ export default [
     options: ['s', 'u', 'n', 't'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-s1-005',
@@ -33,6 +37,7 @@ export default [
     options: ['run', 'blue', 'jump', 'tree'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s1-006',
@@ -40,6 +45,7 @@ export default [
     options: ['dog', 'sun', 'hat', 'pen'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-s1-007',
@@ -47,5 +53,6 @@ export default [
     options: ['teacher', 'desk', 'book', 'tree'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
 ];

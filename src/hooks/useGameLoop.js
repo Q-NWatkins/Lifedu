@@ -48,6 +48,7 @@ export function useGameLoop(course, { initialEnergy = 10, godMode = false } = {}
   const branchChoiceRef = useRef({});
   const turnStartRef = useRef(0);
   const walkRef = useRef(null); // { color, count, matches } carried across the Sphinx
+  const answeredIdsRef = useRef(new Set()); // question ids answered THIS stage (dedup)
 
   useEffect(() => {
     positionRef.current = position;
@@ -69,6 +70,7 @@ export function useGameLoop(course, { initialEnergy = 10, godMode = false } = {}
     setFizzle(null);
     turnStartRef.current = 0;
     walkRef.current = null;
+    answeredIdsRef.current = new Set();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on stage swap only
   }, [course.id, initialEnergy]);
 
@@ -190,9 +192,10 @@ export function useGameLoop(course, { initialEnergy = 10, godMode = false } = {}
         index: res.target,
         color: tile.color,
         topic: tile.topic,
-        // Pass the tile color so the lookup binds strictly to its legend
-        // category (red → addition, yellow → subtraction, blue → geometry).
-        question: getTileQuestion(bank, tile.topic, tile.color),
+        // Pass the tile color + answered-id set so the lookup binds strictly to
+        // its legend category (red → addition, yellow → subtraction,
+        // blue → geometry) and never repeats a question within the stage.
+        question: getTileQuestion(bank, tile.topic, tile.color, answeredIdsRef.current),
         fromIndex: turnStartRef.current,
       });
     },
@@ -247,6 +250,9 @@ export function useGameLoop(course, { initialEnergy = 10, godMode = false } = {}
       const pq = pendingQuestion;
       setPendingQuestion(null);
       if (!pq) return 'fizzle';
+
+      // Mark this question consumed for the stage so it won't be re-served.
+      if (pq.question?.id) answeredIdsRef.current.add(pq.question.id);
 
       if (!correct) {
         // God mode: a wrong answer costs nothing — stay put, no fizzle.

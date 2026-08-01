@@ -5,6 +5,7 @@ export default [
     options: ['big', 'run', 'apple', 'chair'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s3-002',
@@ -12,6 +13,7 @@ export default [
     options: ['blue', 'green', 'red', 'yellow'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s3-003',
@@ -19,6 +21,7 @@ export default [
     options: ['house', 'tree', 'car', 'road'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s3-004',
@@ -26,6 +29,7 @@ export default [
     options: ['cold', 'warm', 'sunny', 'fire'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s3-005',
@@ -33,6 +37,7 @@ export default [
     options: ['banana', 'apple', 'orange', 'grape'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s3-006',
@@ -40,6 +45,7 @@ export default [
     options: ['I like dogs.', 'Where is my book?', 'The sun is bright.', 'Run fast.'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s3-007',
@@ -47,5 +53,6 @@ export default [
     options: ['setting', 'character', 'title', 'author'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
 ];

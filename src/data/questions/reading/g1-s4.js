@@ -5,6 +5,7 @@ export default [
     options: ['cat', 'dog', 'bird', 'fish'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s4-002',
@@ -12,6 +13,7 @@ export default [
     options: ['bright', 'jump', 'table', 'dog'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s4-003',
@@ -19,6 +21,7 @@ export default [
     options: ['run', 'happy', 'book', 'quickly'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s4-004',
@@ -26,6 +29,7 @@ export default [
     options: ['school', 'store', 'park', 'house'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s4-005',
@@ -33,6 +37,7 @@ export default [
     options: ['sad', 'glad', 'angry', 'tired'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s4-006',
@@ -40,6 +45,7 @@ export default [
     options: ['middle', 'ending', 'beginning', 'title page'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s4-007',
@@ -47,5 +53,6 @@ export default [
     options: ['It was snowing', 'It was raining', 'It was sunny', 'It was bedtime'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
 ];
