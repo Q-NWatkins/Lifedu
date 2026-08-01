@@ -190,7 +190,9 @@ export function useGameLoop(course, { initialEnergy = 10, godMode = false } = {}
         index: res.target,
         color: tile.color,
         topic: tile.topic,
-        question: getTileQuestion(bank, tile.topic),
+        // Pass the tile color so the lookup binds strictly to its legend
+        // category (red → addition, yellow → subtraction, blue → geometry).
+        question: getTileQuestion(bank, tile.topic, tile.color),
         fromIndex: turnStartRef.current,
       });
     },
