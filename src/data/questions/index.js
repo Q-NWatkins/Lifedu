@@ -80,20 +80,6 @@ const QUESTION_BANKS = {
   ),
 };
 
-/**
- * Global Grade-1 math pool grouped by legend category. Used as the strict
- * same-category fallback for colored board tiles: if the active stage bank runs
- * out of a category, we still draw a question OF THAT CATEGORY from the wider
- * Grade-1 pool — so e.g. a blue (geometry) tile can never serve a subtraction
- * question.
- */
-const MATH_G1_BY_CATEGORY = [grade1Math, mathG1S1, mathG1S2, mathG1S3, mathG1S4, mathG1S5]
-  .flat()
-  .reduce((acc, q) => {
-    if (q.category) (acc[q.category] ??= []).push(q);
-    return acc;
-  }, {});
-
 const DIFFICULTY_RANK = { hard: 3, medium: 2, easy: 1 };
 
 function shuffle(array) {
@@ -150,18 +136,23 @@ export function getStageQuestionPools(questionBankId, subjectLabel = '') {
 /**
  * Pull ONE question for a board tile (the Core Question Trigger).
  *
- * Colored math tiles bind STRICTLY to a legend category (red → addition_basics,
- * yellow → subtraction_basics, blue → geometry_shapes). For such a tile we only
- * ever serve a question of that exact category:
- *   1. filter the active stage bank by category,
- *   2. if empty, draw from the global Grade-1 pool of that same category,
- *   3. if still empty, use a guaranteed same-category fallback question.
- * A blue tile therefore can never serve a subtraction question.
+ * STRICT STAGE ISOLATION + STRICT CATEGORY:
+ * Colored math tiles bind to exactly one legend category (red → addition_basics,
+ * yellow → subtraction_basics, blue → geometry_shapes, green → number_sense).
+ * We serve ONLY questions of that category, drawn ONLY from the ACTIVE STAGE
+ * bank (`questionBankId`, e.g. 'math-g1-stage-2') — never another stage, never
+ * the monolith:
+ *   1. filter the active stage bank → matching category AND not already answered,
+ *   2. if that is empty, return the guaranteed same-category fallback question
+ *      (FALLBACK_BY_CATEGORY[category]).
+ * A blue tile therefore can NEVER show a subtraction/addition question, and a
+ * yellow tile can NEVER show "5 + 1".
  *
- * Non-categorized realms (science/reading/history) keep the generic behavior:
- * an optional `subTopic` filter, else a random question from the stage bank.
+ * @param {Set<string>} [answeredIds] ids already answered this stage (dedup).
+ *
+ * Non-categorized realms (science/reading/history) keep the generic behavior.
  */
-export function getTileQuestion(questionBankId, subTopic, tileColor) {
+export function getTileQuestion(questionBankId, subTopic, tileColor, answeredIds = null) {
   const bank = QUESTION_BANKS[questionBankId];
   const category = resolveTileCategory({
     topic: subTopic,
@@ -170,10 +161,14 @@ export function getTileQuestion(questionBankId, subTopic, tileColor) {
   });
 
   if (category) {
-    let pool = (bank ?? []).filter((q) => q.category === category);
-    if (pool.length === 0) pool = MATH_G1_BY_CATEGORY[category] ?? [];
-    if (pool.length === 0) return FALLBACK_BY_CATEGORY[category];
-    return pool[Math.floor(Math.random() * pool.length)];
+    const validCategoryQuestions = (bank ?? []).filter(
+      (q) => q.category === category && !(answeredIds ? answeredIds.has(q.id) : false),
+    );
+    if (validCategoryQuestions.length > 0) {
+      return validCategoryQuestions[Math.floor(Math.random() * validCategoryQuestions.length)];
+    }
+    // Stage exhausted this category → STRICT same-category fallback ONLY.
+    return FALLBACK_BY_CATEGORY[category];
   }
 
   if (bank && bank.length > 0) {
