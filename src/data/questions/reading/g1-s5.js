@@ -5,6 +5,7 @@ export default [
     options: ['It froze', 'It melted', 'It grew', 'It bounced'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s5-002',
@@ -12,6 +13,7 @@ export default [
     options: ['slow', 'quiet', 'furry', 'square'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s5-003',
@@ -19,6 +21,7 @@ export default [
     options: ['water', 'sand', 'toy', 'paper'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s5-004',
@@ -26,6 +29,7 @@ export default [
     options: ['I will jump tomorrow.', 'I am jumping.', 'I jumped yesterday.', 'I can jump.'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s5-005',
@@ -33,6 +37,7 @@ export default [
     options: ['on the roof', 'under the table', 'in a tree', 'outside'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s5-006',
@@ -40,6 +45,7 @@ export default [
     options: ['The name of the story', 'The last page', 'The picture', 'The author'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s5-007',
@@ -47,5 +53,6 @@ export default [
     options: ['He is selfish', 'He is kind', 'He is sleepy', 'He is lost'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
 ];

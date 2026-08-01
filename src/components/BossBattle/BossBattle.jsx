@@ -4,8 +4,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { useAdminDev } from '../../context/AdminDevContext.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
-import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
-import { getStageQuestionPools } from '../../data/questions/index.js';
+import { getCardQuestion } from '../../data/questions/index.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
 import {
   getBossSprite,
@@ -275,29 +274,27 @@ export default function BossBattle({
   const badgeLabel = rawBadge.replace(/\b\w/g, (c) => c.toUpperCase());
   const curriculumId = course.curriculumId;
 
-  // Pre-shuffle question pools per difficulty tier. When the course/stage maps
-  // to a registered bank (e.g. `reading-g1-stage-1`), questions come from that
-  // exact curriculum stage; any empty tier falls back to the multi-subject pool.
-  const [questionPools] = useState(() => {
-    const subjectLabel = (course.subject ?? '').replace(/^./, (c) => c.toUpperCase());
-    const bank = getStageQuestionPools(course.questionBankId, subjectLabel);
-    return {
-      easy: bank.easy ?? getQuestionsForDifficulty('easy'),
-      medium: bank.medium ?? getQuestionsForDifficulty('medium'),
-      hard: bank.hard ?? getQuestionsForDifficulty('hard'),
-    };
-  });
-  const qIdxRef = useRef({ easy: 0, medium: 0, hard: 0 });
-
+  // Combat questions are pulled live, STRICTLY from this realm + stage bank and
+  // tiered by the card's difficulty (shield=easy, strike=medium, fireball=hard).
+  // A per-battle used-id set prevents repeats. There is NO multi-subject
+  // fallback — a Math boss only ever serves Math questions.
+  const usedIdsRef = useRef(new Set());
   const nextQuestion = useCallback(
     (difficulty) => {
-      const pool = questionPools[difficulty];
-      const idx = qIdxRef.current[difficulty];
-      const q = pool[idx % pool.length];
-      qIdxRef.current[difficulty] = idx + 1;
+      let q = getCardQuestion(course.questionBankId, difficulty, usedIdsRef.current);
+      // If the given bank isn't registered, fall back to Stage 1 of the SAME
+      // realm — still strictly this curriculum, never another subject.
+      if (!q && course.subject && course.grade) {
+        q = getCardQuestion(
+          `${course.subject}-g${course.grade}-stage-1`,
+          difficulty,
+          usedIdsRef.current,
+        );
+      }
+      if (q?.id) usedIdsRef.current.add(q.id);
       return q;
     },
-    [questionPools],
+    [course.questionBankId, course.subject, course.grade],
   );
 
   // Core battle state
