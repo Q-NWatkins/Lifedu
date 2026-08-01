@@ -7,14 +7,14 @@
  *
  *   math    red addition_basics · yellow subtraction_basics · blue geometry_shapes · (green number_sense)
  *   reading red nouns_verbs      · yellow vowel_sounds       · blue sight_words
- *   science red biology_basics   · yellow space_basics       · blue physics_basics
+ *   science red biology_basics   · yellow space_basics       · blue animals
  *   history red domestic_heritage· yellow ancient_cultures   · blue geography_maps
  */
 
 export const SUBJECT_CATEGORIES = Object.freeze({
   math: ['addition_basics', 'subtraction_basics', 'geometry_shapes', 'number_sense'],
   reading: ['nouns_verbs', 'vowel_sounds', 'sight_words'],
-  science: ['biology_basics', 'space_basics', 'physics_basics'],
+  science: ['biology_basics', 'space_basics', 'animals'],
   history: ['domestic_heritage', 'ancient_cultures', 'geography_maps'],
 });
 
@@ -30,7 +30,7 @@ const CATEGORY_SET = new Set(ALL_CATEGORIES);
 export const TILE_COLOR_CATEGORY = Object.freeze({
   math: { red: 'addition_basics', yellow: 'subtraction_basics', blue: 'geometry_shapes', green: 'number_sense' },
   reading: { red: 'nouns_verbs', yellow: 'vowel_sounds', blue: 'sight_words' },
-  science: { red: 'biology_basics', yellow: 'space_basics', blue: 'physics_basics' },
+  science: { red: 'biology_basics', yellow: 'space_basics', blue: 'animals' },
   history: { red: 'domestic_heritage', yellow: 'ancient_cultures', blue: 'geography_maps' },
 });
 
@@ -88,13 +88,14 @@ export function categorizeScienceQuestion(prompt = '') {
   if (/\b(sun|moon|star|stars|sky|planet|planets|space|solar|earth)\b/.test(t)) {
     return 'space_basics';
   }
-  // Physical world: light, heat, matter/states, weather, seasons.
+  // Animals — creatures, their habitats, baby animals, body features, sounds.
   if (
-    /\b(light|heat|melt|melts|melted|ice|warm|cold|coldest|hot|season|seasons|winter|summer|spring|fall|rain|rains|raining|weather|umbrella|coat|coats|puddle|dried|froze|frozen|temperature)\b/.test(t)
+    /\b(animal|animals|dog|dogs|cat|cats|fish|bird|birds|mammal|mammals|caterpillar|butterfly|frog|frogs|rabbit|rabbits|horse|horses|cow|cows|pig|pigs|snake|snakes|lion|lions|camel|camels|squirrel|squirrels|puppy|kitten|chicken|chickens|hen|duck|ducks|fins|feathers|fur|scales|wings|tail|paw|paws|beak|hooves|burrow|nest|pond)\b/.test(t) ||
+    /\bswim\b|\bfly\b|lives? in water|baby animal/.test(t)
   ) {
-    return 'physics_basics';
+    return 'animals';
   }
-  // Life science: living things, plants, animals, body, senses (default).
+  // Life & nature: living things, plants, body, senses, weather, matter (default).
   return 'biology_basics';
 }
 
@@ -175,7 +176,7 @@ export const FALLBACK_BY_CATEGORY = Object.freeze({
   // Science
   biology_basics: { id: 'fb-sci-bio', prompt: 'Which of these is a living thing?', options: ['Rock', 'Tree', 'Chair', 'Cup'], correctIndex: 1, difficulty: 'easy', category: 'biology_basics' },
   space_basics: { id: 'fb-sci-space', prompt: 'What do we see in the sky at night?', options: ['Sun', 'Moon', 'Grass', 'Desk'], correctIndex: 1, difficulty: 'easy', category: 'space_basics' },
-  physics_basics: { id: 'fb-sci-phys', prompt: 'What happens to ice when it gets warm?', options: ['It melts', 'It grows', 'It flies', 'It sleeps'], correctIndex: 0, difficulty: 'easy', category: 'physics_basics' },
+  animals: { id: 'fb-sci-anim', prompt: 'Which animal lives in water?', options: ['Fish', 'Cat', 'Cow', 'Rabbit'], correctIndex: 0, difficulty: 'easy', category: 'animals' },
   // History
   domestic_heritage: { id: 'fb-hist-dom', prompt: 'Who helps keep a community safe?', options: ['Police officer', 'Clown', 'Chef', 'Singer'], correctIndex: 0, difficulty: 'easy', category: 'domestic_heritage' },
   ancient_cultures: { id: 'fb-hist-anc', prompt: 'What do we call events that happened long ago?', options: ['History', 'Weather', 'Lunch', 'Recess'], correctIndex: 0, difficulty: 'easy', category: 'ancient_cultures' },

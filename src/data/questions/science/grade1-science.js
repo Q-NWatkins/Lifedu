@@ -29,7 +29,7 @@ export default [
     options: ['Bird', 'Fish', 'Dog', 'Horse'],
     correctIndex: 0,
     difficulty: 'easy',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-005',
@@ -61,7 +61,7 @@ export default [
     options: ['Wings', 'Fins', 'Feet', 'Hands'],
     correctIndex: 1,
     difficulty: 'easy',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-009',
@@ -69,7 +69,7 @@ export default [
     options: ['Summer', 'Spring', 'Winter', 'Fall'],
     correctIndex: 2,
     difficulty: 'easy',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-010',
@@ -85,7 +85,7 @@ export default [
     options: ['Fish', 'Cat', 'Cow', 'Rabbit'],
     correctIndex: 0,
     difficulty: 'easy',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-012',
@@ -101,7 +101,7 @@ export default [
     options: ['Leaves', 'Water', 'Sand', 'Sticks'],
     correctIndex: 1,
     difficulty: 'easy',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-014',
@@ -133,7 +133,7 @@ export default [
     options: ['To stay alive', 'To read books', 'To watch TV', 'To build houses'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-018',
@@ -141,7 +141,7 @@ export default [
     options: ['Winter', 'Fall', 'Summer', 'Rainy'],
     correctIndex: 2,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-019',
@@ -149,7 +149,7 @@ export default [
     options: ['It melts', 'It grows', 'It flies', 'It disappears'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-020',
@@ -157,7 +157,7 @@ export default [
     options: ['Sun', 'Rock', 'Book', 'Chair'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-021',
@@ -165,7 +165,7 @@ export default [
     options: ['Scales', 'Feathers', 'Fur', 'Shell'],
     correctIndex: 1,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-022',
@@ -173,7 +173,7 @@ export default [
     options: ['Rain', 'Sunshine', 'Wind', 'Clouds'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-023',
@@ -189,7 +189,7 @@ export default [
     options: ['Frog', 'Butterfly', 'Bird', 'Fish'],
     correctIndex: 1,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-025',
@@ -205,7 +205,7 @@ export default [
     options: ['Fish', 'Bird', 'Dog', 'Snake'],
     correctIndex: 2,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-027',
@@ -221,7 +221,7 @@ export default [
     options: ['Rabbits make their own food', 'Rabbits eat plants', 'Rabbits eat rocks', 'Rabbits do not need food'],
     correctIndex: 1,
     difficulty: 'hard',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-029',
@@ -229,7 +229,7 @@ export default [
     options: ['Seasonal changes', 'Too many birds', 'Too much darkness forever', 'Trees stop growing completely'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-030',
@@ -245,7 +245,7 @@ export default [
     options: ['Food and water', 'Telephones', 'Computers', 'Toys'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-032',
@@ -253,7 +253,7 @@ export default [
     options: ['The water dried up', 'The water turned into rocks', 'The water became dirt', 'The water froze'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-033',
@@ -261,7 +261,7 @@ export default [
     options: ['Frog', 'Camel', 'Lion', 'Squirrel'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-034',
@@ -269,7 +269,7 @@ export default [
     options: ['To stay warm', 'To stay cooler', 'To swim faster', 'To grow taller'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-035',

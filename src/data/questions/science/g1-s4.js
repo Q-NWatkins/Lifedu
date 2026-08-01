@@ -5,7 +5,7 @@ export default [
     options: ['Rain', 'Sunshine', 'Wind', 'Clouds'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s4-002',
@@ -21,7 +21,7 @@ export default [
     options: ['Frog', 'Butterfly', 'Bird', 'Fish'],
     correctIndex: 1,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s4-004',
@@ -37,7 +37,7 @@ export default [
     options: ['Fish', 'Bird', 'Dog', 'Snake'],
     correctIndex: 2,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s4-006',
@@ -53,6 +53,6 @@ export default [
     options: ['Rabbits make their own food', 'Rabbits eat plants', 'Rabbits eat rocks', 'Rabbits do not need food'],
     correctIndex: 1,
     difficulty: 'hard',
-    category: 'biology_basics',
+    category: 'animals',
   },
 ];

@@ -31,6 +31,7 @@ import scienceG1S2 from './science/g1-s2.js';
 import scienceG1S3 from './science/g1-s3.js';
 import scienceG1S4 from './science/g1-s4.js';
 import scienceG1S5 from './science/g1-s5.js';
+import scienceG1Animals from './science/g1-animals.js';
 
 import historyG1S1 from './history/g1-s1.js';
 import historyG1S2 from './history/g1-s2.js';
@@ -53,7 +54,13 @@ import historyG1S5 from './history/g1-s5.js';
 const STAGE_BANKS = {
   'reading-g1': [[...readingG1S1, ...grade1Reading], readingG1S2, readingG1S3, readingG1S4, readingG1S5],
   'math-g1': [[...mathG1S1, ...grade1Math], mathG1S2, mathG1S3, mathG1S4, mathG1S5],
-  'science-g1': [[...scienceG1S1, ...grade1Science], scienceG1S2, scienceG1S3, scienceG1S4, scienceG1S5],
+  'science-g1': [
+    [...scienceG1S1, ...grade1Science, ...scienceG1Animals],
+    scienceG1S2,
+    scienceG1S3,
+    scienceG1S4,
+    scienceG1S5,
+  ],
   'history-g1': [[...historyG1S1, ...grade1History], historyG1S2, historyG1S3, historyG1S4, historyG1S5],
 };
 

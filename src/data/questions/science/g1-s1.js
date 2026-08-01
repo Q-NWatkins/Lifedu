@@ -29,7 +29,7 @@ export default [
     options: ['Bird', 'Fish', 'Dog', 'Horse'],
     correctIndex: 0,
     difficulty: 'easy',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s1-005',
