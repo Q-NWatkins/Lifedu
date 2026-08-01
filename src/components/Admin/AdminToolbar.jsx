@@ -82,6 +82,10 @@ export default function AdminToolbar() {
     SUBJECT_ORDER.forEach((s) => progress.unlockGrade(s, MAX_GRADE));
     flash('All grades unlocked');
   };
+  const unlockAllStages = () => {
+    progress.unlockAllStages();
+    flash('All stages unlocked across all realms!');
+  };
   const bumpEachGrade = () => {
     SUBJECT_ORDER.forEach((s) => progress.unlockGrade(s, (progress.unlockedGrades[s] ?? 1) + 1));
     flash('+1 grade per subject');
@@ -231,6 +235,9 @@ export default function AdminToolbar() {
             </ToolButton>
             <ToolButton onClick={unlockAllGrades} tone="violet">
               🗺️ Unlock ALL grades (G{MAX_GRADE})
+            </ToolButton>
+            <ToolButton onClick={unlockAllStages} tone="violet">
+              🎬 Unlock ALL stages (every realm)
             </ToolButton>
             <ToolButton onClick={bumpEachGrade} tone="violet">
               ➕ +1 grade per subject

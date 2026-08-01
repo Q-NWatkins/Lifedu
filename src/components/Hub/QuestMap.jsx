@@ -13,7 +13,7 @@ import TiltedTitle from '../common/TiltedTitle.jsx';
 const GRADES = Array.from({ length: MAX_GRADE }, (_, i) => i + 1);
 
 export default function QuestMap({ initialRealmId = null }) {
-  const { unlockedGrades, completedCourses } = usePlayerProgress();
+  const { unlockedGrades, completedCourses, allStagesUnlocked } = usePlayerProgress();
   const { themeConfig } = useTheme();
   const { switchTrack } = useGameAudio();
   const [activeRealmId, setActiveRealmId] = useState(null);
@@ -23,7 +23,7 @@ export default function QuestMap({ initialRealmId = null }) {
 
   const activeRealm = REALMS.find((r) => r.id === activeRealmId) ?? null;
   const subject = activeRealm?.curriculumId;
-  const unlockedCeiling = subject ? unlockedGrades[subject] ?? 1 : 1;
+  const unlockedCeiling = allStagesUnlocked ? MAX_GRADE : subject ? unlockedGrades[subject] ?? 1 : 1;
   const stageCount = getStageCount(activeGrade);
 
   // Stage map keys: e.g. `reading_g1_s1` → questionBankId `reading-g1-stage-1`.
@@ -36,7 +36,7 @@ export default function QuestMap({ initialRealmId = null }) {
   const stageIdFor = (s) => `${subject}_g${activeGrade}_s${s}`;
   const isStageComplete = (s) => completedCourses.includes(stageIdFor(s));
   const isStageUnlocked = (s) =>
-    activeGrade <= unlockedCeiling && (s === 1 || isStageComplete(s - 1));
+    allStagesUnlocked || (activeGrade <= unlockedCeiling && (s === 1 || isStageComplete(s - 1)));
 
   const enterRealm = (realm) => {
     setActiveRealmId(realm.id);

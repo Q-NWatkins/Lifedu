@@ -21,7 +21,7 @@ export default [
     options: ['To stay alive', 'To read books', 'To watch TV', 'To build houses'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s3-004',
@@ -29,7 +29,7 @@ export default [
     options: ['Winter', 'Fall', 'Summer', 'Rainy'],
     correctIndex: 2,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s3-005',
@@ -37,7 +37,7 @@ export default [
     options: ['It melts', 'It grows', 'It flies', 'It disappears'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s3-006',
@@ -45,7 +45,7 @@ export default [
     options: ['Sun', 'Rock', 'Book', 'Chair'],
     correctIndex: 0,
     difficulty: 'medium',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s3-007',
@@ -53,6 +53,6 @@ export default [
     options: ['Scales', 'Feathers', 'Fur', 'Shell'],
     correctIndex: 1,
     difficulty: 'medium',
-    category: 'biology_basics',
+    category: 'animals',
   },
 ];

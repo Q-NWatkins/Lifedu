@@ -5,7 +5,7 @@ export default [
     options: ['Seasonal changes', 'Too many birds', 'Too much darkness forever', 'Trees stop growing completely'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s5-002',
@@ -21,7 +21,7 @@ export default [
     options: ['Food and water', 'Telephones', 'Computers', 'Toys'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s5-004',
@@ -29,7 +29,7 @@ export default [
     options: ['The water dried up', 'The water turned into rocks', 'The water became dirt', 'The water froze'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s5-005',
@@ -37,7 +37,7 @@ export default [
     options: ['Frog', 'Camel', 'Lion', 'Squirrel'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s5-006',
@@ -45,7 +45,7 @@ export default [
     options: ['To stay warm', 'To stay cooler', 'To swim faster', 'To grow taller'],
     correctIndex: 0,
     difficulty: 'hard',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s5-007',

@@ -5,7 +5,7 @@ export default [
     options: ['Wings', 'Fins', 'Feet', 'Hands'],
     correctIndex: 1,
     difficulty: 'easy',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s2-002',
@@ -13,7 +13,7 @@ export default [
     options: ['Summer', 'Spring', 'Winter', 'Fall'],
     correctIndex: 2,
     difficulty: 'easy',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s2-003',
@@ -29,7 +29,7 @@ export default [
     options: ['Fish', 'Cat', 'Cow', 'Rabbit'],
     correctIndex: 0,
     difficulty: 'easy',
-    category: 'biology_basics',
+    category: 'animals',
   },
   {
     id: 'g1-science-s2-005',
@@ -45,7 +45,7 @@ export default [
     options: ['Leaves', 'Water', 'Sand', 'Sticks'],
     correctIndex: 1,
     difficulty: 'easy',
-    category: 'physics_basics',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-s2-007',
