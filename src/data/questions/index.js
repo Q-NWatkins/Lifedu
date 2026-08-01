@@ -8,6 +8,10 @@ import grade1Reading from './reading/grade1-reading.js';
 import grade1Science from './science/grade1-science.js';
 import grade1History from './history/grade1-history.js';
 import grade1Math from './math/grade1-math.js';
+import {
+  resolveTileCategory,
+  FALLBACK_BY_CATEGORY,
+} from './math/categorize.js';
 
 // ── Grade 1 — progressive stages per subject (Grade 1 = 5 stages each) ──────
 import readingG1S1 from './reading/g1-s1.js';
@@ -76,6 +80,20 @@ const QUESTION_BANKS = {
   ),
 };
 
+/**
+ * Global Grade-1 math pool grouped by legend category. Used as the strict
+ * same-category fallback for colored board tiles: if the active stage bank runs
+ * out of a category, we still draw a question OF THAT CATEGORY from the wider
+ * Grade-1 pool — so e.g. a blue (geometry) tile can never serve a subtraction
+ * question.
+ */
+const MATH_G1_BY_CATEGORY = [grade1Math, mathG1S1, mathG1S2, mathG1S3, mathG1S4, mathG1S5]
+  .flat()
+  .reduce((acc, q) => {
+    if (q.category) (acc[q.category] ??= []).push(q);
+    return acc;
+  }, {});
+
 const DIFFICULTY_RANK = { hard: 3, medium: 2, easy: 1 };
 
 function shuffle(array) {
@@ -130,13 +148,34 @@ export function getStageQuestionPools(questionBankId, subjectLabel = '') {
 }
 
 /**
- * Pull ONE question for a board tile, matching the tile's sub-topic color when
- * possible. Banks may tag questions with `subTopic`; until they do, this draws a
- * random question from the active stage bank (and falls back to the generic
- * multi-subject pool if the bank is missing). This is the Core Question Trigger.
+ * Pull ONE question for a board tile (the Core Question Trigger).
+ *
+ * Colored math tiles bind STRICTLY to a legend category (red → addition_basics,
+ * yellow → subtraction_basics, blue → geometry_shapes). For such a tile we only
+ * ever serve a question of that exact category:
+ *   1. filter the active stage bank by category,
+ *   2. if empty, draw from the global Grade-1 pool of that same category,
+ *   3. if still empty, use a guaranteed same-category fallback question.
+ * A blue tile therefore can never serve a subtraction question.
+ *
+ * Non-categorized realms (science/reading/history) keep the generic behavior:
+ * an optional `subTopic` filter, else a random question from the stage bank.
  */
-export function getTileQuestion(questionBankId, subTopic) {
+export function getTileQuestion(questionBankId, subTopic, tileColor) {
   const bank = QUESTION_BANKS[questionBankId];
+  const category = resolveTileCategory({
+    topic: subTopic,
+    color: tileColor,
+    bankId: questionBankId,
+  });
+
+  if (category) {
+    let pool = (bank ?? []).filter((q) => q.category === category);
+    if (pool.length === 0) pool = MATH_G1_BY_CATEGORY[category] ?? [];
+    if (pool.length === 0) return FALLBACK_BY_CATEGORY[category];
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
   if (bank && bank.length > 0) {
     const tagged = subTopic ? bank.filter((q) => q.subTopic === subTopic) : [];
     const pool = tagged.length > 0 ? tagged : bank;

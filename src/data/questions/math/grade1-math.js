@@ -5,6 +5,7 @@ export default [
     options: ['4', '5', '6', '7'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-002',
@@ -12,6 +13,7 @@ export default [
     options: ['5', '6', '7', '8'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-003',
@@ -19,6 +21,7 @@ export default [
     options: ['4', '5', '6', '7'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'subtraction_basics',
   },
   {
     id: 'g1-math-004',
@@ -26,6 +29,7 @@ export default [
     options: ['3', '8', '5', '2'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-005',
@@ -33,6 +37,7 @@ export default [
     options: ['2', '3', '4', '5'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'geometry_shapes',
   },
   {
     id: 'g1-math-006',
@@ -40,6 +45,7 @@ export default [
     options: ['8', '10', '11', '12'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-007',
@@ -47,6 +53,7 @@ export default [
     options: ['7', '8', '9', '10'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-008',
@@ -54,6 +61,7 @@ export default [
     options: ['4', '5', '6', '7'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-009',
@@ -61,6 +69,7 @@ export default [
     options: ['6', '7', '8', '9'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'subtraction_basics',
   },
   {
     id: 'g1-math-010',
@@ -68,14 +77,15 @@ export default [
     options: ['Square', 'Triangle', 'Circle', 'Rectangle'],
     correctIndex: 2,
     difficulty: 'easy',
+    category: 'geometry_shapes',
   },
-
   {
     id: 'g1-math-011',
     prompt: 'What number comes before 15?',
     options: ['13', '14', '16', '17'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-012',
@@ -83,6 +93,7 @@ export default [
     options: ['7', '8', '9', '10'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-013',
@@ -90,6 +101,7 @@ export default [
     options: ['3', '4', '5', '6'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'geometry_shapes',
   },
   {
     id: 'g1-math-014',
@@ -97,6 +109,7 @@ export default [
     options: ['4', '5', '6', '7'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'subtraction_basics',
   },
   {
     id: 'g1-math-015',
@@ -104,14 +117,15 @@ export default [
     options: ['9', '4', '7', '6'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'number_sense',
   },
-
   {
     id: 'g1-math-016',
     prompt: 'What is 8 + 5?',
     options: ['11', '12', '13', '14'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-017',
@@ -119,6 +133,7 @@ export default [
     options: ['7', '8', '9', '10'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'subtraction_basics',
   },
   {
     id: 'g1-math-018',
@@ -126,6 +141,7 @@ export default [
     options: ['1', '2', '3', '4'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-019',
@@ -133,6 +149,7 @@ export default [
     options: ['11', '12', '13', '14'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-020',
@@ -140,6 +157,7 @@ export default [
     options: ['2:00', '3:00', '4:00', '5:00'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'geometry_shapes',
   },
   {
     id: 'g1-math-021',
@@ -147,6 +165,7 @@ export default [
     options: ['8', '9', '10', '11'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'subtraction_basics',
   },
   {
     id: 'g1-math-022',
@@ -154,6 +173,7 @@ export default [
     options: ['5', '10', '15', '51'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-023',
@@ -161,6 +181,7 @@ export default [
     options: ['14', '15', '16', '17'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-024',
@@ -168,6 +189,7 @@ export default [
     options: ['3', '4', '5', '6'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'geometry_shapes',
   },
   {
     id: 'g1-math-025',
@@ -175,14 +197,15 @@ export default [
     options: ['8', '9', '10', '11'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'subtraction_basics',
   },
-
   {
     id: 'g1-math-026',
     prompt: 'Count by 2s: 2, 4, 6, ___',
     options: ['7', '8', '9', '10'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-027',
@@ -190,14 +213,15 @@ export default [
     options: ['16', '17', '18', '19'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'addition_basics',
   },
-
   {
     id: 'g1-math-028',
     prompt: 'Liam has 8 apples. He gets 7 more. How many apples does he have now?',
     options: ['13', '14', '15', '16'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-029',
@@ -205,6 +229,7 @@ export default [
     options: ['7', '8', '9', '10'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'subtraction_basics',
   },
   {
     id: 'g1-math-030',
@@ -212,6 +237,7 @@ export default [
     options: ['23', '25', '27', '28'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-031',
@@ -219,6 +245,7 @@ export default [
     options: ['Triangle', 'Circle', 'Square', 'Oval'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'geometry_shapes',
   },
   {
     id: 'g1-math-032',
@@ -226,6 +253,7 @@ export default [
     options: ['16', '17', '18', '19'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'addition_basics',
   },
   {
     id: 'g1-math-033',
@@ -233,6 +261,7 @@ export default [
     options: ['18', '19', '20', '25'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'number_sense',
   },
   {
     id: 'g1-math-034',
@@ -240,6 +269,7 @@ export default [
     options: ['4', '5', '6', '7'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'subtraction_basics',
   },
   {
     id: 'g1-math-035',
@@ -247,5 +277,6 @@ export default [
     options: ['27', '28', '29', '30'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'number_sense',
   },
 ];
