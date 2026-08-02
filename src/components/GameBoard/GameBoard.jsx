@@ -3,7 +3,9 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { useAdminDev } from '../../context/AdminDevContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
+import { logQuestionAttempt } from '../../utils/analytics.js';
 import { TILE_CLASS, getRealmEnv, getGuardian } from '../../data/realmConfig.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle } from '../BossBattle/index.js';
@@ -82,6 +84,7 @@ export default function GameBoard({
   const { themeConfig } = useTheme();
   const { playTrack } = useGameAudio();
   const { isGodMode, skipToBossNonce } = useAdminDev();
+  const { session } = useAuth();
   const { completedCourses, addGems, stepCards, consumeStepCards } = usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
 
@@ -135,6 +138,14 @@ export default function GameBoard({
   };
 
   const handleTileAnswer = (correct) => {
+    logQuestionAttempt({
+      studentId: session?.userId,
+      subject: course?.subject,
+      category: pendingQuestion?.question?.category,
+      stage: course?.stage,
+      isCorrect: correct,
+      source: 'tile',
+    });
     const outcome = resolveAnswer(correct);
     if (outcome === 'perfect' || outcome === 'boss') addGems(PERFECT_GEMS);
   };

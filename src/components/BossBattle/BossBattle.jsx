@@ -3,6 +3,8 @@ import { getThemeUnlockForRarity, RARITY_STYLES, rollLoot } from '../../systems/
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { useAdminDev } from '../../context/AdminDevContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { logQuestionAttempt } from '../../utils/analytics.js';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getCardQuestion } from '../../data/questions/index.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
@@ -254,6 +256,7 @@ export default function BossBattle({
     consumeConsumable,
   } = usePlayerProgress();
   const { isGodMode } = useAdminDev();
+  const { session } = useAuth();
 
   const PlayerSprite = getPlayerSprite('astronaut');
 
@@ -384,6 +387,15 @@ export default function BossBattle({
 
       const isCorrect = i === activeQuestion.correctIndex;
 
+      logQuestionAttempt({
+        studentId: session?.userId,
+        subject: course?.subject,
+        category: activeQuestion.category,
+        stage: course?.stage,
+        isCorrect,
+        source: 'boss',
+      });
+
       if (isCorrect) {
         setFeedback('correct');
 
@@ -452,6 +464,8 @@ export default function BossBattle({
       closeQuestion,
       triggerVictory,
       isGodMode,
+      session,
+      course,
     ],
   );
 

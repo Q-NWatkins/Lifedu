@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { AdminGuard, AdminPanel } from '../Auth/index.js';
+import { TeacherDashboard } from '../Teacher/index.js';
+import { isSuperAdmin, isTeacher } from '../../utils/roles.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
 import TiltedTitle from '../common/TiltedTitle.jsx';
 import BottomNav from './BottomNav.jsx';
@@ -14,16 +17,23 @@ import QuestMap from './QuestMap.jsx';
 export default function MainDashboard() {
   const { themeConfig } = useTheme();
   const { gems, stepCards } = usePlayerProgress();
-  const { session, isAdmin, logout } = useAuth();
+  const { session, logout } = useAuth();
+  const { user } = useUser();
   const { switchTrack } = useGameAudio();
   const [activeTab, setActiveTab] = useState('quest');
   const [questRealmId, setQuestRealmId] = useState(null);
+
+  // Role-based access. super_admin → developer tools; teacher → Teacher Portal.
+  const superAdmin = isSuperAdmin(user);
+  const teacher = isTeacher(user); // true for teachers AND super_admins
 
   // Tab-driven BGM. The Quest tab is left to QuestMap, which distinguishes the
   // realm picker (hub) from an open realm map (gameboard).
   useEffect(() => {
     if (activeTab === 'backpack') switchTrack('backpack');
-    else if (activeTab === 'stats' || activeTab === 'admin') switchTrack('hub');
+    else if (activeTab === 'stats' || activeTab === 'admin' || activeTab === 'teacher') {
+      switchTrack('hub');
+    }
   }, [activeTab, switchTrack]);
 
   const handleTabChange = (tab) => {
@@ -46,9 +56,20 @@ export default function MainDashboard() {
               className="flex items-center gap-1 rounded-full border-4 border-black bg-white px-3 py-1 text-xs font-black text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               title={`Signed in as ${session.username}`}
             >
-              {isAdmin ? '🛡️' : '👤'} {session.username}
+              {superAdmin ? '🛡️' : teacher ? '🎓' : '👤'} {session.username}
             </span>
-            {isAdmin && (
+            {/* Teacher Portal — visible to teachers (and super_admins). */}
+            {teacher && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('teacher')}
+                className={`${neuBtn} bg-cyan-400 px-3 py-1 text-xs font-black uppercase text-cyan-950 hover:bg-cyan-300`}
+              >
+                Teacher Portal
+              </button>
+            )}
+            {/* Developer tools — super_admin ONLY (never teachers). */}
+            {superAdmin && (
               <button
                 type="button"
                 onClick={() => setActiveTab('admin')}
@@ -103,6 +124,14 @@ export default function MainDashboard() {
             <AdminPanel />
           </AdminGuard>
         )}
+        {activeTab === 'teacher' &&
+          (teacher ? (
+            <TeacherDashboard />
+          ) : (
+            <p className="text-center text-sm font-black opacity-70">
+              Teacher access required.
+            </p>
+          ))}
       </main>
 
       <BottomNav activeTab={activeTab} onTabChange={handleTabChange} />
