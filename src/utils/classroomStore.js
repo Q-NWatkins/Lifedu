@@ -89,6 +89,28 @@ let attemptRowsCache = []; // hydrated question_attempts rows for the teacher's 
 const usingCloud = () => Boolean(supabase);
 const normCode = (code) => String(code ?? '').trim().toUpperCase();
 
+const TEACHER_ID_KEY = 'wit-teacher-id';
+
+/**
+ * Resolve a stable teacher identifier. Prefers the live Clerk id; if that's
+ * momentarily missing, reuses (or mints + persists) a local fallback so class
+ * creation never fails on a null id.
+ */
+export function resolveTeacherId(clerkUserId) {
+  if (clerkUserId) return clerkUserId;
+  let fallback = null;
+  try {
+    fallback = localStorage.getItem(TEACHER_ID_KEY);
+    if (!fallback) {
+      fallback = `teacher-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+      localStorage.setItem(TEACHER_ID_KEY, fallback);
+    }
+  } catch {
+    fallback = `teacher-${Date.now()}`;
+  }
+  return fallback;
+}
+
 function mapClassRow(r) {
   return {
     id: r.id,
@@ -256,28 +278,49 @@ export async function verifyClassCode(code) {
   return mapClassRow(data);
 }
 
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous 0/O/1/I
+
+/** Generate a short join code, e.g. QUEST-6A (prefix + 2 unambiguous chars). */
 export function newJoinCode() {
-  return `QUEST-${Math.floor(Math.random() * 90) + 10}`; // e.g. QUEST-42
+  let suffix = '';
+  for (let i = 0; i < 2; i += 1) {
+    suffix += CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)];
+  }
+  return `QUEST-${suffix}`;
 }
 
+/**
+ * Create a class. On Supabase, retries a fresh code on a unique-code collision;
+ * on any other failure it THROWS so the caller can surface the real message
+ * (e.g. an RLS violation). Offline it appends to localStorage.
+ */
 export async function addClass({ name, code, teacherId }) {
   if (usingCloud()) {
-    const { data, error } = await supabase
-      .from('classrooms')
-      .insert({ teacher_id: teacherId ?? null, name, code })
-      .select()
-      .single();
-    if (error || !data) return null;
-    const cls = mapClassRow(data);
-    classesCache = [...(classesCache ?? []), cls]; // optimistic; realtime confirms
-    emit();
-    return cls;
+    let lastError = null;
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const tryCode = attempt === 0 && code ? code : newJoinCode();
+      const { data, error } = await supabase
+        .from('classrooms')
+        .insert({ teacher_id: teacherId ?? null, name, code: tryCode })
+        .select()
+        .single();
+      if (!error && data) {
+        const cls = mapClassRow(data);
+        classesCache = [...(classesCache ?? []), cls]; // optimistic; realtime confirms
+        emit();
+        return cls;
+      }
+      lastError = error;
+      // 23505 = unique_violation → the code was taken; loop to try another.
+      if (error?.code !== '23505') break;
+    }
+    throw new Error(lastError?.message || 'Could not create the class. Please try again.');
   }
 
   const cls = {
     id: `cls-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
     name,
-    code,
+    code: code || newJoinCode(),
     teacherId: teacherId ?? null,
     createdAt: Date.now(),
   };
@@ -681,4 +724,21 @@ export function getClassSkillAnalytics(studentIds = []) {
     });
   });
   return out;
+}
+
+/**
+ * Fetch one student's raw `question_attempts` rows (most recent first) for the
+ * individual Progress Report Card. Pulls live from Supabase so the log is
+ * complete even beyond what's cached; returns [] when offline.
+ */
+export async function fetchStudentAttempts(studentId, limit = 200) {
+  if (!usingCloud() || !studentId) return [];
+  const { data, error } = await supabase
+    .from('question_attempts')
+    .select('*')
+    .eq('student_id', studentId)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data;
 }

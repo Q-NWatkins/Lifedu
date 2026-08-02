@@ -8,6 +8,7 @@ import TiltedTitle from '../common/TiltedTitle.jsx';
 import AccommodationsModal from './AccommodationsModal.jsx';
 import AssignmentBuilderModal from './AssignmentBuilderModal.jsx';
 import WeeklyReportModal from './WeeklyReportModal.jsx';
+import StudentStatsModal from './StudentStatsModal.jsx';
 import {
   useClassroomStore,
   getClassesForTeacher,
@@ -19,6 +20,7 @@ import {
   newJoinCode,
   setAssignmentFocus,
   getAccuracy,
+  resolveTeacherId,
   useTeacherClassroom,
   REALM_LABELS,
 } from '../../utils/classroomStore.js';
@@ -48,15 +50,20 @@ const NO_DATA_BADGE = 'bg-stone-400 text-white';
 export default function TeacherDashboard({ onExit }) {
   const { themeConfig } = useTheme();
   const { session } = useAuth();
-  const teacherId = session?.userId ?? 'teacher';
+  const teacherId = resolveTeacherId(session?.userId); // Clerk id, or a stable local fallback
   const storeVersion = useClassroomStore(); // subscribe → re-render when the shared store changes
   useTeacherClassroom(teacherId); // live Supabase roster sync (Realtime + poll fallback)
 
   const [tab, setTab] = useState('roster');
   const [iepStudent, setIepStudent] = useState(null);
+  const [statsStudent, setStatsStudent] = useState(null); // student for the deep-dive report
   const [builderClassCode, setBuilderClassCode] = useState(null); // class code for the open builder
   const [reportClass, setReportClass] = useState(null); // { code, name } for the open report
   const [deleteTarget, setDeleteTarget] = useState(null); // class pending deletion confirmation
+  const [createOpen, setCreateOpen] = useState(false); // "new class" name modal
+  const [newClassName, setNewClassName] = useState('');
+  const [createError, setCreateError] = useState('');
+  const [creating, setCreating] = useState(false);
 
   const cardCls = `rounded-2xl border-4 border-cyan-400/70 bg-indigo-950 text-cyan-50 shadow-[inset_0_0_24px_rgba(34,211,238,0.35),0_8px_0_rgba(0,0,0,0.4)]`;
 
@@ -64,8 +71,27 @@ export default function TeacherDashboard({ onExit }) {
   const classCodes = classes.map((c) => c.code);
   const students = getStudentsForCodes(classCodes);
 
-  const createClass = () => {
-    addClass({ name: `Class ${classes.length + 1}`, code: newJoinCode(), teacherId });
+  const openCreate = () => {
+    setNewClassName('');
+    setCreateError('');
+    setCreateOpen(true);
+  };
+
+  const submitCreate = async (e) => {
+    e.preventDefault();
+    if (creating) return;
+    const name = newClassName.trim() || `Class ${classes.length + 1}`;
+    setCreating(true);
+    setCreateError('');
+    try {
+      // addClass throws with the real Supabase message on failure (e.g. RLS).
+      await addClass({ name, code: newJoinCode(), teacherId });
+      setCreateOpen(false);
+    } catch (err) {
+      setCreateError(err?.message || 'Class creation failed. Please try again.');
+    } finally {
+      setCreating(false);
+    }
   };
 
   const confirmDelete = () => {
@@ -151,7 +177,7 @@ export default function TeacherDashboard({ onExit }) {
               <h2 className="text-lg font-black">My Classes ({classes.length})</h2>
               <button
                 type="button"
-                onClick={createClass}
+                onClick={openCreate}
                 className={`${neuBtn} bg-green-400 px-4 py-2 text-sm text-black hover:bg-green-300`}
               >
                 + Create New Class
@@ -244,14 +270,24 @@ export default function TeacherDashboard({ onExit }) {
                                   </span>
                                 </td>
                                 <td className="border-b border-white/10 py-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => setIepStudent(s)}
-                                    title="IEP / Accommodations"
-                                    className="rounded-lg border-2 border-black bg-white px-2 py-1 text-xs font-black text-black hover:bg-cyan-100"
-                                  >
-                                    ⚙️ IEP
-                                  </button>
+                                  <div className="flex gap-1">
+                                    <button
+                                      type="button"
+                                      onClick={() => setStatsStudent(s)}
+                                      title="Student Progress Report"
+                                      className="rounded-lg border-2 border-black bg-white px-2 py-1 text-xs font-black text-black hover:bg-cyan-100"
+                                    >
+                                      📊 Stats
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setIepStudent(s)}
+                                      title="IEP / Accommodations"
+                                      className="rounded-lg border-2 border-black bg-white px-2 py-1 text-xs font-black text-black hover:bg-cyan-100"
+                                    >
+                                      ⚙️ IEP
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -406,6 +442,9 @@ export default function TeacherDashboard({ onExit }) {
       {iepStudent && (
         <AccommodationsModal student={iepStudent} onClose={() => setIepStudent(null)} />
       )}
+      {statsStudent && (
+        <StudentStatsModal student={statsStudent} onClose={() => setStatsStudent(null)} />
+      )}
       {builderClassCode && (
         <AssignmentBuilderModal
           classCode={builderClassCode}
@@ -418,6 +457,68 @@ export default function TeacherDashboard({ onExit }) {
           className={reportClass.name}
           onClose={() => setReportClass(null)}
         />
+      )}
+
+      {createOpen && (
+        <div
+          className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Create a new class"
+        >
+          <form
+            onSubmit={submitCreate}
+            className="w-full max-w-md rounded-2xl border-4 border-black bg-white p-6 text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-black bg-green-400 text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              🏫
+            </div>
+            <h2 className="mt-3 text-center text-xl font-black">Create New Class</h2>
+            <p className="mt-1 text-center text-sm font-semibold text-black/70">
+              Give your class a name — students will join with the code we generate.
+            </p>
+
+            <label className="mt-4 block">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-black/60">
+                Classroom Name
+              </span>
+              <input
+                type="text"
+                value={newClassName}
+                onChange={(e) => {
+                  setNewClassName(e.target.value);
+                  if (createError) setCreateError('');
+                }}
+                placeholder="e.g. Mrs. Smith's 1st Grade"
+                autoFocus
+                className="mt-1 w-full rounded-xl border-4 border-black bg-white px-3 py-2.5 text-sm font-bold text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] outline-none focus:bg-lime-50"
+              />
+            </label>
+
+            {createError && (
+              <p className="mt-3 rounded-xl border-2 border-black bg-red-100 px-3 py-2 text-xs font-black text-red-700">
+                ⚠️ {createError}
+              </p>
+            )}
+
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setCreateOpen(false)}
+                className={`${neuBtn} bg-white px-4 py-2.5 text-sm text-black hover:bg-stone-100`}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={creating}
+                className={`${neuBtn} bg-green-400 px-4 py-2.5 text-sm text-black hover:bg-green-300 disabled:opacity-50`}
+              >
+                {creating ? 'Creating…' : 'Create Class'}
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {deleteTarget && (
