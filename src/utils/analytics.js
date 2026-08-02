@@ -1,4 +1,5 @@
 import posthog from 'posthog-js';
+import { recordAttempt } from './classroomStore.js';
 
 /**
  * Central question-attempt logger — the single choke point every answer path
@@ -33,6 +34,14 @@ export function logQuestionAttempt({
     source,
     ts: Date.now(),
   };
+
+  // Fold into the classroom analytics aggregates (powers the Teacher roster
+  // accuracy + Weekly Progress Report).
+  try {
+    recordAttempt({ studentId, subject, isCorrect: event.isCorrect });
+  } catch {
+    // never let analytics break gameplay
+  }
 
   // Fire to PostHog when it's initialized (env-gated at app start).
   try {

@@ -6,6 +6,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
+import { useClassroomStore, getFocusAssignmentForCode, REALM_LABELS } from '../../utils/classroomStore.js';
 import { CourseBoard } from '../GameBoard/index.js';
 import DailyTriviaWheel from './DailyTriviaWheel.jsx';
 import TiltedTitle from '../common/TiltedTitle.jsx';
@@ -13,13 +14,20 @@ import TiltedTitle from '../common/TiltedTitle.jsx';
 const GRADES = Array.from({ length: MAX_GRADE }, (_, i) => i + 1);
 
 export default function QuestMap({ initialRealmId = null }) {
-  const { unlockedGrades, completedCourses, allStagesUnlocked } = usePlayerProgress();
+  const { unlockedGrades, completedCourses, allStagesUnlocked, classCode } = usePlayerProgress();
   const { themeConfig } = useTheme();
   const { switchTrack } = useGameAudio();
+  useClassroomStore(); // re-render when the teacher toggles Focus Mode
   const [activeRealmId, setActiveRealmId] = useState(null);
   const [activeGrade, setActiveGrade] = useState(1);
   const [activeStage, setActiveStage] = useState(1);
   const [replayKey, setReplayKey] = useState(null);
+
+  // Focus Mode: when the teacher has enabled it on an assignment for this
+  // student's class, lock them to exactly that realm + grade + stage.
+  const focus = getFocusAssignmentForCode(classCode);
+  const focusRealm = focus ? REALMS.find((r) => r.curriculumId === focus.realm) ?? null : null;
+  const focusLock = Boolean(focus && focusRealm);
 
   const activeRealm = REALMS.find((r) => r.id === activeRealmId) ?? null;
   const subject = activeRealm?.curriculumId;
@@ -52,6 +60,16 @@ export default function QuestMap({ initialRealmId = null }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- only auto-enter when hub navigates to a realm
   }, [initialRealmId]);
 
+  // While Focus Mode is on, force the student onto the assigned realm/grade/stage.
+  useEffect(() => {
+    if (!focusLock) return;
+    setActiveRealmId(focusRealm.id);
+    setActiveGrade(focus.grade);
+    setActiveStage(focus.stage);
+    setReplayKey(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- re-lock when the focus target changes
+  }, [focusLock, focusRealm?.id, focus?.grade, focus?.stage]);
+
   // Realm picker → hub theme; an open realm map → gameboard theme.
   const boardOpen = Boolean(activeRealm && stageMapId);
   useEffect(() => {
@@ -59,17 +77,20 @@ export default function QuestMap({ initialRealmId = null }) {
   }, [boardOpen, switchTrack]);
 
   const selectGrade = (grade) => {
+    if (focusLock) return;
     setActiveGrade(grade);
     setActiveStage(1);
     setReplayKey(null);
   };
 
   const selectStage = (stage) => {
+    if (focusLock) return;
     setActiveStage(stage);
     setReplayKey(null);
   };
 
   const handleBackToRealms = () => {
+    if (focusLock) return;
     setActiveRealmId(null);
     setReplayKey(null);
   };
@@ -79,11 +100,22 @@ export default function QuestMap({ initialRealmId = null }) {
 
     return (
       <div className="space-y-4">
+        {focusLock && (
+          <div className="flex flex-wrap items-center gap-2 rounded-2xl border-4 border-black bg-yellow-300 px-4 py-3 text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+            <span className="text-lg">🔒</span>
+            <span className="text-sm font-black">Focus Mode:</span>
+            <span className="text-sm font-bold">
+              {focus.title} — {REALM_LABELS[focus.realm] ?? focus.realm} · G{focus.grade} · Stage{' '}
+              {focus.stage}. Your teacher has locked this session.
+            </span>
+          </div>
+        )}
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
             onClick={handleBackToRealms}
-            className={`${neuBtn} bg-white px-4 py-2 text-sm text-black hover:bg-lime-50`}
+            disabled={focusLock}
+            className={`${neuBtn} bg-white px-4 py-2 text-sm text-black hover:bg-lime-50 disabled:cursor-not-allowed disabled:opacity-50`}
           >
             ← Realms
           </button>
@@ -94,7 +126,7 @@ export default function QuestMap({ initialRealmId = null }) {
               {activeRealm.name}
             </span>
             {GRADES.map((grade) => {
-              const unlocked = grade <= unlockedCeiling;
+              const unlocked = focusLock ? grade === focus.grade : grade <= unlockedCeiling;
               const isActive = activeGrade === grade;
               return (
                 <button
@@ -128,7 +160,7 @@ export default function QuestMap({ initialRealmId = null }) {
             Grade {activeGrade} Stages
           </span>
           {stages.map((stage) => {
-            const unlocked = isStageUnlocked(stage);
+            const unlocked = focusLock ? stage === focus.stage : isStageUnlocked(stage);
             const complete = isStageComplete(stage);
             const isActive = activeStage === stage;
             return (

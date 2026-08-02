@@ -4,6 +4,7 @@ import {
   loadAccommodations,
   saveAccommodations,
 } from '../../context/AccessibilityContext.jsx';
+import { updateStudentIep } from '../../utils/classroomStore.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
 
 const FONT_OPTIONS = [
@@ -67,7 +68,13 @@ export default function AccommodationsModal({ student, onClose }) {
   };
 
   const handleSave = () => {
-    if (student?.id) saveAccommodations(student.id, settings);
+    if (student?.id) {
+      // 1) Write to the student's accessibility profile → AccessibilityContext
+      //    auto-loads it when that student next logs in (and live if signed in).
+      saveAccommodations(student.id, settings);
+      // 2) Mirror onto the roster profile so the teacher's table reflects it.
+      updateStudentIep(student.id, settings);
+    }
     setSaved(true);
   };
 

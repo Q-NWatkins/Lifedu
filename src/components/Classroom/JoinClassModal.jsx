@@ -1,21 +1,49 @@
 import { useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { loadAccommodations } from '../../context/AccessibilityContext.jsx';
+import {
+  joinClassroom,
+  getAccuracy,
+  SUBJECT_ORDER,
+  REALM_LABELS,
+} from '../../utils/classroomStore.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
 
 /**
  * Student "Join Classroom" modal. Takes a teacher's class code, normalizes it
- * (trim + uppercase), saves it to the student's progress, and confirms so their
- * teacher can associate their quest progress.
+ * (trim + uppercase), records a live student profile in the shared classroom
+ * store under that code, and confirms so their teacher sees them on the roster.
  */
 export default function JoinClassModal({ onClose }) {
-  const { classCode, joinClass } = usePlayerProgress();
+  const { classCode, joinClass, unlockedGrades } = usePlayerProgress();
+  const { session } = useAuth();
   const [code, setCode] = useState('');
   const [joined, setJoined] = useState(null); // normalized code once joined
 
   const handleJoin = (e) => {
     e.preventDefault();
-    const normalized = joinClass(code);
-    if (normalized) setJoined(normalized);
+    const normalized = joinClass(code); // saves classCode to the student's own progress
+    if (!normalized) return;
+
+    // The student's "current realm + grade" = the subject they've unlocked furthest.
+    const topSubject = SUBJECT_ORDER.reduce(
+      (best, s) => ((unlockedGrades?.[s] ?? 1) > (unlockedGrades?.[best] ?? 1) ? s : best),
+      'math',
+    );
+    const studentId = session?.userId ?? null;
+
+    joinClassroom({
+      id: studentId,
+      name: session?.fullName || session?.username || 'Student',
+      classCode: normalized,
+      currentRealm: REALM_LABELS[topSubject] ?? 'Math Volcano',
+      grade: unlockedGrades?.[topSubject] ?? 1,
+      accuracy: getAccuracy(studentId),
+      iepSettings: loadAccommodations(studentId),
+    });
+
+    setJoined(normalized);
   };
 
   return (
@@ -33,7 +61,7 @@ export default function JoinClassModal({ onClose }) {
             </div>
             <h2 className="mt-3 text-xl font-black text-black">Joined Class!</h2>
             <p className="mt-1 text-sm font-semibold text-black/70">
-              Your teacher can now view your quest progress.
+              You are now connected to your teacher&apos;s classroom.
             </p>
             <p className="mt-3 inline-block rounded-full border-2 border-black bg-yellow-300 px-3 py-1 text-xs font-black tracking-wider text-black">
               {joined}
