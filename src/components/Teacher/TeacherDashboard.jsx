@@ -13,10 +13,13 @@ import {
   getClassesForTeacher,
   getStudentsForCodes,
   getAssignmentsForCode,
+  getClassSkillAnalytics,
   addClass,
+  deleteClass,
   newJoinCode,
   setAssignmentFocus,
   getAccuracy,
+  useTeacherClassroom,
   REALM_LABELS,
 } from '../../utils/classroomStore.js';
 
@@ -40,22 +43,20 @@ function scoreBand(pct) {
   return { dot: '🔴', cls: 'bg-red-400 text-white' };
 }
 
-/** Deterministic mock score so the analytics grid is stable between renders. */
-function mockScore(subject, category) {
-  const seed = `${subject}:${category}`.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  return 30 + (seed % 66); // 30–95
-}
+const NO_DATA_BADGE = 'bg-stone-400 text-white';
 
-export default function TeacherDashboard() {
+export default function TeacherDashboard({ onExit }) {
   const { themeConfig } = useTheme();
   const { session } = useAuth();
   const teacherId = session?.userId ?? 'teacher';
-  useClassroomStore(); // subscribe → re-render when the shared store changes
+  const storeVersion = useClassroomStore(); // subscribe → re-render when the shared store changes
+  useTeacherClassroom(teacherId); // live Supabase roster sync (Realtime + poll fallback)
 
   const [tab, setTab] = useState('roster');
   const [iepStudent, setIepStudent] = useState(null);
   const [builderClassCode, setBuilderClassCode] = useState(null); // class code for the open builder
   const [reportClass, setReportClass] = useState(null); // { code, name } for the open report
+  const [deleteTarget, setDeleteTarget] = useState(null); // class pending deletion confirmation
 
   const cardCls = `rounded-2xl border-4 border-cyan-400/70 bg-indigo-950 text-cyan-50 shadow-[inset_0_0_24px_rgba(34,211,238,0.35),0_8px_0_rgba(0,0,0,0.4)]`;
 
@@ -67,21 +68,52 @@ export default function TeacherDashboard() {
     addClass({ name: `Class ${classes.length + 1}`, code: newJoinCode(), teacherId });
   };
 
+  const confirmDelete = () => {
+    if (deleteTarget) deleteClass(deleteTarget.id);
+    setDeleteTarget(null);
+  };
+
+  // Live skill analytics: real accuracy per subject → sub-topic, aggregated
+  // across this teacher's enrolled students. Topics with no attempts = "No Data Yet".
+  const studentIdKey = students.map((s) => s.id).join(',');
+  const skillData = useMemo(
+    () => getClassSkillAnalytics(studentIdKey ? studentIdKey.split(',') : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- recompute when roster or store changes
+    [studentIdKey, storeVersion],
+  );
+
   const analytics = useMemo(
     () =>
       SUBJECT_ORDER.map((subject) => ({
         subject,
         label: CURRICULUMS[subject]?.label ?? subject,
         categories: (SUBJECT_CATEGORIES[subject] ?? []).map((category) => {
-          const pct = mockScore(subject, category);
+          const stat = skillData[subject]?.[category];
+          if (!stat || !stat.total) {
+            return { category, pct: null, band: null };
+          }
+          const pct = Math.round((stat.correct / stat.total) * 100);
           return { category, pct, band: scoreBand(pct) };
         }),
       })),
-    [],
+    [skillData],
   );
 
   return (
     <div className="space-y-6">
+      {/* ── Back to game ───────────────────────────────────────────────────── */}
+      {onExit && (
+        <div>
+          <button
+            type="button"
+            onClick={onExit}
+            className={`${neuBtn} bg-yellow-300 px-4 py-2 text-sm font-black text-black hover:bg-yellow-200`}
+          >
+            ← Back to Quest Map
+          </button>
+        </div>
+      )}
+
       {/* ── Header bar ─────────────────────────────────────────────────────── */}
       <header className="text-center">
         <TiltedTitle
@@ -146,6 +178,14 @@ export default function TeacherDashboard() {
                       <span className="rounded-full border-2 border-black bg-cyan-200 px-2 py-0.5 text-[10px] font-black">
                         👥 {count}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setDeleteTarget(c)}
+                        title={`Delete ${c.name}`}
+                        className="rounded-lg border-2 border-black bg-red-400 px-2 py-1 text-[11px] font-black text-white hover:bg-red-500"
+                      >
+                        🗑️ Delete
+                      </button>
                     </li>
                   );
                 })}
@@ -170,8 +210,8 @@ export default function TeacherDashboard() {
 
                   {classStudents.length === 0 ? (
                     <p className="mt-3 rounded-xl border-2 border-dashed border-cyan-400/60 p-4 text-sm font-semibold opacity-80">
-                      No students in this class yet. Give your students code{' '}
-                      <span className="font-black text-yellow-300">{c.code}</span> to join!
+                      No students have joined yet. Share code{' '}
+                      <span className="font-black text-yellow-300">{c.code}</span> with your class!
                     </p>
                   ) : (
                     <div className="mt-4 overflow-x-auto">
@@ -249,9 +289,15 @@ export default function TeacherDashboard() {
                       <span className="text-xs font-bold capitalize opacity-90">
                         {c.category.replace(/_/g, ' ')}
                       </span>
-                      <span className={`rounded-full border-2 border-black px-2 py-0.5 text-[11px] font-black ${c.band.cls}`}>
-                        {c.band.dot} {c.pct}%
-                      </span>
+                      {c.pct == null ? (
+                        <span className={`rounded-full border-2 border-black px-2 py-0.5 text-[11px] font-black ${NO_DATA_BADGE}`}>
+                          ⚪ No Data Yet
+                        </span>
+                      ) : (
+                        <span className={`rounded-full border-2 border-black px-2 py-0.5 text-[11px] font-black ${c.band.cls}`}>
+                          {c.band.dot} {c.pct}%
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -372,6 +418,45 @@ export default function TeacherDashboard() {
           className={reportClass.name}
           onClose={() => setReportClass(null)}
         />
+      )}
+
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm class deletion"
+        >
+          <div className="w-full max-w-md rounded-2xl border-4 border-black bg-white p-6 text-center text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-black bg-red-400 text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              🗑️
+            </div>
+            <h2 className="mt-3 text-xl font-black">Delete Class?</h2>
+            <p className="mt-2 text-sm font-semibold text-black/70">
+              Are you sure you want to delete{' '}
+              <span className="font-black text-black">{deleteTarget.name}</span> (
+              <span className="font-black text-black">{deleteTarget.code}</span>)? This will remove the
+              class from your dashboard, unlink enrolled students, and purge class roster records in
+              compliance with data retention policies.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className={`${neuBtn} bg-white px-4 py-2.5 text-sm text-black hover:bg-stone-100`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className={`${neuBtn} bg-red-500 px-4 py-2.5 text-sm text-white hover:bg-red-600`}
+              >
+                Yes, Delete Class
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

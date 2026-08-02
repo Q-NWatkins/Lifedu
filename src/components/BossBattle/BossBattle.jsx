@@ -276,6 +276,7 @@ export default function BossBattle({
     unlockGrade,
     consumableCharges,
     consumeConsumable,
+    classCode,
   } = usePlayerProgress();
   const { isGodMode } = useAdminDev();
   const { session } = useAuth();
@@ -411,8 +412,10 @@ export default function BossBattle({
 
       logQuestionAttempt({
         studentId: session?.userId,
+        classCode,
         subject: course?.subject,
         category: activeQuestion.category,
+        grade: course?.grade,
         stage: course?.stage,
         isCorrect,
         source: 'boss',
@@ -488,6 +491,7 @@ export default function BossBattle({
       isGodMode,
       session,
       course,
+      classCode,
     ],
   );
 

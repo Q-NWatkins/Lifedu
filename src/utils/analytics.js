@@ -1,17 +1,19 @@
 import posthog from 'posthog-js';
-import { recordAttempt } from './classroomStore.js';
+import { recordAttempt, recordAttemptRemote } from './classroomStore.js';
 
 /**
  * Central question-attempt logger — the single choke point every answer path
  * (board tiles, boss battles, the trivia wheel) calls when a question is
- * answered. Today it emits a PostHog event (when analytics is configured) and a
- * dev-console trace; the same shape is ready to be persisted to Supabase for the
- * Teacher Portal analytics (e.g. a `question_attempts` table).
+ * answered. It persists to Supabase `question_attempts` (cross-device Teacher
+ * analytics), folds into local aggregates, emits a PostHog event, and traces
+ * in dev.
  *
  * @param {Object}  attempt
  * @param {string}  [attempt.studentId] Clerk user id of the answering student.
- * @param {string}  [attempt.subject]   'math' | 'science' | 'reading' | 'history'
- * @param {string}  [attempt.category]  legend category, e.g. 'addition_basics'
+ * @param {string}  [attempt.classCode] the student's active class code, if joined.
+ * @param {string}  [attempt.subject]   realm: 'math' | 'science' | 'reading' | 'history'
+ * @param {string}  [attempt.category]  topic/legend category, e.g. 'addition_basics'
+ * @param {number}  [attempt.grade]     grade level (1–5) when applicable
  * @param {number}  [attempt.stage]     stage number (1–5) when applicable
  * @param {boolean} attempt.isCorrect
  * @param {string}  [attempt.source]    where it happened: 'tile' | 'boss' | 'trivia'
@@ -19,26 +21,45 @@ import { recordAttempt } from './classroomStore.js';
  */
 export function logQuestionAttempt({
   studentId = null,
+  classCode = null,
   subject = null,
   category = null,
+  grade = null,
   stage = null,
   isCorrect,
   source = null,
 } = {}) {
   const event = {
     studentId,
+    classCode,
     subject,
     category,
+    grade: grade ?? null,
     stage: stage ?? null,
     isCorrect: Boolean(isCorrect),
     source,
     ts: Date.now(),
   };
 
-  // Fold into the classroom analytics aggregates (powers the Teacher roster
-  // accuracy + Weekly Progress Report).
+  // Persist to Supabase so the teacher sees this student's accuracy on any
+  // device (fire-and-forget; no-op when Supabase isn't configured).
   try {
-    recordAttempt({ studentId, subject, isCorrect: event.isCorrect });
+    recordAttemptRemote({
+      studentId,
+      classCode,
+      realm: subject,
+      grade,
+      stage,
+      topic: category,
+      isCorrect: event.isCorrect,
+    });
+  } catch {
+    // never let analytics break gameplay
+  }
+
+  // Fold into local aggregates too (offline fallback + this device's view).
+  try {
+    recordAttempt({ studentId, subject, category, isCorrect: event.isCorrect });
   } catch {
     // never let analytics break gameplay
   }

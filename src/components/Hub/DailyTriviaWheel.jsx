@@ -39,7 +39,8 @@ function formatCountdown(ms) {
 }
 
 export default function DailyTriviaWheel() {
-  const { lastSpinAt, recordDailySpin, addGems, addStepCards, addToInventory } = usePlayerProgress();
+  const { lastSpinAt, recordDailySpin, addGems, addStepCards, addToInventory, classCode } =
+    usePlayerProgress();
   const { session } = useAuth();
   const { settings } = useAccessibility();
 
@@ -131,8 +132,10 @@ export default function DailyTriviaWheel() {
 
       logQuestionAttempt({
         studentId: session?.userId,
+        classCode,
         subject: question.subject,
         category: question.category,
+        grade: question.grade ?? null,
         stage: null,
         isCorrect: correct,
         source: 'trivia',
@@ -145,7 +148,7 @@ export default function DailyTriviaWheel() {
         }, 800),
       );
     },
-    [locked, question, spinToReward, askQuestion, session],
+    [locked, question, spinToReward, askQuestion, session, classCode],
   );
 
   // High-speed countdown during the question phase.

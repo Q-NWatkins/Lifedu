@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext.jsx';
+import { fetchStudentIep, useClassroomSupabase } from '../utils/classroomStore.js';
 
 /**
  * Teacher-managed accessibility / accommodation engine.
@@ -72,11 +73,29 @@ export function AccessibilityProvider({ children }) {
   const { session } = useAuth();
   const userId = session?.userId ?? null;
 
+  useClassroomSupabase(); // ensure the live Supabase client is connected
   const [settings, setSettings] = useState(() => loadAccommodations(userId));
 
   // Reload this student's saved profile whenever the signed-in account changes.
   useEffect(() => {
     setSettings(loadAccommodations(userId));
+  }, [userId]);
+
+  // On login, pull any teacher-assigned accommodations from Supabase so the
+  // student's IEP toggles auto-apply on this device even if set elsewhere.
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    (async () => {
+      const remote = await fetchStudentIep(userId);
+      if (alive && remote) {
+        saveAccommodations(userId, remote); // persist locally for offline use
+        setSettings((prev) => ({ ...prev, ...remote }));
+      }
+    })();
+    return () => {
+      alive = false;
+    };
   }, [userId]);
 
   // Live-apply when a teacher edits THIS signed-in student's accommodations.

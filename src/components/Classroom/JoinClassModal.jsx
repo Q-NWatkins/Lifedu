@@ -4,7 +4,9 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { loadAccommodations } from '../../context/AccessibilityContext.jsx';
 import {
   joinClassroom,
+  verifyClassCode,
   getAccuracy,
+  useClassroomSupabase,
   SUBJECT_ORDER,
   REALM_LABELS,
 } from '../../utils/classroomStore.js';
@@ -18,32 +20,56 @@ import { neuBtn } from '../../styles/neubrutalism.js';
 export default function JoinClassModal({ onClose }) {
   const { classCode, joinClass, unlockedGrades } = usePlayerProgress();
   const { session } = useAuth();
+  useClassroomSupabase(); // ensure the live Supabase client is connected
   const [code, setCode] = useState('');
   const [joined, setJoined] = useState(null); // normalized code once joined
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleJoin = (e) => {
+  const handleJoin = async (e) => {
     e.preventDefault();
-    const normalized = joinClass(code); // saves classCode to the student's own progress
-    if (!normalized) return;
+    setError('');
 
-    // The student's "current realm + grade" = the subject they've unlocked furthest.
-    const topSubject = SUBJECT_ORDER.reduce(
-      (best, s) => ((unlockedGrades?.[s] ?? 1) > (unlockedGrades?.[best] ?? 1) ? s : best),
-      'math',
-    );
-    const studentId = session?.userId ?? null;
+    const normalized = String(code).trim().toUpperCase();
+    if (!normalized || busy) return;
 
-    joinClassroom({
-      id: studentId,
-      name: session?.fullName || session?.username || 'Student',
-      classCode: normalized,
-      currentRealm: REALM_LABELS[topSubject] ?? 'Math Volcano',
-      grade: unlockedGrades?.[topSubject] ?? 1,
-      accuracy: getAccuracy(studentId),
-      iepSettings: loadAccommodations(studentId),
-    });
+    setBusy(true);
+    try {
+      // Verify the code exists in the `classrooms` table before enrolling.
+      const classroom = await verifyClassCode(normalized);
+      if (!classroom) {
+        setError(`We couldn't find a class with code ${normalized}. Double-check with your teacher.`);
+        return;
+      }
 
-    setJoined(normalized);
+      joinClass(normalized); // saves classCode to the student's own progress
+
+      // The student's "current realm + grade" = the subject they've unlocked furthest.
+      const topSubject = SUBJECT_ORDER.reduce(
+        (best, s) => ((unlockedGrades?.[s] ?? 1) > (unlockedGrades?.[best] ?? 1) ? s : best),
+        'math',
+      );
+      const studentId = session?.userId ?? null;
+
+      const result = await joinClassroom({
+        id: studentId,
+        name: session?.fullName || session?.username || 'Student',
+        classCode: normalized,
+        currentRealm: REALM_LABELS[topSubject] ?? 'Math Volcano',
+        grade: unlockedGrades?.[topSubject] ?? 1,
+        accuracy: getAccuracy(studentId),
+        iepSettings: loadAccommodations(studentId),
+      });
+
+      if (!result) {
+        setError('Something went wrong joining that class. Please try again.');
+        return;
+      }
+
+      setJoined(normalized);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -92,19 +118,28 @@ export default function JoinClassModal({ onClose }) {
             <input
               type="text"
               value={code}
-              onChange={(e) => setCode(e.target.value)}
+              onChange={(e) => {
+                setCode(e.target.value);
+                if (error) setError('');
+              }}
               placeholder="e.g. QUEST-61"
               autoFocus
               className="mt-4 w-full rounded-xl border-4 border-black bg-white px-3 py-2.5 text-center text-lg font-black uppercase tracking-widest text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] outline-none focus:bg-lime-50"
             />
 
+            {error && (
+              <p className="mt-3 rounded-xl border-2 border-black bg-red-100 px-3 py-2 text-xs font-black text-red-700">
+                ⚠️ {error}
+              </p>
+            )}
+
             <div className="mt-5 grid gap-2">
               <button
                 type="submit"
-                disabled={!code.trim()}
+                disabled={!code.trim() || busy}
                 className={`${neuBtn} bg-cyan-400 px-4 py-2.5 text-sm text-cyan-950 hover:bg-cyan-300 disabled:opacity-50`}
               >
-                Join Class
+                {busy ? 'Joining…' : 'Join Class'}
               </button>
               <button
                 type="button"
