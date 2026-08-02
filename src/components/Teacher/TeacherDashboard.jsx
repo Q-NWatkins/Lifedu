@@ -4,6 +4,7 @@ import { SUBJECT_CATEGORIES } from '../../data/questions/categorize.js';
 import { CURRICULUMS } from '../../config/courseMaps.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
 import TiltedTitle from '../common/TiltedTitle.jsx';
+import AccommodationsModal from './AccommodationsModal.jsx';
 
 const TABS = [
   { id: 'roster', label: 'Classroom Roster', icon: '📋' },
@@ -50,6 +51,7 @@ export default function TeacherDashboard() {
   const [tab, setTab] = useState('roster');
   const [classes, setClasses] = useState([]);
   const [focusMode, setFocusMode] = useState(false);
+  const [iepStudent, setIepStudent] = useState(null);
 
   const cardCls = `rounded-2xl border-4 border-cyan-400/70 bg-indigo-950 text-cyan-50 shadow-[inset_0_0_24px_rgba(34,211,238,0.35),0_8px_0_rgba(0,0,0,0.4)]`;
 
@@ -77,7 +79,10 @@ export default function TeacherDashboard() {
     <div className="space-y-6">
       {/* ── Header bar ─────────────────────────────────────────────────────── */}
       <header className="text-center">
-        <TiltedTitle as="h1" className={`text-2xl font-black uppercase sm:text-3xl ${themeConfig.text_main}`}>
+        <TiltedTitle
+          as="h1"
+          className="text-2xl font-black uppercase text-white drop-shadow-[0_2px_0_rgba(0,0,0,1)] sm:text-3xl"
+        >
           Teacher Classroom Command Center
         </TiltedTitle>
         <p className={`mt-2 text-sm font-bold ${themeConfig.contrastMuted}`}>
@@ -148,7 +153,8 @@ export default function TeacherDashboard() {
                     <th className="border-b border-white/15 py-2 pr-3">Current Realm</th>
                     <th className="border-b border-white/15 py-2 pr-3">Grade</th>
                     <th className="border-b border-white/15 py-2 pr-3">Accuracy</th>
-                    <th className="border-b border-white/15 py-2">Status</th>
+                    <th className="border-b border-white/15 py-2 pr-3">Status</th>
+                    <th className="border-b border-white/15 py-2">IEP</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -160,10 +166,20 @@ export default function TeacherDashboard() {
                         <td className="border-b border-white/10 py-2 pr-3 opacity-90">{s.realm}</td>
                         <td className="border-b border-white/10 py-2 pr-3 opacity-90">G{s.grade}</td>
                         <td className="border-b border-white/10 py-2 pr-3 font-black">{s.accuracy}%</td>
-                        <td className="border-b border-white/10 py-2">
+                        <td className="border-b border-white/10 py-2 pr-3">
                           <span className={`rounded-full border-2 border-black px-2 py-0.5 text-[10px] font-black uppercase ${status.cls}`}>
                             {status.label}
                           </span>
+                        </td>
+                        <td className="border-b border-white/10 py-2">
+                          <button
+                            type="button"
+                            onClick={() => setIepStudent(s)}
+                            title="IEP / Accommodations"
+                            className="rounded-lg border-2 border-black bg-white px-2 py-1 text-xs font-black text-black hover:bg-cyan-100"
+                          >
+                            ⚙️ IEP
+                          </button>
                         </td>
                       </tr>
                     );
@@ -243,6 +259,10 @@ export default function TeacherDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {iepStudent && (
+        <AccommodationsModal student={iepStudent} onClose={() => setIepStudent(null)} />
       )}
     </div>
   );

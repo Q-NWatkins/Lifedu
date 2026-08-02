@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext.jsx';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { AudioProvider, useGameAudio } from './context/AudioContext.jsx';
 import { AdminDevProvider } from './context/AdminDevContext.jsx';
+import { AccessibilityProvider } from './context/AccessibilityContext.jsx';
 import PlatformBackground from './components/Platform/PlatformBackground.jsx';
 import { MainDashboard } from './components/Hub/index.js';
 import AdminToolbar from './components/Admin/AdminToolbar.jsx';
@@ -47,17 +48,19 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AudioProvider>
-          <PlayerProgressProvider>
-            <PlatformBackground>
-              <AdminDevProvider>
-                <AuthenticatedApp />
-                {/* Admin-only floating dev toolbar — self-gates, persists across all views. */}
-                <AdminToolbar />
-              </AdminDevProvider>
-            </PlatformBackground>
-          </PlayerProgressProvider>
-        </AudioProvider>
+        <AccessibilityProvider>
+          <AudioProvider>
+            <PlayerProgressProvider>
+              <PlatformBackground>
+                <AdminDevProvider>
+                  <AuthenticatedApp />
+                  {/* Admin-only floating dev toolbar — self-gates, persists across all views. */}
+                  <AdminToolbar />
+                </AdminDevProvider>
+              </PlatformBackground>
+            </PlayerProgressProvider>
+          </AudioProvider>
+        </AccessibilityProvider>
       </AuthProvider>
     </ThemeProvider>
   );

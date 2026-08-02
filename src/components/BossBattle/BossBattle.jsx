@@ -4,7 +4,10 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { useAdminDev } from '../../context/AdminDevContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useAccessibility, speakText } from '../../context/AccessibilityContext.jsx';
+import { useSwitchScanner } from '../../hooks/useSwitchScanner.js';
 import { logQuestionAttempt } from '../../utils/analytics.js';
+import SpeakerButton from '../common/SpeakerButton.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getCardQuestion } from '../../data/questions/index.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
@@ -111,6 +114,20 @@ function CombatCard({ card, onClick, disabled }) {
 }
 
 function QuestionModal({ question, card, onAnswer, answerIndex, isLocked, feedback }) {
+  const { settings } = useAccessibility();
+
+  useEffect(() => {
+    if (settings.ttsAutoRead) speakText(question.prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once per question
+  }, [question.prompt]);
+
+  const scanIndex = useSwitchScanner({
+    enabled: settings.switchAccess && !isLocked,
+    count: question.options.length,
+    speedMs: settings.switchScanSpeedMs,
+    onSelect: onAnswer,
+  });
+
   const getOptionStyle = (i) => {
     if (!isLocked) return 'bg-white hover:bg-yellow-50 text-black';
     if (i === question.correctIndex) return 'bg-green-400 text-black';
@@ -153,22 +170,27 @@ function QuestionModal({ question, card, onAnswer, answerIndex, isLocked, feedba
         )}
 
         {/* Question */}
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-base font-black leading-snug text-black">{question.prompt}</p>
+        <div className="flex items-start gap-2 px-5 pt-4 pb-2">
+          <p className="flex-1 text-base font-black leading-snug text-black">{question.prompt}</p>
+          <SpeakerButton text={question.prompt} />
         </div>
 
         {/* Options */}
         <div className="grid gap-2 px-5 pb-5">
           {question.options.map((option, i) => (
-            <button
-              key={option}
-              type="button"
-              disabled={isLocked}
-              onClick={() => onAnswer(i)}
-              className={`neu-btn px-4 py-3 text-left text-sm font-bold ${getOptionStyle(i)} disabled:cursor-default`}
-            >
-              {option}
-            </button>
+            <div key={option} className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isLocked}
+                onClick={() => onAnswer(i)}
+                className={`neu-btn flex-1 px-4 py-3 text-left text-sm font-bold ${getOptionStyle(i)} ${
+                  i === scanIndex ? 'ring-4 ring-cyan-400' : ''
+                } disabled:cursor-default`}
+              >
+                {option}
+              </button>
+              <SpeakerButton text={option} label={`Read option: ${option}`} />
+            </div>
           ))}
         </div>
       </div>

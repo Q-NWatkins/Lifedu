@@ -8,6 +8,7 @@ import { RARITY_STYLES, getScrapValue } from '../../systems/lootSystem.js';
 import { arcadeCard, btn3dSuccess, neuBtn, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
 import TiltedTitle from '../common/TiltedTitle.jsx';
+import JoinClassModal from '../Classroom/JoinClassModal.jsx';
 
 const SETTINGS_KEY = 'wit-backpack-settings';
 
@@ -270,13 +271,14 @@ function TokenShop() {
 }
 
 export default function MyBackpack() {
-  const { badges, inventory, equipped, equipItem, isThemeUnlocked, activeTitle } =
+  const { badges, inventory, equipped, equipItem, isThemeUnlocked, activeTitle, classCode } =
     usePlayerProgress();
   const activeTitleLabel = getTitleById(activeTitle);
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
   const { bgmVolume, updateVolume } = useGameAudio();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [tab, setTab] = useState('gear');
+  const [showJoinClass, setShowJoinClass] = useState(false);
 
   // Vibrant arcade panel — deep fill, neon border, inner glow, light ink.
   const cardCls = arcadeCard;
@@ -311,7 +313,16 @@ export default function MyBackpack() {
         <p className={`mt-2 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Customize your hero, trade loot, and shop for power-ups!
         </p>
+        <button
+          type="button"
+          onClick={() => setShowJoinClass(true)}
+          className={`${neuBtn} mt-3 bg-cyan-400 px-4 py-2 text-xs font-black uppercase text-cyan-950 hover:bg-cyan-300`}
+        >
+          🏫 {classCode ? `Class: ${classCode}` : 'Join Class'}
+        </button>
       </header>
+
+      {showJoinClass && <JoinClassModal onClose={() => setShowJoinClass(false)} />}
 
       {/* Sub-tab navigation */}
       <div className="flex flex-wrap justify-center gap-2">

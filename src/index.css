@@ -1,13 +1,55 @@
 @import 'tailwindcss';
+/* Accessibility fonts: Lexend (highly legible) + OpenDyslexic. */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;700;900&display=swap');
+@import url('https://fonts.cdnfonts.com/css/opendyslexic');
 
 @theme {
   --font-display: 'Fredoka', system-ui, sans-serif;
 }
 
 body {
-  font-family: var(--font-display);
+  /* --font-main is set by AccessibilityContext (Lexend / OpenDyslexic); it falls
+     back to the playful display font when no accommodation is active. */
+  font-family: var(--font-main, var(--font-display));
   margin: 0;
   min-height: 100vh;
+}
+
+/* ── Visual accommodation modes (set via body[data-visual]) ─────────────────
+ * Implemented as fixed, pointer-events-none overlays (NOT CSS `filter`) so they
+ * never break the positioning of the app's fixed modals.
+ */
+body[data-visual='warm-tint']::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483000;
+  background: #fcf8ec; /* soft cream to cut stark white glare */
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+}
+
+body[data-visual='high-contrast']::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483000;
+  background: rgba(0, 0, 0, 0.16);
+  mix-blend-mode: multiply;
+}
+body[data-visual='high-contrast']::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483000;
+  background: rgba(250, 204, 21, 0.08); /* black/yellow contrast bias */
+}
+/* Bolder strokes for the high-contrast accommodation. */
+body[data-visual='high-contrast'] {
+  font-weight: 600;
 }
 
 /*
