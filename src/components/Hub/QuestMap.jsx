@@ -6,7 +6,7 @@ import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { neuBtn, neuCard } from '../../styles/neubrutalism.js';
-import { useClassroomStore, getFocusAssignmentForCode, REALM_LABELS } from '../../utils/classroomStore.js';
+import { useFocusAssignment, REALM_LABELS } from '../../utils/classroomStore.js';
 import { CourseBoard } from '../GameBoard/index.js';
 import DailyTriviaWheel from './DailyTriviaWheel.jsx';
 import TiltedTitle from '../common/TiltedTitle.jsx';
@@ -17,15 +17,15 @@ export default function QuestMap({ initialRealmId = null }) {
   const { unlockedGrades, completedCourses, allStagesUnlocked, classCode } = usePlayerProgress();
   const { themeConfig } = useTheme();
   const { switchTrack } = useGameAudio();
-  useClassroomStore(); // re-render when the teacher toggles Focus Mode
   const [activeRealmId, setActiveRealmId] = useState(null);
   const [activeGrade, setActiveGrade] = useState(1);
   const [activeStage, setActiveStage] = useState(1);
   const [replayKey, setReplayKey] = useState(null);
 
   // Focus Mode: when the teacher has enabled it on an assignment for this
-  // student's class, lock them to exactly that realm + grade + stage.
-  const focus = getFocusAssignmentForCode(classCode);
+  // student's class, lock them to exactly that realm + grade + stage. Resolved
+  // live from Supabase so a toggle on another device takes effect here.
+  const focus = useFocusAssignment(classCode);
   const focusRealm = focus ? REALMS.find((r) => r.curriculumId === focus.realm) ?? null : null;
   const focusLock = Boolean(focus && focusRealm);
 

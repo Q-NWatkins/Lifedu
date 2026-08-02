@@ -108,7 +108,7 @@ export default function GameBoard({
   const { playTrack } = useGameAudio();
   const { isGodMode, skipToBossNonce } = useAdminDev();
   const { session } = useAuth();
-  const { completedCourses, addGems, stepCards, consumeStepCards } = usePlayerProgress();
+  const { completedCourses, addGems, stepCards, consumeStepCards, classCode } = usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
 
   useEffect(() => {
@@ -163,8 +163,10 @@ export default function GameBoard({
   const handleTileAnswer = (correct) => {
     logQuestionAttempt({
       studentId: session?.userId,
+      classCode,
       subject: course?.subject,
       category: pendingQuestion?.question?.category,
+      grade: course?.grade,
       stage: course?.stage,
       isCorrect: correct,
       source: 'tile',

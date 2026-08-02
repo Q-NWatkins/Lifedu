@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { addAssignment, SUBJECT_ORDER, REALM_LABELS } from '../../utils/classroomStore.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import { MAX_GRADE } from '../../config/mapRegistry.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
 
@@ -12,24 +13,33 @@ const STAGES = [1, 2, 3, 4, 5];
  * later restricts that class's students to exactly this realm + stage.
  */
 export default function AssignmentBuilderModal({ classCode, onClose, onPublished }) {
+  const { session } = useAuth();
   const [title, setTitle] = useState('');
   const [realm, setRealm] = useState('math');
   const [grade, setGrade] = useState(1);
   const [stage, setStage] = useState(1);
   const [accuracyGoal, setAccuracyGoal] = useState(80);
+  const [busy, setBusy] = useState(false);
 
-  const publish = (e) => {
+  const publish = async (e) => {
     e.preventDefault();
-    const asg = addAssignment({
-      classCode,
-      title: title.trim() || `${REALM_LABELS[realm]} Sprint`,
-      realm,
-      grade: Number(grade),
-      stage: Number(stage),
-      accuracyGoal: Number(accuracyGoal),
-    });
-    onPublished?.(asg);
-    onClose();
+    if (busy) return;
+    setBusy(true);
+    try {
+      const asg = await addAssignment({
+        classCode,
+        teacherId: session?.userId ?? null,
+        title: title.trim() || `${REALM_LABELS[realm]} Sprint`,
+        realm,
+        grade: Number(grade),
+        stage: Number(stage),
+        accuracyGoal: Number(accuracyGoal),
+      });
+      onPublished?.(asg);
+      onClose();
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -125,9 +135,10 @@ export default function AssignmentBuilderModal({ classCode, onClose, onPublished
         <div className="mt-6 flex items-center gap-2">
           <button
             type="submit"
-            className={`${neuBtn} flex-1 bg-green-400 px-4 py-2.5 text-sm text-black hover:bg-green-300`}
+            disabled={busy}
+            className={`${neuBtn} flex-1 bg-green-400 px-4 py-2.5 text-sm text-black hover:bg-green-300 disabled:opacity-50`}
           >
-            Publish Assignment
+            {busy ? 'Publishing…' : 'Publish Assignment'}
           </button>
           <button
             type="button"

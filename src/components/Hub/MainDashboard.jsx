@@ -126,7 +126,7 @@ export default function MainDashboard() {
         )}
         {activeTab === 'teacher' &&
           (teacher ? (
-            <TeacherDashboard />
+            <TeacherDashboard onExit={() => setActiveTab('quest')} />
           ) : (
             <p className="text-center text-sm font-black opacity-70">
               Teacher access required.
