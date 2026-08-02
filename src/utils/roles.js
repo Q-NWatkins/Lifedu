@@ -56,10 +56,13 @@ export function isTeacher(user) {
   return getUserRole(user) === ROLES.TEACHER || isSuperAdmin(user);
 }
 
-/** Student is the default role — explicit `student` metadata (or no elevated role). */
+/**
+ * Student is the DEFAULT role: any signed-in user who is neither a teacher nor
+ * a super admin (whether their metadata says 'student' or is unset entirely).
+ */
 export function isStudent(user) {
   if (!user) return false;
-  return getUserRole(user) === ROLES.STUDENT;
+  return !isTeacher(user);
 }
 
 /* ── Teacher onboarding helpers (hybrid verification) ─────────────────────────
