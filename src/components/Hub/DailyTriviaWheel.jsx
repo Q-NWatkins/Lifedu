@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useAccessibility, speakText } from '../../context/AccessibilityContext.jsx';
+import { useSwitchScanner } from '../../hooks/useSwitchScanner.js';
 import { getRandomQuestion } from '../../data/questions/multiSubject.js';
 import { logQuestionAttempt } from '../../utils/analytics.js';
+import SpeakerButton from '../common/SpeakerButton.jsx';
 import { rollLoot } from '../../systems/lootSystem.js';
 import { ItemSprite } from '../../assets/gameSprites.jsx';
 import {
@@ -38,6 +41,7 @@ function formatCountdown(ms) {
 export default function DailyTriviaWheel() {
   const { lastSpinAt, recordDailySpin, addGems, addStepCards, addToInventory } = usePlayerProgress();
   const { session } = useAuth();
+  const { settings } = useAccessibility();
 
   const gradient = useMemo(() => buildWheelGradient(), []);
   const timers = useRef([]);
@@ -184,6 +188,21 @@ export default function DailyTriviaWheel() {
     setPhase(PHASE.GATE);
   }, []);
 
+  // Auto-read the trivia prompt aloud on open (TTS accommodation).
+  useEffect(() => {
+    if (phase === PHASE.QUESTION && settings.ttsAutoRead && question) {
+      speakText(question.prompt);
+    }
+  }, [question, phase, settings.ttsAutoRead]);
+
+  // Single-switch auto-scanner for the answer grid.
+  const scanIndex = useSwitchScanner({
+    enabled: settings.switchAccess && phase === PHASE.QUESTION && !locked,
+    count: question?.options?.length ?? 0,
+    speedMs: settings.switchScanSpeedMs,
+    onSelect: handleAnswer,
+  });
+
   return (
     <div className="relative overflow-hidden rounded-2xl border-4 border-black bg-gradient-to-br from-fuchsia-300 via-violet-300 to-sky-300 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
       <div className="flex items-center justify-between">
@@ -266,7 +285,10 @@ export default function DailyTriviaWheel() {
                 />
               </div>
 
-              <p className="mt-2 text-sm font-black text-black">{question.prompt}</p>
+              <div className="mt-2 flex items-start gap-2">
+                <p className="flex-1 text-sm font-black text-black">{question.prompt}</p>
+                <SpeakerButton text={question.prompt} />
+              </div>
 
               {feedback && (
                 <p
@@ -285,7 +307,9 @@ export default function DailyTriviaWheel() {
                     type="button"
                     disabled={locked}
                     onClick={() => handleAnswer(i)}
-                    className="neu-btn bg-lime-100 px-2 py-1.5 text-xs text-black hover:bg-lime-200 disabled:opacity-60"
+                    className={`neu-btn bg-lime-100 px-2 py-1.5 text-xs text-black hover:bg-lime-200 disabled:opacity-60 ${
+                      i === scanIndex ? 'ring-4 ring-cyan-400' : ''
+                    }`}
                   >
                     {option}
                   </button>
