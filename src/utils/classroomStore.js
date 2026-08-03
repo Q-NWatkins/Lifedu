@@ -181,7 +181,10 @@ async function hydrateTeacher(teacherId) {
     .from('classrooms')
     .select('*')
     .eq('teacher_id', teacherId);
-  if (classErr) return;
+  if (classErr) {
+    console.error('[classroomStore] hydrateTeacher (classrooms) failed:', classErr.message, classErr);
+    return;
+  }
 
   classesCache = (classRows ?? []).map(mapClassRow);
   const codes = classesCache.map((c) => c.code);
@@ -314,6 +317,7 @@ export async function addClass({ name, code, teacherId }) {
       // 23505 = unique_violation → the code was taken; loop to try another.
       if (error?.code !== '23505') break;
     }
+    console.error('[classroomStore] addClass failed:', lastError?.message, lastError);
     throw new Error(lastError?.message || 'Could not create the class. Please try again.');
   }
 
@@ -340,7 +344,10 @@ export async function deleteClass(classId) {
 
   if (usingCloud()) {
     const { error } = await supabase.from('classrooms').delete().eq('code', code);
-    if (error) return;
+    if (error) {
+      console.error('[classroomStore] deleteClass failed:', error.message, error);
+      return;
+    }
     classesCache = (classesCache ?? []).filter((c) => c.id !== classId);
     studentsCache = (studentsCache ?? []).filter((s) => s.classCode !== code);
     write(ASSIGN_KEY, getAssignments().filter((a) => a.classCode !== code)); // emits
@@ -389,7 +396,10 @@ export async function joinClassroom(profile) {
         current_realm: profile.currentRealm ?? null,
         grade: profile.grade ?? 1,
       });
-      if (error) return null;
+      if (error) {
+        console.error('[classroomStore] joinClassroom insert failed:', error.message, error);
+        return null;
+      }
     } else {
       // Keep realm/grade fresh on re-join so the teacher roster reflects progress.
       await supabase
@@ -423,6 +433,38 @@ export async function joinClassroom(profile) {
   return merged;
 }
 
+/**
+ * Remove a single student from one class (unenroll). Deletes the matching
+ * `classroom_students` row and optimistically drops it from the roster cache.
+ * Does NOT touch the student's global account.
+ */
+export async function removeStudentFromClass(studentId, classCode) {
+  if (!studentId || !classCode) return;
+  const code = normCode(classCode);
+
+  if (usingCloud()) {
+    const { error } = await supabase
+      .from('classroom_students')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('class_code', code);
+    if (error) {
+      console.error('[classroomStore] removeStudentFromClass failed:', error.message, error);
+      throw new Error(error.message || 'Could not remove the student. Please try again.');
+    }
+    studentsCache = (studentsCache ?? []).filter(
+      (s) => !(s.id === studentId && normCode(s.classCode) === code),
+    );
+    emit();
+    return;
+  }
+
+  write(
+    STUDENTS_KEY,
+    getStudents().filter((s) => !(s.id === studentId && normCode(s.classCode) === code)),
+  );
+}
+
 /** Persist IEP accommodations onto a student's roster profile. */
 export async function updateStudentIep(studentId, iepSettings) {
   if (!studentId) return;
@@ -432,7 +474,10 @@ export async function updateStudentIep(studentId, iepSettings) {
       .from('classroom_students')
       .update({ iep_settings: iepSettings })
       .eq('student_id', studentId);
-    if (error) return;
+    if (error) {
+      console.error('[classroomStore] updateStudentIep failed:', error.message, error);
+      return;
+    }
     studentsCache = (studentsCache ?? []).map((s) =>
       s.id === studentId ? { ...s, iepSettings: { ...(s.iepSettings ?? {}), ...iepSettings } } : s,
     );

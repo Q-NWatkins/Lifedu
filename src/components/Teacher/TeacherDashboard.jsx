@@ -21,6 +21,7 @@ import {
   setAssignmentFocus,
   getAccuracy,
   resolveTeacherId,
+  removeStudentFromClass,
   useTeacherClassroom,
   REALM_LABELS,
 } from '../../utils/classroomStore.js';
@@ -64,6 +65,9 @@ export default function TeacherDashboard({ onExit }) {
   const [newClassName, setNewClassName] = useState('');
   const [createError, setCreateError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState(null); // { student, className } pending unenroll
+  const [removing, setRemoving] = useState(false);
+  const [toast, setToast] = useState(''); // transient success message
 
   const cardCls = `rounded-2xl border-4 border-cyan-400/70 bg-indigo-950 text-cyan-50 shadow-[inset_0_0_24px_rgba(34,211,238,0.35),0_8px_0_rgba(0,0,0,0.4)]`;
 
@@ -97,6 +101,26 @@ export default function TeacherDashboard({ onExit }) {
   const confirmDelete = () => {
     if (deleteTarget) deleteClass(deleteTarget.id);
     setDeleteTarget(null);
+  };
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 3500);
+  };
+
+  const confirmRemove = async () => {
+    if (!removeTarget || removing) return;
+    const { student } = removeTarget;
+    setRemoving(true);
+    try {
+      await removeStudentFromClass(student.id, student.classCode);
+      showToast(`${student.name} was removed from ${removeTarget.className}.`);
+      setRemoveTarget(null);
+    } catch (err) {
+      showToast(err?.message || 'Could not remove student. Please try again.');
+    } finally {
+      setRemoving(false);
+    }
   };
 
   // Live skill analytics: real accuracy per subject → sub-topic, aggregated
@@ -287,6 +311,14 @@ export default function TeacherDashboard({ onExit }) {
                                     >
                                       ⚙️ IEP
                                     </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setRemoveTarget({ student: s, className: c.name })}
+                                      title="Remove from class"
+                                      className="rounded-lg border-2 border-black bg-red-400 px-2 py-1 text-xs font-black text-white hover:bg-red-500"
+                                    >
+                                      🗑️ Remove
+                                    </button>
                                   </div>
                                 </td>
                               </tr>
@@ -457,6 +489,51 @@ export default function TeacherDashboard({ onExit }) {
           className={reportClass.name}
           onClose={() => setReportClass(null)}
         />
+      )}
+
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-xl border-4 border-black bg-green-400 px-4 py-2 text-sm font-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          ✅ {toast}
+        </div>
+      )}
+
+      {removeTarget && (
+        <div
+          className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm student removal"
+        >
+          <div className="w-full max-w-md rounded-2xl border-4 border-black bg-white p-6 text-center text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-black bg-red-400 text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              🗑️
+            </div>
+            <h2 className="mt-3 text-xl font-black">Remove Student?</h2>
+            <p className="mt-2 text-sm font-semibold text-black/70">
+              Are you sure you want to remove{' '}
+              <span className="font-black text-black">{removeTarget.student.name}</span> from{' '}
+              <span className="font-black text-black">{removeTarget.className}</span>? This will not
+              delete the student&apos;s global account.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setRemoveTarget(null)}
+                className={`${neuBtn} bg-white px-4 py-2.5 text-sm text-black hover:bg-stone-100`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmRemove}
+                disabled={removing}
+                className={`${neuBtn} bg-red-500 px-4 py-2.5 text-sm text-white hover:bg-red-600 disabled:opacity-50`}
+              >
+                {removing ? 'Removing…' : 'Yes, Remove'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {createOpen && (

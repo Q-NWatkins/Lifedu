@@ -512,6 +512,11 @@ export function PlayerProgressProvider({ children }) {
     return normalized;
   }, []);
 
+  /** Leave the current class — clears the student's local class association. */
+  const leaveClass = useCallback(() => {
+    setClassCode(null);
+  }, []);
+
   const unlockAllStages = useCallback(() => {
     setAllStagesUnlocked(true);
     setUnlockedGrades((prev) => {
@@ -584,6 +589,7 @@ export function PlayerProgressProvider({ children }) {
       isGradeUnlocked,
       unlockAllStages,
       joinClass,
+      leaveClass,
       completeCourse,
     }),
     [
@@ -623,6 +629,7 @@ export function PlayerProgressProvider({ children }) {
       isGradeUnlocked,
       unlockAllStages,
       joinClass,
+      leaveClass,
       completeCourse,
     ],
   );
