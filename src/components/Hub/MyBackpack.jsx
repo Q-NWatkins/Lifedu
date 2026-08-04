@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { removeStudentFromClass } from '../../utils/classroomStore.js';
-import { AVATARS, AVATAR_ORDER, getAvatarSrc } from '../../config/avatars.js';
+import { AVATARS, AVATAR_ORDER, getAvatarPreview } from '../../config/avatars.js';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { ItemSprite } from '../../assets/gameSprites.jsx';
@@ -307,7 +307,7 @@ export default function MyBackpack() {
   };
 
   const activeAvatar = AVATARS[equippedAvatar] ?? AVATARS.pawn_default;
-  const activeAvatarSrc = getAvatarSrc(equippedAvatar);
+  const activeAvatarSrc = getAvatarPreview(equippedAvatar);
 
   const handleLeaveClass = async () => {
     if (leaving) return;
@@ -483,7 +483,7 @@ export default function MyBackpack() {
             <div className="mt-3 grid grid-cols-3 gap-3">
               {AVATAR_ORDER.map((id) => {
                 const avatar = AVATARS[id];
-                const src = getAvatarSrc(id);
+                const src = getAvatarPreview(id);
                 const isActive = id === equippedAvatar;
                 const unlocked = unlockedAvatars.includes(id);
                 return (

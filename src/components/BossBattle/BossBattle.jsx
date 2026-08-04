@@ -7,7 +7,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useAccessibility, speakText } from '../../context/AccessibilityContext.jsx';
 import { useSwitchScanner } from '../../hooks/useSwitchScanner.js';
 import { logQuestionAttempt } from '../../utils/analytics.js';
-import { getAvatarSrc } from '../../config/avatars.js';
+import { getAvatarSheet } from '../../config/avatars.js';
+import AnimatedAvatar from '../common/AnimatedAvatar.jsx';
 import SpeakerButton from '../common/SpeakerButton.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getCardQuestion } from '../../data/questions/index.js';
@@ -284,7 +285,7 @@ export default function BossBattle({
   const { session } = useAuth();
 
   const PlayerSprite = getPlayerSprite('astronaut');
-  const avatarSrc = getAvatarSrc(equippedAvatar);
+  const avatarSheet = getAvatarSheet(equippedAvatar);
 
   // Base hand + any permanently unlocked Side-Boss cards.
   const hand = useMemo(() => getPlayerHand(unlockedCombatCards), [unlockedCombatCards]);
@@ -343,6 +344,7 @@ export default function BossBattle({
   const [bossShaking, setBossShaking] = useState(false);
   const [playerShaking, setPlayerShaking] = useState(false);
   const [isStriking, setIsStriking] = useState(false);
+  const [attackNonce, setAttackNonce] = useState(0); // bumps to trigger the hero attack sprite
 
   // Consumable-driven turn modifiers (reset after each strike resolves).
   const [dmgMultiplier, setDmgMultiplier] = useState(1);
@@ -437,8 +439,10 @@ export default function BossBattle({
             setDmgMultiplier(1);
             setDmgBonus(0);
 
-            // Physical strike: lunge the hero sprite forward for 400ms.
+            // Physical strike: lunge the hero sprite forward for 400ms and play
+            // the one-shot attack sprite animation.
             setIsStriking(true);
+            setAttackNonce((n) => n + 1);
             setTimeout(() => setIsStriking(false), 400);
 
             setBossShaking(true);
@@ -637,11 +641,13 @@ export default function BossBattle({
                     isStriking ? 'translate-x-32 -translate-y-2 scale-110' : 'translate-x-0'
                   }`}
                 >
-                  {avatarSrc ? (
-                    <img
-                      src={avatarSrc}
+                  {avatarSheet ? (
+                    <AnimatedAvatar
+                      sheet={avatarSheet}
+                      size={48}
+                      attackNonce={attackNonce}
                       alt="Your hero"
-                      className="h-12 w-12 object-contain drop-shadow-[0_0_6px_rgba(34,211,238,0.85)]"
+                      className="drop-shadow-[0_0_6px_rgba(34,211,238,0.85)]"
                     />
                   ) : (
                     <PlayerSprite className="h-12 w-12 drop-shadow-[0_0_6px_rgba(34,211,238,0.85)]" />

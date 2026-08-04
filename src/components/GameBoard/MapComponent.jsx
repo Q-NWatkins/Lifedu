@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import AvatarPawn from './AvatarPawn.jsx';
 import BoardTile from './BoardTile.jsx';
 import RealmBackdrop from './RealmBackdrop.jsx';
@@ -63,6 +63,31 @@ export default function MapComponent({ stage, realm, position, branchChoice = {}
   const gateTiles = tileTrack.filter((t) => t.type === 'fork');
   const current = tileTrack[position];
   const currentLabel = current?.topic ? prettyTopic(current.topic) : null;
+
+  // ── Hero movement: walk animation + facing while sliding between tiles ─────
+  const MOVE_MS = 500; // slide duration (kept in sync with the pawn CSS transition)
+  const [walking, setWalking] = useState(false);
+  const [facing, setFacing] = useState(1); // scaleX: 1 = left/natural, -1 = right/flipped
+  const prevPosRef = useRef(position);
+
+  useEffect(() => {
+    const prev = prevPosRef.current;
+    if (prev === position) return undefined;
+
+    const from = tileTrack[prev];
+    const to = tileTrack[position];
+    if (from && to) {
+      const dx = to.x - from.x;
+      if (dx > 0) setFacing(-1); // moving RIGHT → flip
+      else if (dx < 0) setFacing(1); // moving LEFT → natural
+      // dx === 0 → keep the last facing direction
+    }
+    prevPosRef.current = position;
+
+    setWalking(true);
+    const id = setTimeout(() => setWalking(false), MOVE_MS);
+    return () => clearTimeout(id);
+  }, [position, tileTrack]);
 
   // Anchor an element's CENTER to a path coordinate (2D translate only).
   const anchor = (x, y, extra = '') => ({
@@ -215,11 +240,19 @@ export default function MapComponent({ stage, realm, position, branchChoice = {}
           </div>
         )}
 
-        {/* Pawn — separate top z-layer anchored to the active tile coordinate. */}
+        {/* Pawn — separate top z-layer that SLIDES to the active tile coordinate
+            (the transition gives movement a visible duration to walk across). */}
         {current && (
-          <div className="pointer-events-none absolute z-[999]" style={{ ...anchor(current.x, current.y), width: `${nodeW}%` }}>
+          <div
+            className="pointer-events-none absolute z-[999]"
+            style={{
+              ...anchor(current.x, current.y),
+              width: `${nodeW}%`,
+              transition: `left ${MOVE_MS}ms ease-in-out, top ${MOVE_MS}ms ease-in-out`,
+            }}
+          >
             <div className="relative aspect-square w-full">
-              <AvatarPawn />
+              <AvatarPawn walking={walking} facing={facing} />
             </div>
           </div>
         )}
