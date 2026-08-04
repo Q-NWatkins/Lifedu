@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { removeStudentFromClass } from '../../utils/classroomStore.js';
+import { AVATARS, AVATAR_ORDER, getAvatarSrc } from '../../config/avatars.js';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { ItemSprite } from '../../assets/gameSprites.jsx';
@@ -282,16 +283,31 @@ export default function MyBackpack() {
     activeTitle,
     classCode,
     leaveClass,
+    equippedAvatar,
+    unlockedAvatars,
+    equipAvatar,
   } = usePlayerProgress();
   const { session } = useAuth();
   const activeTitleLabel = getTitleById(activeTitle);
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
-  const { bgmVolume, updateVolume } = useGameAudio();
+  const { bgmVolume, updateVolume, playSfx } = useGameAudio();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [tab, setTab] = useState('gear');
   const [showJoinClass, setShowJoinClass] = useState(false);
   const [showLeave, setShowLeave] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [avatarPulse, setAvatarPulse] = useState(false); // brief confirm animation on equip
+
+  const handleEquipAvatar = (avatarId) => {
+    if (avatarId === equippedAvatar) return;
+    equipAvatar(avatarId);
+    playSfx?.('/audio/confirm.mp3'); // small confirm sound (falls back silently if missing)
+    setAvatarPulse(true);
+    setTimeout(() => setAvatarPulse(false), 450);
+  };
+
+  const activeAvatar = AVATARS[equippedAvatar] ?? AVATARS.pawn_default;
+  const activeAvatarSrc = getAvatarSrc(equippedAvatar);
 
   const handleLeaveClass = async () => {
     if (leaving) return;
@@ -424,21 +440,33 @@ export default function MyBackpack() {
           <h2 className="text-lg font-black">My Hero</h2>
 
           <div className="mt-4 flex flex-col items-center">
-            <div className="relative flex h-36 w-36 items-center justify-center rounded-2xl border-4 border-black bg-sky-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+            <div
+              className={`relative flex h-36 w-36 items-center justify-center rounded-2xl border-4 border-black bg-sky-300 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform ${
+                avatarPulse ? 'scale-110' : 'scale-100'
+              }`}
+            >
               {equipped.hat && (
-                <ItemSprite category="hat" className="absolute -top-5 h-10 w-10" />
+                <ItemSprite category="hat" className="absolute -top-5 z-10 h-10 w-10" />
               )}
-              <span className="text-6xl" aria-hidden="true">
-                ♟️
-              </span>
+              {activeAvatarSrc ? (
+                <img
+                  src={activeAvatarSrc}
+                  alt={activeAvatar.name}
+                  className="h-28 w-28 object-contain drop-shadow-[3px_3px_0_rgba(0,0,0,0.6)]"
+                />
+              ) : (
+                <span className="text-6xl" aria-hidden="true">
+                  ♟️
+                </span>
+              )}
               {equipped.pet && (
-                <ItemSprite category="pet" className="absolute -right-3 -bottom-2 h-9 w-9" />
+                <ItemSprite category="pet" className="absolute -right-3 -bottom-2 z-10 h-9 w-9" />
               )}
               <span className="absolute -bottom-2 rounded-full border-4 border-black bg-yellow-300 px-3 py-0.5 text-xs font-black">
                 Lv. 1
               </span>
             </div>
-            <p className="mt-3 text-sm font-black">Adventure Pawn</p>
+            <p className="mt-3 text-sm font-black">{activeAvatar.name}</p>
             {activeTitleLabel && (
               <p className="mt-1 rounded-full border-2 border-black bg-yellow-300 px-3 py-0.5 text-xs font-black text-black">
                 ⭐ {activeTitleLabel}
@@ -447,6 +475,53 @@ export default function MyBackpack() {
             {equipped.clothing && (
               <p className="text-xs font-bold opacity-70">Wearing: {equipped.clothing.name}</p>
             )}
+          </div>
+
+          {/* ── Choose Your Hero ─────────────────────────────────────────── */}
+          <div className="mt-6">
+            <h3 className="text-sm font-black">Choose Your Hero</h3>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              {AVATAR_ORDER.map((id) => {
+                const avatar = AVATARS[id];
+                const src = getAvatarSrc(id);
+                const isActive = id === equippedAvatar;
+                const unlocked = unlockedAvatars.includes(id);
+                return (
+                  <div
+                    key={id}
+                    className={`flex flex-col items-center rounded-xl border-4 border-black bg-white p-2 text-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                      isActive ? 'ring-4 ring-yellow-300' : ''
+                    }`}
+                  >
+                    <div className="flex h-16 w-16 items-center justify-center rounded-lg border-2 border-black bg-sky-200">
+                      {src ? (
+                        <img src={src} alt={avatar.name} className="h-14 w-14 object-contain" />
+                      ) : (
+                        <span className="text-3xl" aria-hidden="true">♟️</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[10px] font-black leading-tight text-black">{avatar.name}</p>
+                    {isActive ? (
+                      <span className="mt-1 rounded-full border-2 border-black bg-green-400 px-2 py-0.5 text-[9px] font-black uppercase text-black">
+                        Equipped
+                      </span>
+                    ) : unlocked ? (
+                      <button
+                        type="button"
+                        onClick={() => handleEquipAvatar(id)}
+                        className={`${neuBtn} mt-1 bg-cyan-400 px-2 py-0.5 text-[9px] font-black uppercase text-cyan-950 hover:bg-cyan-300`}
+                      >
+                        Equip
+                      </button>
+                    ) : (
+                      <span className="mt-1 rounded-full border-2 border-black bg-stone-300 px-2 py-0.5 text-[9px] font-black uppercase text-black/60">
+                        🔒 Locked
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="mt-6 grid grid-cols-3 gap-3">

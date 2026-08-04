@@ -1,11 +1,16 @@
 import { getPlayerSprite } from '../../assets/gameSprites.jsx';
+import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { getAvatarSrc } from '../../config/avatars.js';
 
 /**
  * The player's hero token — the undeniable focal point of the node layout.
  * It rides above the active node with a permanent hover bob, concentric pinging
- * rings, and a neon glow halo.
+ * rings, and a neon glow halo. Renders the student's chosen avatar image when
+ * they've equipped one, otherwise the built-in pawn sprite.
  */
 export default function AvatarPawn({ variant = 'astronaut' }) {
+  const { equippedAvatar } = usePlayerProgress();
+  const avatarSrc = getAvatarSrc(equippedAvatar);
   const Sprite = getPlayerSprite(variant);
 
   return (
@@ -19,9 +24,13 @@ export default function AvatarPawn({ variant = 'astronaut' }) {
       {/* Pinging outer rings */}
       <span className="absolute inset-0 -m-1 animate-ping rounded-full border-2 border-cyan-300/70" />
       <span className="absolute inset-0 rounded-full border-2 border-white/60" />
-      {/* Bobbing hero sprite */}
+      {/* Bobbing hero — chosen avatar image, or the default pawn sprite */}
       <div className="animate-avatar-bob relative h-full w-full [filter:drop-shadow(4px_4px_0px_rgba(0,0,0,0.85))_drop-shadow(0_0_6px_rgba(34,211,238,0.9))]">
-        <Sprite className="h-full w-full" />
+        {avatarSrc ? (
+          <img src={avatarSrc} alt="Your hero" className="h-full w-full object-contain" />
+        ) : (
+          <Sprite className="h-full w-full" />
+        )}
       </div>
     </div>
   );

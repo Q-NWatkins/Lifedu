@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { useAccessibility, speakText } from '../../context/AccessibilityContext.jsx';
 import { useSwitchScanner } from '../../hooks/useSwitchScanner.js';
 import { logQuestionAttempt } from '../../utils/analytics.js';
+import { getAvatarSrc } from '../../config/avatars.js';
 import SpeakerButton from '../common/SpeakerButton.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
 import { getCardQuestion } from '../../data/questions/index.js';
@@ -277,11 +278,13 @@ export default function BossBattle({
     consumableCharges,
     consumeConsumable,
     classCode,
+    equippedAvatar,
   } = usePlayerProgress();
   const { isGodMode } = useAdminDev();
   const { session } = useAuth();
 
   const PlayerSprite = getPlayerSprite('astronaut');
+  const avatarSrc = getAvatarSrc(equippedAvatar);
 
   // Base hand + any permanently unlocked Side-Boss cards.
   const hand = useMemo(() => getPlayerHand(unlockedCombatCards), [unlockedCombatCards]);
@@ -634,7 +637,15 @@ export default function BossBattle({
                     isStriking ? 'translate-x-32 -translate-y-2 scale-110' : 'translate-x-0'
                   }`}
                 >
-                  <PlayerSprite className="h-12 w-12 drop-shadow-[0_0_6px_rgba(34,211,238,0.85)]" />
+                  {avatarSrc ? (
+                    <img
+                      src={avatarSrc}
+                      alt="Your hero"
+                      className="h-12 w-12 object-contain drop-shadow-[0_0_6px_rgba(34,211,238,0.85)]"
+                    />
+                  ) : (
+                    <PlayerSprite className="h-12 w-12 drop-shadow-[0_0_6px_rgba(34,211,238,0.85)]" />
+                  )}
                 </div>
                 <HeartRow hearts={hearts} shieldActive={shieldActive} shaking={playerShaking} />
               </div>

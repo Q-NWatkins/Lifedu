@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import { CURRICULUMS } from '../config/index.js';
+import { DEFAULT_AVATAR, DEFAULT_UNLOCKED_AVATARS } from '../config/avatars.js';
 import { BASE_THEME_IDS } from './ThemeContext.jsx';
 import { useAuth } from './AuthContext.jsx';
 import {
@@ -64,6 +65,8 @@ function defaultProgress() {
     activeTitle: null,
     unlockedGrades: { ...DEFAULT_UNLOCKED_GRADES },
     classCode: null,
+    equippedAvatar: DEFAULT_AVATAR,
+    unlockedAvatars: [...DEFAULT_UNLOCKED_AVATARS],
   };
 }
 
@@ -103,6 +106,8 @@ function loadProgress(userId) {
     activeTitle: saved.activeTitle ?? base.activeTitle,
     unlockedGrades: { ...base.unlockedGrades, ...(saved.unlockedGrades ?? {}) },
     classCode: saved.classCode ?? base.classCode,
+    equippedAvatar: saved.equippedAvatar ?? base.equippedAvatar,
+    unlockedAvatars: saved.unlockedAvatars ?? base.unlockedAvatars,
   };
 }
 
@@ -148,6 +153,8 @@ export function PlayerProgressProvider({ children }) {
   const [activeTitle, setActiveTitleState] = useState(initial.activeTitle);
   const [unlockedGrades, setUnlockedGrades] = useState(initial.unlockedGrades);
   const [classCode, setClassCode] = useState(initial.classCode);
+  const [equippedAvatar, setEquippedAvatar] = useState(initial.equippedAvatar);
+  const [unlockedAvatars, setUnlockedAvatars] = useState(initial.unlockedAvatars);
   // Admin override: when true, every stage in every grade/realm is treated as
   // unlocked. Session-scoped (a dev/QA convenience, not saved progress).
   const [allStagesUnlocked, setAllStagesUnlocked] = useState(false);
@@ -179,6 +186,8 @@ export function PlayerProgressProvider({ children }) {
     setActiveTitleState(data.activeTitle);
     setUnlockedGrades(data.unlockedGrades);
     setClassCode(data.classCode);
+    setEquippedAvatar(data.equippedAvatar);
+    setUnlockedAvatars(data.unlockedAvatars);
     setAllStagesUnlocked(false); // clear admin override on account switch
     hydratedUserRef.current = userId;
     justHydratedRef.current = true; // skip the immediate persist (still stale state)
@@ -200,7 +209,7 @@ export function PlayerProgressProvider({ children }) {
       try {
         const { data: row, error } = await supabaseRef.current
           .from(PROGRESS_TABLE)
-          .select('gems, unlocked_grades, completed_courses, inventory')
+          .select('gems, unlocked_grades, completed_courses, inventory, equipped_avatar')
           .eq('clerk_user_id', userId)
           .maybeSingle();
 
@@ -217,6 +226,7 @@ export function PlayerProgressProvider({ children }) {
           }
           if (Array.isArray(row.completed_courses)) setCompletedCourses(row.completed_courses);
           if (Array.isArray(row.inventory)) setInventory(row.inventory);
+          if (row.equipped_avatar) setEquippedAvatar(row.equipped_avatar);
         } else {
           // First sign-in for this student → seed their school-stamped row.
           await supabaseRef.current.from(PROGRESS_TABLE).upsert(
@@ -227,6 +237,7 @@ export function PlayerProgressProvider({ children }) {
               unlocked_grades: DEFAULT_UNLOCKED_GRADES,
               completed_courses: [],
               inventory: [],
+              equipped_avatar: DEFAULT_AVATAR,
             },
             { onConflict: 'clerk_user_id' },
           );
@@ -272,6 +283,8 @@ export function PlayerProgressProvider({ children }) {
           unlockedGrades,
           consumableCharges,
           classCode,
+          equippedAvatar,
+          unlockedAvatars,
         }),
       );
     } catch {
@@ -294,6 +307,8 @@ export function PlayerProgressProvider({ children }) {
     unlockedGrades,
     consumableCharges,
     classCode,
+    equippedAvatar,
+    unlockedAvatars,
   ]);
 
   // Cloud push (Phase 3): debounced upsert of the canonical progression fields
@@ -314,6 +329,7 @@ export function PlayerProgressProvider({ children }) {
             unlocked_grades: unlockedGrades,
             completed_courses: completedCourses,
             inventory,
+            equipped_avatar: equippedAvatar,
           },
           { onConflict: 'clerk_user_id' },
         )
@@ -323,7 +339,7 @@ export function PlayerProgressProvider({ children }) {
     }, 600);
 
     return () => clearTimeout(handle);
-  }, [cloudEnabled, userId, schoolId, gems, unlockedGrades, completedCourses, inventory]);
+  }, [cloudEnabled, userId, schoolId, gems, unlockedGrades, completedCourses, inventory, equippedAvatar]);
 
   const addToInventory = useCallback((item) => {
     if (!item?.id) return;
@@ -347,6 +363,15 @@ export function PlayerProgressProvider({ children }) {
       addToInventory(item);
     },
     [addToInventory],
+  );
+
+  /** Equip a hero avatar (only if the student has unlocked it). */
+  const equipAvatar = useCallback(
+    (avatarId) => {
+      if (!avatarId || !unlockedAvatars.includes(avatarId)) return;
+      setEquippedAvatar(avatarId);
+    },
+    [unlockedAvatars],
   );
 
   /**
@@ -569,9 +594,12 @@ export function PlayerProgressProvider({ children }) {
       unlockedGrades,
       allStagesUnlocked,
       classCode,
+      equippedAvatar,
+      unlockedAvatars,
       addToInventory,
       removeFromInventory,
       equipItem,
+      equipAvatar,
       sendToBackpack,
       unlockTheme,
       isThemeUnlocked,
@@ -609,9 +637,12 @@ export function PlayerProgressProvider({ children }) {
       unlockedGrades,
       allStagesUnlocked,
       classCode,
+      equippedAvatar,
+      unlockedAvatars,
       addToInventory,
       removeFromInventory,
       equipItem,
+      equipAvatar,
       sendToBackpack,
       unlockTheme,
       isThemeUnlocked,
