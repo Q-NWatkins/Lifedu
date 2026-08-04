@@ -11,8 +11,15 @@ import { createClient } from '@supabase/supabase-js';
  * browser requests clear the RLS walls without any service-role key.
  */
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Sanitize the base URL: strip whitespace and any trailing slash(es) so we
+// never emit malformed request URLs like `https://xyz.supabase.co//rest/v1`
+// (a common cause of 404s). A stray `/rest/v1` suffix is also trimmed.
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const SUPABASE_URL = rawUrl
+  .trim()
+  .replace(/\/rest\/v1\/?$/i, '')
+  .replace(/\/+$/, '');
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
 /** True only when real (non-placeholder) Supabase env values are present. */
 export function isSupabaseConfigured() {

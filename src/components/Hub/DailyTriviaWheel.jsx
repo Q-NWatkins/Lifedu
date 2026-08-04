@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useAccessibility, speakText } from '../../context/AccessibilityContext.jsx';
+import { useSwitchScanner } from '../../hooks/useSwitchScanner.js';
 import { getRandomQuestion } from '../../data/questions/multiSubject.js';
+import { logQuestionAttempt } from '../../utils/analytics.js';
+import SpeakerButton from '../common/SpeakerButton.jsx';
 import { rollLoot } from '../../systems/lootSystem.js';
 import { ItemSprite } from '../../assets/gameSprites.jsx';
 import {
@@ -17,7 +22,13 @@ const DAY_MS = 5 * 60 * 60 * 1000;
 const QUESTION_SECONDS = 12;
 const SPIN_MS = 3400;
 
-const PHASE = { GATE: 'gate', QUESTION: 'question', SPINNING: 'spinning', REWARD: 'reward' };
+const PHASE = {
+  GATE: 'gate',
+  QUESTION: 'question',
+  SPINNING: 'spinning',
+  REWARD: 'reward',
+  TIMEUP: 'timeup',
+};
 
 function formatCountdown(ms) {
   const totalMin = Math.max(0, Math.ceil(ms / 60000));
@@ -28,7 +39,10 @@ function formatCountdown(ms) {
 }
 
 export default function DailyTriviaWheel() {
-  const { lastSpinAt, recordDailySpin, addGems, addStepCards, addToInventory } = usePlayerProgress();
+  const { lastSpinAt, recordDailySpin, addGems, addStepCards, addToInventory, classCode } =
+    usePlayerProgress();
+  const { session } = useAuth();
+  const { settings } = useAccessibility();
 
   const gradient = useMemo(() => buildWheelGradient(), []);
   const timers = useRef([]);
@@ -116,6 +130,17 @@ export default function DailyTriviaWheel() {
       const correct = i === question.correctIndex;
       setFeedback(correct ? 'correct' : 'wrong');
 
+      logQuestionAttempt({
+        studentId: session?.userId,
+        classCode,
+        subject: question.subject,
+        category: question.category,
+        grade: question.grade ?? null,
+        stage: null,
+        isCorrect: correct,
+        source: 'trivia',
+      });
+
       timers.current.push(
         setTimeout(() => {
           if (correct) spinToReward();
@@ -123,7 +148,7 @@ export default function DailyTriviaWheel() {
         }, 800),
       );
     },
-    [locked, question, spinToReward, askQuestion],
+    [locked, question, spinToReward, askQuestion, session, classCode],
   );
 
   // High-speed countdown during the question phase.
@@ -132,11 +157,16 @@ export default function DailyTriviaWheel() {
     tick.current = setInterval(() => {
       setSecondsLeft((s) => {
         if (s <= 1) {
+          // Time's up → end the spin. Stop the timer, lock input, burn the
+          // daily spin (records the timestamp so the cooldown starts), and show
+          // the "Time's Up!" end-state. No new question is served.
           clearInterval(tick.current);
           tick.current = null;
           setLocked(true);
-          setFeedback('timeout');
-          timers.current.push(setTimeout(() => askQuestion(), 800));
+          setFeedback(null);
+          recordDailySpin();
+          setNow(Date.now());
+          setPhase(PHASE.TIMEUP);
           return 0;
         }
         return s - 1;
@@ -146,12 +176,35 @@ export default function DailyTriviaWheel() {
       if (tick.current) clearInterval(tick.current);
       tick.current = null;
     };
-  }, [phase, locked, question, askQuestion]);
+  }, [phase, locked, recordDailySpin]);
 
   const closeReward = useCallback(() => {
     setReward(null);
     setPhase(PHASE.GATE);
   }, []);
+
+  // Close the "Time's Up!" end-state → the gate now shows the cooldown, since
+  // the spin timestamp was already recorded when the timer expired.
+  const closeTimeup = useCallback(() => {
+    setFeedback(null);
+    setQuestion(null);
+    setPhase(PHASE.GATE);
+  }, []);
+
+  // Auto-read the trivia prompt aloud on open (TTS accommodation).
+  useEffect(() => {
+    if (phase === PHASE.QUESTION && settings.ttsAutoRead && question) {
+      speakText(question.prompt);
+    }
+  }, [question, phase, settings.ttsAutoRead]);
+
+  // Single-switch auto-scanner for the answer grid.
+  const scanIndex = useSwitchScanner({
+    enabled: settings.switchAccess && phase === PHASE.QUESTION && !locked,
+    count: question?.options?.length ?? 0,
+    speedMs: settings.switchScanSpeedMs,
+    onSelect: handleAnswer,
+  });
 
   return (
     <div className="relative overflow-hidden rounded-2xl border-4 border-black bg-gradient-to-br from-fuchsia-300 via-violet-300 to-sky-300 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
@@ -226,7 +279,7 @@ export default function DailyTriviaWheel() {
             <div className="rounded-xl border-4 border-black bg-white p-3 text-left">
               <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wide text-black/60">
                 <span>{question.subject}</span>
-                <span className={secondsLeft <= 4 ? 'text-red-600' : ''}>⏱ {secondsLeft}s</span>
+                <span className={secondsLeft <= 4 ? 'text-red-600' : ''}>⏱ {secondsLeft}</span>
               </div>
               <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-stone-200">
                 <div
@@ -235,7 +288,10 @@ export default function DailyTriviaWheel() {
                 />
               </div>
 
-              <p className="mt-2 text-sm font-black text-black">{question.prompt}</p>
+              <div className="mt-2 flex items-start gap-2">
+                <p className="flex-1 text-sm font-black text-black">{question.prompt}</p>
+                <SpeakerButton text={question.prompt} />
+              </div>
 
               {feedback && (
                 <p
@@ -243,7 +299,7 @@ export default function DailyTriviaWheel() {
                     feedback === 'correct' ? 'bg-green-400 text-black' : 'bg-red-400 text-white'
                   }`}
                 >
-                  {feedback === 'correct' ? '✅ Spinning!' : feedback === 'timeout' ? '⏱ Too slow — new question!' : '❌ Try this one!'}
+                  {feedback === 'correct' ? '✅ Spinning!' : '❌ Try this one!'}
                 </p>
               )}
 
@@ -254,7 +310,9 @@ export default function DailyTriviaWheel() {
                     type="button"
                     disabled={locked}
                     onClick={() => handleAnswer(i)}
-                    className="neu-btn bg-lime-100 px-2 py-1.5 text-xs text-black hover:bg-lime-200 disabled:opacity-60"
+                    className={`neu-btn bg-lime-100 px-2 py-1.5 text-xs text-black hover:bg-lime-200 disabled:opacity-60 ${
+                      i === scanIndex ? 'ring-4 ring-cyan-400' : ''
+                    }`}
                   >
                     {option}
                   </button>
@@ -288,6 +346,23 @@ export default function DailyTriviaWheel() {
                 className={`${neuBtn} mt-3 bg-green-400 px-5 py-2 text-sm text-black hover:bg-green-300`}
               >
                 Collect!
+              </button>
+            </div>
+          )}
+
+          {phase === PHASE.TIMEUP && (
+            <div className="rounded-xl border-4 border-black bg-white p-4 text-center">
+              <p className="text-3xl">⏰</p>
+              <p className="mt-1 text-lg font-black text-black">Time&apos;s Up!</p>
+              <p className="mt-1 text-xs font-bold text-black/60">
+                You ran out of time — no reward this spin. Come back after the next daily reset!
+              </p>
+              <button
+                type="button"
+                onClick={closeTimeup}
+                className={`${neuBtn} mt-3 bg-white px-5 py-2 text-sm text-black hover:bg-stone-100`}
+              >
+                Close · Claim 0 💎
               </button>
             </div>
           )}

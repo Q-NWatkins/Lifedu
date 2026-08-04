@@ -2,9 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getThemeUnlockForRarity, RARITY_STYLES, rollLoot } from '../../systems/lootSystem.js';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
+import { useAdminDev } from '../../context/AdminDevContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useAccessibility, speakText } from '../../context/AccessibilityContext.jsx';
+import { useSwitchScanner } from '../../hooks/useSwitchScanner.js';
+import { logQuestionAttempt } from '../../utils/analytics.js';
+import SpeakerButton from '../common/SpeakerButton.jsx';
 import { btn3dDanger, neuBtn } from '../../styles/neubrutalism.js';
-import { getQuestionsForDifficulty } from '../../data/questions/multiSubject.js';
-import { getStageQuestionPools } from '../../data/questions/index.js';
+import { getCardQuestion } from '../../data/questions/index.js';
 import { getPlayerHand } from '../../systems/combatCards.js';
 import {
   getBossSprite,
@@ -109,6 +114,20 @@ function CombatCard({ card, onClick, disabled }) {
 }
 
 function QuestionModal({ question, card, onAnswer, answerIndex, isLocked, feedback }) {
+  const { settings } = useAccessibility();
+
+  useEffect(() => {
+    if (settings.ttsAutoRead) speakText(question.prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once per question
+  }, [question.prompt]);
+
+  const scanIndex = useSwitchScanner({
+    enabled: settings.switchAccess && !isLocked,
+    count: question.options.length,
+    speedMs: settings.switchScanSpeedMs,
+    onSelect: onAnswer,
+  });
+
   const getOptionStyle = (i) => {
     if (!isLocked) return 'bg-white hover:bg-yellow-50 text-black';
     if (i === question.correctIndex) return 'bg-green-400 text-black';
@@ -151,22 +170,27 @@ function QuestionModal({ question, card, onAnswer, answerIndex, isLocked, feedba
         )}
 
         {/* Question */}
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-base font-black leading-snug text-black">{question.prompt}</p>
+        <div className="flex items-start gap-2 px-5 pt-4 pb-2">
+          <p className="flex-1 text-base font-black leading-snug text-black">{question.prompt}</p>
+          <SpeakerButton text={question.prompt} />
         </div>
 
         {/* Options */}
         <div className="grid gap-2 px-5 pb-5">
           {question.options.map((option, i) => (
-            <button
-              key={option}
-              type="button"
-              disabled={isLocked}
-              onClick={() => onAnswer(i)}
-              className={`neu-btn px-4 py-3 text-left text-sm font-bold ${getOptionStyle(i)} disabled:cursor-default`}
-            >
-              {option}
-            </button>
+            <div key={option} className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={isLocked}
+                onClick={() => onAnswer(i)}
+                className={`neu-btn flex-1 px-4 py-3 text-left text-sm font-bold ${getOptionStyle(i)} ${
+                  i === scanIndex ? 'ring-4 ring-cyan-400' : ''
+                } disabled:cursor-default`}
+              >
+                {option}
+              </button>
+              <SpeakerButton text={option} label={`Read option: ${option}`} />
+            </div>
           ))}
         </div>
       </div>
@@ -252,7 +276,10 @@ export default function BossBattle({
     unlockGrade,
     consumableCharges,
     consumeConsumable,
+    classCode,
   } = usePlayerProgress();
+  const { isGodMode } = useAdminDev();
+  const { session } = useAuth();
 
   const PlayerSprite = getPlayerSprite('astronaut');
 
@@ -273,29 +300,27 @@ export default function BossBattle({
   const badgeLabel = rawBadge.replace(/\b\w/g, (c) => c.toUpperCase());
   const curriculumId = course.curriculumId;
 
-  // Pre-shuffle question pools per difficulty tier. When the course/stage maps
-  // to a registered bank (e.g. `reading-g1-stage-1`), questions come from that
-  // exact curriculum stage; any empty tier falls back to the multi-subject pool.
-  const [questionPools] = useState(() => {
-    const subjectLabel = (course.subject ?? '').replace(/^./, (c) => c.toUpperCase());
-    const bank = getStageQuestionPools(course.questionBankId, subjectLabel);
-    return {
-      easy: bank.easy ?? getQuestionsForDifficulty('easy'),
-      medium: bank.medium ?? getQuestionsForDifficulty('medium'),
-      hard: bank.hard ?? getQuestionsForDifficulty('hard'),
-    };
-  });
-  const qIdxRef = useRef({ easy: 0, medium: 0, hard: 0 });
-
+  // Combat questions are pulled live, STRICTLY from this realm + stage bank and
+  // tiered by the card's difficulty (shield=easy, strike=medium, fireball=hard).
+  // A per-battle used-id set prevents repeats. There is NO multi-subject
+  // fallback — a Math boss only ever serves Math questions.
+  const usedIdsRef = useRef(new Set());
   const nextQuestion = useCallback(
     (difficulty) => {
-      const pool = questionPools[difficulty];
-      const idx = qIdxRef.current[difficulty];
-      const q = pool[idx % pool.length];
-      qIdxRef.current[difficulty] = idx + 1;
+      let q = getCardQuestion(course.questionBankId, difficulty, usedIdsRef.current);
+      // If the given bank isn't registered, fall back to Stage 1 of the SAME
+      // realm — still strictly this curriculum, never another subject.
+      if (!q && course.subject && course.grade) {
+        q = getCardQuestion(
+          `${course.subject}-g${course.grade}-stage-1`,
+          difficulty,
+          usedIdsRef.current,
+        );
+      }
+      if (q?.id) usedIdsRef.current.add(q.id);
       return q;
     },
-    [questionPools],
+    [course.questionBankId, course.subject, course.grade],
   );
 
   // Core battle state
@@ -385,6 +410,17 @@ export default function BossBattle({
 
       const isCorrect = i === activeQuestion.correctIndex;
 
+      logQuestionAttempt({
+        studentId: session?.userId,
+        classCode,
+        subject: course?.subject,
+        category: activeQuestion.category,
+        grade: course?.grade,
+        stage: course?.stage,
+        isCorrect,
+        source: 'boss',
+      });
+
       if (isCorrect) {
         setFeedback('correct');
 
@@ -421,6 +457,12 @@ export default function BossBattle({
           setFeedback('blocked');
           setShieldActive(false);
           setTimeout(closeQuestion, 1100);
+        } else if (isGodMode) {
+          // God mode: register the miss but never lose a heart.
+          setFeedback('wrong');
+          setPlayerShaking(true);
+          setTimeout(() => setPlayerShaking(false), 600);
+          setTimeout(closeQuestion, 1000);
         } else {
           setFeedback('wrong');
           setPlayerShaking(true);
@@ -446,6 +488,10 @@ export default function BossBattle({
       dmgBonus,
       closeQuestion,
       triggerVictory,
+      isGodMode,
+      session,
+      course,
+      classCode,
     ],
   );
 

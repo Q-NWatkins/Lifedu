@@ -38,7 +38,7 @@ export const TILE_CLASS = {
 export const REALM_CONFIG = {
   science: {
     label: 'Science Cosmos',
-    topics: { red: 'biology-basics', yellow: 'space-basics', blue: 'physics-basics' },
+    topics: { red: 'biology-basics', yellow: 'space-basics', blue: 'animals' },
   },
   math: {
     label: 'Math Citadel',
@@ -50,11 +50,12 @@ export const REALM_CONFIG = {
   },
   history: {
     label: 'History Timeline',
+    // Standardized to 3 primary tile categories (Red/Yellow/Blue) like every
+    // other realm — the former green 'sphinx-riddles' topic was removed.
     topics: {
       red: 'domestic-heritage',
       yellow: 'ancient-cultures',
       blue: 'geography-maps',
-      green: 'sphinx-riddles',
     },
   },
 };

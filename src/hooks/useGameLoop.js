@@ -25,7 +25,7 @@ function sleep(ms) {
  *   (`pendingQuestion`); a wrong answer FIZZLES the player back to the turn's
  *   starting tile.
  */
-export function useGameLoop(course, { initialEnergy = 10 } = {}) {
+export function useGameLoop(course, { initialEnergy = 10, godMode = false } = {}) {
   const stage = getStageConfig(course.subject, course.grade, course.stage);
   const track = stage?.tileTrack ?? [];
   const trackColors = getStageColors(course.subject);
@@ -48,6 +48,7 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
   const branchChoiceRef = useRef({});
   const turnStartRef = useRef(0);
   const walkRef = useRef(null); // { color, count, matches } carried across the Sphinx
+  const answeredIdsRef = useRef(new Set()); // question ids answered THIS stage (dedup)
 
   useEffect(() => {
     positionRef.current = position;
@@ -69,6 +70,7 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
     setFizzle(null);
     turnStartRef.current = 0;
     walkRef.current = null;
+    answeredIdsRef.current = new Set();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset on stage swap only
   }, [course.id, initialEnergy]);
 
@@ -190,7 +192,10 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
         index: res.target,
         color: tile.color,
         topic: tile.topic,
-        question: getTileQuestion(bank, tile.topic),
+        // Pass the tile color + answered-id set so the lookup binds strictly to
+        // its legend category (red → addition, yellow → subtraction,
+        // blue → geometry) and never repeats a question within the stage.
+        question: getTileQuestion(bank, tile.topic, tile.color, answeredIdsRef.current),
         fromIndex: turnStartRef.current,
       });
     },
@@ -246,7 +251,13 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       setPendingQuestion(null);
       if (!pq) return 'fizzle';
 
+      // Mark this question consumed for the stage so it won't be re-served.
+      if (pq.question?.id) answeredIdsRef.current.add(pq.question.id);
+
       if (!correct) {
+        // God mode: a wrong answer costs nothing — stay put, no fizzle.
+        if (godMode) return 'blocked';
+
         // The Fizzle: snap back to the turn's starting tile.
         const back = turnStartRef.current;
         setPosition(back);
@@ -271,8 +282,18 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
       }
       return 'perfect';
     },
-    [pendingQuestion, hasColoredAhead, bossIndex, stage, triggerFizzle],
+    [pendingQuestion, hasColoredAhead, bossIndex, stage, triggerFizzle, godMode],
   );
+
+  /** Admin: jump straight to the final boss encounter of the active stage. */
+  const jumpToBoss = useCallback(() => {
+    setPendingQuestion(null);
+    setPendingSphinx(null);
+    setIsMoving(false);
+    setPosition(bossIndex);
+    positionRef.current = bossIndex;
+    setBossActive(true);
+  }, [bossIndex]);
 
   const dismissBossEncounter = useCallback(() => {
     setBossActive(false);
@@ -309,6 +330,7 @@ export function useGameLoop(course, { initialEnergy = 10 } = {}) {
     drawCard,
     resolveSphinx,
     resolveAnswer,
+    jumpToBoss,
     dismissBossEncounter,
     retreatFromBoss,
     grantMegaRoll,

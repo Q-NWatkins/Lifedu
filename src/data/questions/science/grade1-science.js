@@ -5,6 +5,7 @@ export default [
     options: ['Rock', 'Tree', 'Chair', 'Pencil'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-002',
@@ -12,6 +13,7 @@ export default [
     options: ['Nose', 'Eyes', 'Ears', 'Hands'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-003',
@@ -19,6 +21,7 @@ export default [
     options: ['Water', 'Television', 'Toys', 'Books'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-004',
@@ -26,6 +29,7 @@ export default [
     options: ['Bird', 'Fish', 'Dog', 'Horse'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'animals',
   },
   {
     id: 'g1-science-005',
@@ -33,6 +37,7 @@ export default [
     options: ['Moon', 'Star', 'Sun', 'Planet'],
     correctIndex: 2,
     difficulty: 'easy',
+    category: 'space_basics',
   },
   {
     id: 'g1-science-006',
@@ -40,6 +45,7 @@ export default [
     options: ['Touch', 'Taste', 'Sight', 'Hearing'],
     correctIndex: 3,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-007',
@@ -47,6 +53,7 @@ export default [
     options: ['Rose', 'Dog', 'Fish', 'Rock'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-008',
@@ -54,6 +61,7 @@ export default [
     options: ['Wings', 'Fins', 'Feet', 'Hands'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'animals',
   },
   {
     id: 'g1-science-009',
@@ -61,6 +69,7 @@ export default [
     options: ['Summer', 'Spring', 'Winter', 'Fall'],
     correctIndex: 2,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-010',
@@ -68,14 +77,15 @@ export default [
     options: ['Air', 'Sand', 'Paper', 'Milk'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
-
   {
     id: 'g1-science-011',
     prompt: 'Which animal lives in water?',
     options: ['Fish', 'Cat', 'Cow', 'Rabbit'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'animals',
   },
   {
     id: 'g1-science-012',
@@ -83,6 +93,7 @@ export default [
     options: ['Taste', 'Touch', 'Smell', 'Sight'],
     correctIndex: 2,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-013',
@@ -90,6 +101,7 @@ export default [
     options: ['Leaves', 'Water', 'Sand', 'Sticks'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-014',
@@ -97,6 +109,7 @@ export default [
     options: ['Dog', 'Tree', 'Rock', 'Bird'],
     correctIndex: 2,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-015',
@@ -104,26 +117,23 @@ export default [
     options: ['Seeds', 'Books', 'Shoes', 'Clouds'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'biology_basics',
   },
-
   {
     id: 'g1-science-016',
     prompt: 'Which part of a plant usually grows underground?',
     options: ['Flower', 'Leaf', 'Root', 'Stem'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-017',
     prompt: 'Why do animals need water?',
-    options: [
-      'To stay alive',
-      'To read books',
-      'To watch TV',
-      'To build houses',
-    ],
+    options: ['To stay alive', 'To read books', 'To watch TV', 'To build houses'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'animals',
   },
   {
     id: 'g1-science-018',
@@ -131,6 +141,7 @@ export default [
     options: ['Winter', 'Fall', 'Summer', 'Rainy'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-019',
@@ -138,6 +149,7 @@ export default [
     options: ['It melts', 'It grows', 'It flies', 'It disappears'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-020',
@@ -145,6 +157,7 @@ export default [
     options: ['Sun', 'Rock', 'Book', 'Chair'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-021',
@@ -152,6 +165,7 @@ export default [
     options: ['Scales', 'Feathers', 'Fur', 'Shell'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'animals',
   },
   {
     id: 'g1-science-022',
@@ -159,6 +173,7 @@ export default [
     options: ['Rain', 'Sunshine', 'Wind', 'Clouds'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-023',
@@ -166,6 +181,7 @@ export default [
     options: ['Eyes', 'Tongue', 'Ears', 'Nose'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-024',
@@ -173,6 +189,7 @@ export default [
     options: ['Frog', 'Butterfly', 'Bird', 'Fish'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'animals',
   },
   {
     id: 'g1-science-025',
@@ -180,63 +197,47 @@ export default [
     options: ['Moon', 'Ocean', 'Sun', 'Clouds'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'space_basics',
   },
-
   {
     id: 'g1-science-026',
     prompt: 'Which of these animals is a mammal?',
     options: ['Fish', 'Bird', 'Dog', 'Snake'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'animals',
   },
   {
     id: 'g1-science-027',
     prompt: 'What do plants use sunlight for?',
-    options: [
-      'To make food',
-      'To sleep',
-      'To swim',
-      'To hide',
-    ],
+    options: ['To make food', 'To sleep', 'To swim', 'To hide'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'biology_basics',
   },
-
   {
     id: 'g1-science-028',
     prompt: 'A rabbit eats grass. Which statement is true?',
-    options: [
-      'Rabbits make their own food',
-      'Rabbits eat plants',
-      'Rabbits eat rocks',
-      'Rabbits do not need food',
-    ],
+    options: ['Rabbits make their own food', 'Rabbits eat plants', 'Rabbits eat rocks', 'Rabbits do not need food'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'animals',
   },
   {
     id: 'g1-science-029',
     prompt: 'Why do trees lose leaves in many places during fall?',
-    options: [
-      'Seasonal changes',
-      'Too many birds',
-      'Too much darkness forever',
-      'Trees stop growing completely',
-    ],
+    options: ['Seasonal changes', 'Too many birds', 'Too much darkness forever', 'Trees stop growing completely'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-030',
     prompt: 'Which observation uses the sense of touch?',
-    options: [
-      'The flower is red',
-      'The bell is loud',
-      'The blanket is soft',
-      'The cookie smells sweet',
-    ],
+    options: ['The flower is red', 'The bell is loud', 'The blanket is soft', 'The cookie smells sweet'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-031',
@@ -244,18 +245,15 @@ export default [
     options: ['Food and water', 'Telephones', 'Computers', 'Toys'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'animals',
   },
   {
     id: 'g1-science-032',
     prompt: 'A puddle disappears after a sunny day. What most likely happened?',
-    options: [
-      'The water dried up',
-      'The water turned into rocks',
-      'The water became dirt',
-      'The water froze',
-    ],
+    options: ['The water dried up', 'The water turned into rocks', 'The water became dirt', 'The water froze'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-033',
@@ -263,29 +261,22 @@ export default [
     options: ['Frog', 'Camel', 'Lion', 'Squirrel'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'animals',
   },
   {
     id: 'g1-science-034',
     prompt: 'Why do people wear coats in winter?',
-    options: [
-      'To stay warm',
-      'To stay cooler',
-      'To swim faster',
-      'To grow taller',
-    ],
+    options: ['To stay warm', 'To stay cooler', 'To swim faster', 'To grow taller'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'biology_basics',
   },
   {
     id: 'g1-science-035',
     prompt: 'Which statement about living things is true?',
-    options: [
-      'Living things grow and change',
-      'Living things never need water',
-      'Living things are always made of metal',
-      'Living things do not move',
-    ],
+    options: ['Living things grow and change', 'Living things never need water', 'Living things are always made of metal', 'Living things do not move'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'biology_basics',
   },
 ];

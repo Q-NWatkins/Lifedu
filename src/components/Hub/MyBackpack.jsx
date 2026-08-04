@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { removeStudentFromClass } from '../../utils/classroomStore.js';
 import { PLATFORM_THEMES, useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
 import { ItemSprite } from '../../assets/gameSprites.jsx';
@@ -8,6 +10,7 @@ import { RARITY_STYLES, getScrapValue } from '../../systems/lootSystem.js';
 import { arcadeCard, btn3dSuccess, neuBtn, neuPanel } from '../../styles/neubrutalism.js';
 import ToggleSwitch from './ToggleSwitch.jsx';
 import TiltedTitle from '../common/TiltedTitle.jsx';
+import JoinClassModal from '../Classroom/JoinClassModal.jsx';
 
 const SETTINGS_KEY = 'wit-backpack-settings';
 
@@ -270,13 +273,39 @@ function TokenShop() {
 }
 
 export default function MyBackpack() {
-  const { badges, inventory, equipped, equipItem, isThemeUnlocked, activeTitle } =
-    usePlayerProgress();
+  const {
+    badges,
+    inventory,
+    equipped,
+    equipItem,
+    isThemeUnlocked,
+    activeTitle,
+    classCode,
+    leaveClass,
+  } = usePlayerProgress();
+  const { session } = useAuth();
   const activeTitleLabel = getTitleById(activeTitle);
   const { activeTheme, setActiveTheme, themeConfig } = useTheme();
   const { bgmVolume, updateVolume } = useGameAudio();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [tab, setTab] = useState('gear');
+  const [showJoinClass, setShowJoinClass] = useState(false);
+  const [showLeave, setShowLeave] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  const handleLeaveClass = async () => {
+    if (leaving) return;
+    setLeaving(true);
+    try {
+      if (session?.userId && classCode) {
+        await removeStudentFromClass(session.userId, classCode);
+      }
+      leaveClass(); // clear the local class association / reset the badge
+      setShowLeave(false);
+    } finally {
+      setLeaving(false);
+    }
+  };
 
   // Vibrant arcade panel — deep fill, neon border, inner glow, light ink.
   const cardCls = arcadeCard;
@@ -311,7 +340,63 @@ export default function MyBackpack() {
         <p className={`mt-2 text-sm font-bold ${themeConfig.contrastMuted}`}>
           Customize your hero, trade loot, and shop for power-ups!
         </p>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowJoinClass(true)}
+            className={`${neuBtn} bg-cyan-400 px-4 py-2 text-xs font-black uppercase text-cyan-950 hover:bg-cyan-300`}
+          >
+            🏫 {classCode ? `Class: ${classCode}` : 'Join Class'}
+          </button>
+          {classCode && (
+            <button
+              type="button"
+              onClick={() => setShowLeave(true)}
+              className={`${neuBtn} bg-white px-3 py-2 text-xs font-black uppercase text-black hover:bg-red-100`}
+            >
+              ❌ Leave
+            </button>
+          )}
+        </div>
       </header>
+
+      {showJoinClass && <JoinClassModal onClose={() => setShowJoinClass(false)} />}
+
+      {showLeave && (
+        <div
+          className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Leave class"
+        >
+          <div className="w-full max-w-sm rounded-2xl border-4 border-black bg-white p-6 text-center text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-black bg-red-400 text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              🏫
+            </div>
+            <h2 className="mt-3 text-xl font-black">Leave this class?</h2>
+            <p className="mt-2 text-sm font-semibold text-black/70">
+              You can rejoin anytime with the join code.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setShowLeave(false)}
+                className={`${neuBtn} bg-white px-4 py-2.5 text-sm text-black hover:bg-stone-100`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleLeaveClass}
+                disabled={leaving}
+                className={`${neuBtn} bg-red-500 px-4 py-2.5 text-sm text-white hover:bg-red-600 disabled:opacity-50`}
+              >
+                {leaving ? 'Leaving…' : 'Leave Class'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sub-tab navigation */}
       <div className="flex flex-wrap justify-center gap-2">

@@ -8,6 +8,10 @@ import grade1Reading from './reading/grade1-reading.js';
 import grade1Science from './science/grade1-science.js';
 import grade1History from './history/grade1-history.js';
 import grade1Math from './math/grade1-math.js';
+import {
+  resolveTileCategory,
+  FALLBACK_BY_CATEGORY,
+} from './categorize.js';
 
 // ── Grade 1 — progressive stages per subject (Grade 1 = 5 stages each) ──────
 import readingG1S1 from './reading/g1-s1.js';
@@ -27,6 +31,7 @@ import scienceG1S2 from './science/g1-s2.js';
 import scienceG1S3 from './science/g1-s3.js';
 import scienceG1S4 from './science/g1-s4.js';
 import scienceG1S5 from './science/g1-s5.js';
+import scienceG1Animals from './science/g1-animals.js';
 
 import historyG1S1 from './history/g1-s1.js';
 import historyG1S2 from './history/g1-s2.js';
@@ -43,17 +48,40 @@ import historyG1S5 from './history/g1-s5.js';
  * Grade scaling: Grade 1 = 5 stages, Grade 2 = 10, Grade 3 = 15. Add the next
  * grade's array here and `registerStages` will mint its keys automatically.
  */
+// The grade1 monolith bank for each subject is folded into that subject's
+// STAGE 1 ONLY (never s2–s5, never another curriculum), widening the Grade-1
+// Stage-1 pool for both the board tiles and the boss battle.
 const STAGE_BANKS = {
-  'reading-g1': [readingG1S1, readingG1S2, readingG1S3, readingG1S4, readingG1S5],
-  'math-g1': [mathG1S1, mathG1S2, mathG1S3, mathG1S4, mathG1S5],
-  'science-g1': [scienceG1S1, scienceG1S2, scienceG1S3, scienceG1S4, scienceG1S5],
-  'history-g1': [historyG1S1, historyG1S2, historyG1S3, historyG1S4, historyG1S5],
+  'reading-g1': [[...readingG1S1, ...grade1Reading], readingG1S2, readingG1S3, readingG1S4, readingG1S5],
+  'math-g1': [[...mathG1S1, ...grade1Math], mathG1S2, mathG1S3, mathG1S4, mathG1S5],
+  'science-g1': [
+    [...scienceG1S1, ...grade1Science, ...scienceG1Animals],
+    scienceG1S2,
+    scienceG1S3,
+    scienceG1S4,
+    scienceG1S5,
+  ],
+  'history-g1': [[...historyG1S1, ...grade1History], historyG1S2, historyG1S3, historyG1S4, historyG1S5],
 };
 
-/** Expand a stage list into `${subject}-g{grade}-stage-N` → questions entries. */
+/**
+ * Expand a stage list into `${subject}-g{grade}-stage-N` → questions entries,
+ * stamping every question with its `subject`, `grade`, and `stage` so each one
+ * self-identifies (Task 4) and combat/board scoping can never mix realms.
+ */
 function registerStages(prefix, stages) {
+  const [subject, gradeToken] = prefix.split('-g'); // 'math-g1' → ['math','1']
+  const grade = Number(gradeToken);
   return Object.fromEntries(
-    stages.map((stage, index) => [`${prefix}-stage-${index + 1}`, stage]),
+    stages.map((stage, index) => [
+      `${prefix}-stage-${index + 1}`,
+      stage.map((q) => ({
+        ...q,
+        subject: q.subject ?? subject,
+        grade: q.grade ?? grade,
+        stage: q.stage ?? index + 1,
+      })),
+    ]),
   );
 }
 
@@ -129,14 +157,77 @@ export function getStageQuestionPools(questionBankId, subjectLabel = '') {
   return { easy: tier('easy'), medium: tier('medium'), hard: tier('hard') };
 }
 
+/** The full question pool for one realm+stage (a registered stage bank). */
+export function getQuestionsForRealmAndStage(questionBankId) {
+  return QUESTION_BANKS[questionBankId] ?? [];
+}
+
 /**
- * Pull ONE question for a board tile, matching the tile's sub-topic color when
- * possible. Banks may tag questions with `subTopic`; until they do, this draws a
- * random question from the active stage bank (and falls back to the generic
- * multi-subject pool if the bank is missing). This is the Core Question Trigger.
+ * Pick ONE boss-combat-card question — STRICTLY scoped to the active realm +
+ * stage bank, tiered by the card's difficulty.
+ *
+ *   Shield Block → 'easy' · Basic Strike → 'medium' · Mega Fireball → 'hard'
+ *
+ *   1. take the exact stage pool (already subject+stage isolated),
+ *   2. filter to the card's target difficulty,
+ *   3. FALLBACK: if that difficulty is absent, fall back to the SAME stage pool
+ *      (same subject + stage) — never to another curriculum,
+ *   4. return an as-yet-unused question for this battle when possible.
+ *
+ * A Math boss therefore can never serve a History/Reading/Science question.
+ *
+ * @param {Set<string>} [usedIds] question ids already served this battle.
  */
-export function getTileQuestion(questionBankId, subTopic) {
+export function getCardQuestion(questionBankId, targetDifficulty, usedIds = null) {
+  const stagePool = getQuestionsForRealmAndStage(questionBankId);
+  if (stagePool.length === 0) return null;
+
+  let cardPool = stagePool.filter((q) => q.difficulty === targetDifficulty);
+  if (cardPool.length === 0) cardPool = stagePool; // same subject + stage only
+
+  const unused = usedIds ? cardPool.filter((q) => !usedIds.has(q.id)) : cardPool;
+  const pool = unused.length > 0 ? unused : cardPool;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/**
+ * Pull ONE question for a board tile (the Core Question Trigger).
+ *
+ * STRICT STAGE ISOLATION + STRICT CATEGORY:
+ * Colored math tiles bind to exactly one legend category (red → addition_basics,
+ * yellow → subtraction_basics, blue → geometry_shapes, green → number_sense).
+ * We serve ONLY questions of that category, drawn ONLY from the ACTIVE STAGE
+ * bank (`questionBankId`, e.g. 'math-g1-stage-2') — never another stage, never
+ * the monolith:
+ *   1. filter the active stage bank → matching category AND not already answered,
+ *   2. if that is empty, return the guaranteed same-category fallback question
+ *      (FALLBACK_BY_CATEGORY[category]).
+ * A blue tile therefore can NEVER show a subtraction/addition question, and a
+ * yellow tile can NEVER show "5 + 1".
+ *
+ * @param {Set<string>} [answeredIds] ids already answered this stage (dedup).
+ *
+ * Non-categorized realms (science/reading/history) keep the generic behavior.
+ */
+export function getTileQuestion(questionBankId, subTopic, tileColor, answeredIds = null) {
   const bank = QUESTION_BANKS[questionBankId];
+  const category = resolveTileCategory({
+    topic: subTopic,
+    color: tileColor,
+    bankId: questionBankId,
+  });
+
+  if (category) {
+    const validCategoryQuestions = (bank ?? []).filter(
+      (q) => q.category === category && !(answeredIds ? answeredIds.has(q.id) : false),
+    );
+    if (validCategoryQuestions.length > 0) {
+      return validCategoryQuestions[Math.floor(Math.random() * validCategoryQuestions.length)];
+    }
+    // Stage exhausted this category → STRICT same-category fallback ONLY.
+    return FALLBACK_BY_CATEGORY[category];
+  }
+
   if (bank && bank.length > 0) {
     const tagged = subTopic ? bank.filter((q) => q.subTopic === subTopic) : [];
     const pool = tagged.length > 0 ? tagged : bank;

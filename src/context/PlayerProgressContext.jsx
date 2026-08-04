@@ -63,6 +63,7 @@ function defaultProgress() {
     unlockedTitles: [],
     activeTitle: null,
     unlockedGrades: { ...DEFAULT_UNLOCKED_GRADES },
+    classCode: null,
   };
 }
 
@@ -101,6 +102,7 @@ function loadProgress(userId) {
     unlockedTitles: saved.unlockedTitles ?? base.unlockedTitles,
     activeTitle: saved.activeTitle ?? base.activeTitle,
     unlockedGrades: { ...base.unlockedGrades, ...(saved.unlockedGrades ?? {}) },
+    classCode: saved.classCode ?? base.classCode,
   };
 }
 
@@ -145,6 +147,10 @@ export function PlayerProgressProvider({ children }) {
   const [unlockedTitles, setUnlockedTitles] = useState(initial.unlockedTitles);
   const [activeTitle, setActiveTitleState] = useState(initial.activeTitle);
   const [unlockedGrades, setUnlockedGrades] = useState(initial.unlockedGrades);
+  const [classCode, setClassCode] = useState(initial.classCode);
+  // Admin override: when true, every stage in every grade/realm is treated as
+  // unlocked. Session-scoped (a dev/QA convenience, not saved progress).
+  const [allStagesUnlocked, setAllStagesUnlocked] = useState(false);
 
   const hydratedUserRef = useRef(undefined);
   const justHydratedRef = useRef(false);
@@ -172,6 +178,8 @@ export function PlayerProgressProvider({ children }) {
     setUnlockedTitles(data.unlockedTitles);
     setActiveTitleState(data.activeTitle);
     setUnlockedGrades(data.unlockedGrades);
+    setClassCode(data.classCode);
+    setAllStagesUnlocked(false); // clear admin override on account switch
     hydratedUserRef.current = userId;
     justHydratedRef.current = true; // skip the immediate persist (still stale state)
 
@@ -263,6 +271,7 @@ export function PlayerProgressProvider({ children }) {
           activeTitle,
           unlockedGrades,
           consumableCharges,
+          classCode,
         }),
       );
     } catch {
@@ -284,6 +293,7 @@ export function PlayerProgressProvider({ children }) {
     activeTitle,
     unlockedGrades,
     consumableCharges,
+    classCode,
   ]);
 
   // Cloud push (Phase 3): debounced upsert of the canonical progression fields
@@ -482,9 +492,41 @@ export function PlayerProgressProvider({ children }) {
   }, []);
 
   const isGradeUnlocked = useCallback(
-    (subject, grade) => grade <= (unlockedGrades[subject] ?? 1),
-    [unlockedGrades],
+    (subject, grade) => allStagesUnlocked || grade <= (unlockedGrades[subject] ?? 1),
+    [unlockedGrades, allStagesUnlocked],
   );
+
+  /**
+   * ADMIN: unlock every stage across every grade and realm at once. Also raises
+   * all subject grade ceilings to MAX_GRADE so all stage maps are reachable.
+   */
+  /**
+   * Join a teacher's classroom by code. Normalizes (trim + uppercase) and saves
+   * it to progress so the teacher can associate this student's quest data.
+   * Returns the normalized code (or null when the input was empty).
+   */
+  const joinClass = useCallback((code) => {
+    const normalized = String(code ?? '').trim().toUpperCase();
+    if (!normalized) return null;
+    setClassCode(normalized);
+    return normalized;
+  }, []);
+
+  /** Leave the current class — clears the student's local class association. */
+  const leaveClass = useCallback(() => {
+    setClassCode(null);
+  }, []);
+
+  const unlockAllStages = useCallback(() => {
+    setAllStagesUnlocked(true);
+    setUnlockedGrades((prev) => {
+      const next = { ...prev };
+      Object.keys(DEFAULT_UNLOCKED_GRADES).forEach((subject) => {
+        next[subject] = MAX_GRADE;
+      });
+      return next;
+    });
+  }, []);
 
   const completeCourse = useCallback(
     ({ courseId, curriculumId, badgeId, badgeLabel, skillGain = 15 }) => {
@@ -525,6 +567,8 @@ export function PlayerProgressProvider({ children }) {
       unlockedTitles,
       activeTitle,
       unlockedGrades,
+      allStagesUnlocked,
+      classCode,
       addToInventory,
       removeFromInventory,
       equipItem,
@@ -543,6 +587,9 @@ export function PlayerProgressProvider({ children }) {
       setActiveTitle,
       unlockGrade,
       isGradeUnlocked,
+      unlockAllStages,
+      joinClass,
+      leaveClass,
       completeCourse,
     }),
     [
@@ -560,6 +607,8 @@ export function PlayerProgressProvider({ children }) {
       unlockedTitles,
       activeTitle,
       unlockedGrades,
+      allStagesUnlocked,
+      classCode,
       addToInventory,
       removeFromInventory,
       equipItem,
@@ -578,6 +627,9 @@ export function PlayerProgressProvider({ children }) {
       setActiveTitle,
       unlockGrade,
       isGradeUnlocked,
+      unlockAllStages,
+      joinClass,
+      leaveClass,
       completeCourse,
     ],
   );

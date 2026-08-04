@@ -45,6 +45,20 @@ function loadVolume() {
 
 const AudioContext = createContext(null);
 
+/**
+ * Module-level audio-ducking bridge. `speakText` (a plain function outside the
+ * React tree) can lower the BGM while Text-to-Speech is reading, then restore
+ * it — without threading the audio context through every caller. The provider
+ * registers the real implementation; before that it's a safe no-op.
+ */
+let duckController = { duck: () => {}, restore: () => {} };
+export function duckAudio() {
+  duckController.duck();
+}
+export function restoreAudio() {
+  duckController.restore();
+}
+
 export function AudioProvider({ children }) {
   const [bgmVolume, setBgmVolume] = useState(loadVolume);
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -145,6 +159,30 @@ export function AudioProvider({ children }) {
       tracks[key].volume = key === currentKeyRef.current ? vol : 0;
     }
   }, []);
+
+  // ── TTS ducking: lower the active BGM while speech is reading ─────────────
+  const duckDepthRef = useRef(0);
+  const applyActiveVolume = useCallback((vol) => {
+    const tracks = tracksRef.current;
+    const key = currentKeyRef.current;
+    if (tracks && key && tracks[key]) tracks[key].volume = clamp01(vol);
+  }, []);
+
+  useEffect(() => {
+    duckController = {
+      duck: () => {
+        duckDepthRef.current += 1;
+        applyActiveVolume(volumeRef.current * 0.1); // duck to 10%
+      },
+      restore: () => {
+        duckDepthRef.current = Math.max(0, duckDepthRef.current - 1);
+        if (duckDepthRef.current === 0) applyActiveVolume(volumeRef.current);
+      },
+    };
+    return () => {
+      duckController = { duck: () => {}, restore: () => {} };
+    };
+  }, [applyActiveVolume]);
 
   // ── One-shot sound snippet helper ─────────────────────────────────────────
   const playSfx = useCallback((src) => {

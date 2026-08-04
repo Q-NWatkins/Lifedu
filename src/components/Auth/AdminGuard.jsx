@@ -1,4 +1,5 @@
-import { useAuth } from '../../context/AuthContext.jsx';
+import { useUser } from '@clerk/clerk-react';
+import { isSuperAdmin } from '../../utils/roles.js';
 import { neuBtn } from '../../styles/neubrutalism.js';
 
 function AccessDenied({ authed, onLeave }) {
@@ -27,22 +28,19 @@ function AccessDenied({ authed, onLeave }) {
 }
 
 /**
- * Strict admin route guard.
+ * Strict super-admin route guard.
  *
- * Renders `children` ONLY when the live session is a real object explicitly
- * carrying `role === 'admin'`. Any other state (null / missing / non-admin)
- * wipes the protected view and shows the fallback (custom, or the default
- * AccessDenied + login). Because it reads the frozen session straight from the
- * auth context on every render, flipping a flag in DevTools can't slip past it.
+ * Renders `children` ONLY when the live Clerk user is a super admin
+ * (`publicMetadata.role === 'super_admin'` or the VITE_SUPER_ADMIN_EMAILS
+ * allow-list — the same check that gates the developer AdminToolbar). Teachers
+ * and students are wiped to the fallback / AccessDenied screen.
  */
 export default function AdminGuard({ children, fallback, onLeave }) {
-  const { session } = useAuth();
+  const { user, isLoaded } = useUser();
 
-  const isAdmin = Boolean(session) && session.role === 'admin';
-
-  if (!isAdmin) {
+  if (!isLoaded || !isSuperAdmin(user)) {
     if (fallback !== undefined) return fallback;
-    return <AccessDenied authed={Boolean(session)} onLeave={onLeave} />;
+    return <AccessDenied authed={Boolean(user)} onLeave={onLeave} />;
   }
 
   return children;

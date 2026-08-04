@@ -5,6 +5,7 @@ export default [
     options: ['/m/', '/s/', '/t/', '/b/'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-s2-002',
@@ -12,6 +13,7 @@ export default [
     options: ['run', 'jump', 'cat', 'fast'],
     correctIndex: 2,
     difficulty: 'easy',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-s2-003',
@@ -19,6 +21,7 @@ export default [
     options: ['school', 'dog', 'apple', 'red'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s2-004',
@@ -26,6 +29,7 @@ export default [
     options: ['lake', 'dog', 'sun', 'tree'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-s2-005',
@@ -33,6 +37,7 @@ export default [
     options: ['f', 'i', 's', 'h'],
     correctIndex: 3,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-s2-006',
@@ -40,6 +45,7 @@ export default [
     options: ['banana', 'desk', 'shoe', 'cloud'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-s2-007',
@@ -47,5 +53,6 @@ export default [
     options: ['bat', 'cat', 'sun', 'dog'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
 ];

@@ -2,7 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { usePlayerProgress } from '../../context/PlayerProgressContext.jsx';
 import { useTheme } from '../../context/ThemeContext.jsx';
 import { useGameAudio } from '../../context/AudioContext.jsx';
+import { useAdminDev } from '../../context/AdminDevContext.jsx';
+import { useAuth } from '../../context/AuthContext.jsx';
+import { useAccessibility, speakText } from '../../context/AccessibilityContext.jsx';
 import { useGameLoop } from '../../hooks/useGameLoop.js';
+import { useSwitchScanner } from '../../hooks/useSwitchScanner.js';
+import { logQuestionAttempt } from '../../utils/analytics.js';
+import SpeakerButton from '../common/SpeakerButton.jsx';
 import { TILE_CLASS, getRealmEnv, getGuardian } from '../../data/realmConfig.js';
 import { neuBadge, neuCard } from '../../styles/neubrutalism.js';
 import { BossBattle } from '../BossBattle/index.js';
@@ -21,6 +27,7 @@ function TileQuestionModal({ pending, onAnswer }) {
   const { question, color, topic } = pending;
   const [selected, setSelected] = useState(null);
   const [locked, setLocked] = useState(false);
+  const { settings } = useAccessibility();
 
   const choose = (i) => {
     if (locked) return;
@@ -28,6 +35,20 @@ function TileQuestionModal({ pending, onAnswer }) {
     setSelected(i);
     setTimeout(() => onAnswer(i === question.correctIndex), 750);
   };
+
+  // Auto-read the prompt aloud on open (TTS accommodation).
+  useEffect(() => {
+    if (settings.ttsAutoRead) speakText(question.prompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- read once per question
+  }, [question.prompt]);
+
+  // Single-switch auto-scanner highlight.
+  const scanIndex = useSwitchScanner({
+    enabled: settings.switchAccess && !locked,
+    count: question.options.length,
+    speedMs: settings.switchScanSpeedMs,
+    onSelect: choose,
+  });
 
   const optionStyle = (i) => {
     if (!locked) return 'bg-white text-black hover:bg-yellow-50';
@@ -45,20 +66,25 @@ function TileQuestionModal({ pending, onAnswer }) {
             {(topic ?? color).replace(/-/g, ' ')}
           </p>
         </div>
-        <div className="px-5 pt-4 pb-2">
-          <p className="text-base font-black leading-snug text-black">{question.prompt}</p>
+        <div className="flex items-start gap-2 px-5 pt-4 pb-2">
+          <p className="flex-1 text-base font-black leading-snug text-black">{question.prompt}</p>
+          <SpeakerButton text={question.prompt} />
         </div>
         <div className="grid gap-2 px-5 pb-5">
           {question.options.map((option, i) => (
-            <button
-              key={option}
-              type="button"
-              disabled={locked}
-              onClick={() => choose(i)}
-              className={`neu-btn px-4 py-3 text-left text-sm font-bold ${optionStyle(i)} disabled:cursor-default`}
-            >
-              {option}
-            </button>
+            <div key={option} className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={locked}
+                onClick={() => choose(i)}
+                className={`neu-btn flex-1 px-4 py-3 text-left text-sm font-bold ${optionStyle(i)} ${
+                  i === scanIndex ? 'ring-4 ring-cyan-400' : ''
+                } disabled:cursor-default`}
+              >
+                {option}
+              </button>
+              <SpeakerButton text={option} label={`Read option: ${option}`} />
+            </div>
           ))}
         </div>
       </div>
@@ -80,7 +106,9 @@ export default function GameBoard({
   const palette = getBoardTheme(theme);
   const { themeConfig } = useTheme();
   const { playTrack } = useGameAudio();
-  const { completedCourses, addGems, stepCards, consumeStepCards } = usePlayerProgress();
+  const { isGodMode, skipToBossNonce } = useAdminDev();
+  const { session } = useAuth();
+  const { completedCourses, addGems, stepCards, consumeStepCards, classCode } = usePlayerProgress();
   const isCourseComplete = course ? completedCourses.includes(course.id) : false;
 
   useEffect(() => {
@@ -110,11 +138,22 @@ export default function GameBoard({
     drawCard,
     resolveSphinx,
     resolveAnswer,
+    jumpToBoss,
     dismissBossEncounter,
     retreatFromBoss,
     grantMegaRoll,
     addEnergy,
-  } = useGameLoop(course, { initialEnergy: startEnergyRef.current });
+  } = useGameLoop(course, { initialEnergy: startEnergyRef.current, godMode: isGodMode });
+
+  // Admin "Skip to Boss": jump to the final encounter only when the signal
+  // CHANGES while this board is mounted (not on a fresh mount with a stale nonce).
+  const lastSkipRef = useRef(skipToBossNonce);
+  useEffect(() => {
+    if (skipToBossNonce !== lastSkipRef.current) {
+      lastSkipRef.current = skipToBossNonce;
+      jumpToBoss();
+    }
+  }, [skipToBossNonce, jumpToBoss]);
 
   const handleReplayReward = () => {
     addGems(REPLAY_GEM_BONUS);
@@ -122,6 +161,16 @@ export default function GameBoard({
   };
 
   const handleTileAnswer = (correct) => {
+    logQuestionAttempt({
+      studentId: session?.userId,
+      classCode,
+      subject: course?.subject,
+      category: pendingQuestion?.question?.category,
+      grade: course?.grade,
+      stage: course?.stage,
+      isCorrect: correct,
+      source: 'tile',
+    });
     const outcome = resolveAnswer(correct);
     if (outcome === 'perfect' || outcome === 'boss') addGems(PERFECT_GEMS);
   };

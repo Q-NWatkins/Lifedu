@@ -5,6 +5,7 @@ export default [
     options: ['dog', 'hat', 'sun', 'pen'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-002',
@@ -12,6 +13,7 @@ export default [
     options: ['apple', 'ball', 'cat', 'dog'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-003',
@@ -19,6 +21,7 @@ export default [
     options: ['chair', 'tiger', 'table', 'book'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-004',
@@ -26,6 +29,7 @@ export default [
     options: ['s', 'u', 'n', 't'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-005',
@@ -33,6 +37,7 @@ export default [
     options: ['run', 'blue', 'jump', 'tree'],
     correctIndex: 1,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-006',
@@ -40,6 +45,7 @@ export default [
     options: ['dog', 'sun', 'hat', 'pen'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-007',
@@ -47,6 +53,7 @@ export default [
     options: ['teacher', 'desk', 'book', 'tree'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-008',
@@ -54,6 +61,7 @@ export default [
     options: ['/m/', '/s/', '/t/', '/b/'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-009',
@@ -61,6 +69,7 @@ export default [
     options: ['run', 'jump', 'cat', 'fast'],
     correctIndex: 2,
     difficulty: 'easy',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-010',
@@ -68,14 +77,15 @@ export default [
     options: ['school', 'dog', 'apple', 'red'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
-
   {
     id: 'g1-reading-011',
     prompt: 'Which word rhymes with "cake"?',
     options: ['lake', 'dog', 'sun', 'tree'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-012',
@@ -83,6 +93,7 @@ export default [
     options: ['f', 'i', 's', 'h'],
     correctIndex: 3,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-013',
@@ -90,6 +101,7 @@ export default [
     options: ['banana', 'desk', 'shoe', 'cloud'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-014',
@@ -97,6 +109,7 @@ export default [
     options: ['bat', 'cat', 'sun', 'dog'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'vowel_sounds',
   },
   {
     id: 'g1-reading-015',
@@ -104,14 +117,15 @@ export default [
     options: ['big', 'run', 'apple', 'chair'],
     correctIndex: 0,
     difficulty: 'easy',
+    category: 'nouns_verbs',
   },
-
   {
     id: 'g1-reading-016',
     prompt: 'Read: "Tom has a red ball." What color is the ball?',
     options: ['blue', 'green', 'red', 'yellow'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-017',
@@ -119,6 +133,7 @@ export default [
     options: ['house', 'tree', 'car', 'road'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-018',
@@ -126,6 +141,7 @@ export default [
     options: ['cold', 'warm', 'sunny', 'fire'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-019',
@@ -133,18 +149,15 @@ export default [
     options: ['banana', 'apple', 'orange', 'grape'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-020',
     prompt: 'Which sentence ends with a question mark?',
-    options: [
-      'I like dogs.',
-      'Where is my book?',
-      'The sun is bright.',
-      'Run fast.'
-    ],
+    options: ['I like dogs.', 'Where is my book?', 'The sun is bright.', 'Run fast.'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-021',
@@ -152,6 +165,7 @@ export default [
     options: ['setting', 'character', 'title', 'author'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-022',
@@ -159,6 +173,7 @@ export default [
     options: ['cat', 'dog', 'bird', 'fish'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-023',
@@ -166,6 +181,7 @@ export default [
     options: ['bright', 'jump', 'table', 'dog'],
     correctIndex: 0,
     difficulty: 'medium',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-024',
@@ -173,6 +189,7 @@ export default [
     options: ['run', 'happy', 'book', 'quickly'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-025',
@@ -180,14 +197,15 @@ export default [
     options: ['school', 'store', 'park', 'house'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'sight_words',
   },
-
   {
     id: 'g1-reading-026',
     prompt: 'Which word means the same as "happy"?',
     options: ['sad', 'glad', 'angry', 'tired'],
     correctIndex: 1,
     difficulty: 'medium',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-027',
@@ -195,19 +213,15 @@ export default [
     options: ['middle', 'ending', 'beginning', 'title page'],
     correctIndex: 2,
     difficulty: 'medium',
+    category: 'sight_words',
   },
-
   {
     id: 'g1-reading-028',
     prompt: 'Read: "Ben put on boots because it was raining." Why did Ben wear boots?',
-    options: [
-      'It was snowing',
-      'It was raining',
-      'It was sunny',
-      'It was bedtime'
-    ],
+    options: ['It was snowing', 'It was raining', 'It was sunny', 'It was bedtime'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-029',
@@ -215,6 +229,7 @@ export default [
     options: ['It froze', 'It melted', 'It grew', 'It bounced'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-030',
@@ -222,6 +237,7 @@ export default [
     options: ['slow', 'quiet', 'furry', 'square'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'nouns_verbs',
   },
   {
     id: 'g1-reading-031',
@@ -229,18 +245,15 @@ export default [
     options: ['water', 'sand', 'toy', 'paper'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-032',
     prompt: 'Which sentence tells about something that already happened?',
-    options: [
-      'I will jump tomorrow.',
-      'I am jumping.',
-      'I jumped yesterday.',
-      'I can jump.'
-    ],
+    options: ['I will jump tomorrow.', 'I am jumping.', 'I jumped yesterday.', 'I can jump.'],
     correctIndex: 2,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-033',
@@ -248,18 +261,15 @@ export default [
     options: ['on the roof', 'under the table', 'in a tree', 'outside'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-034',
     prompt: 'What is the title of a story?',
-    options: [
-      'The name of the story',
-      'The last page',
-      'The picture',
-      'The author'
-    ],
+    options: ['The name of the story', 'The last page', 'The picture', 'The author'],
     correctIndex: 0,
     difficulty: 'hard',
+    category: 'sight_words',
   },
   {
     id: 'g1-reading-035',
@@ -267,5 +277,6 @@ export default [
     options: ['He is selfish', 'He is kind', 'He is sleepy', 'He is lost'],
     correctIndex: 1,
     difficulty: 'hard',
+    category: 'sight_words',
   },
 ];
