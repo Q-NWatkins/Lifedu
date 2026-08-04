@@ -561,6 +561,24 @@ export async function addAssignment(assignment) {
   return asg;
 }
 
+/** Delete a published assignment. Optimistically drops it from the cache. */
+export async function deleteAssignment(assignmentId) {
+  if (!assignmentId) return;
+
+  if (usingCloud()) {
+    const { error } = await supabase.from('assignments').delete().eq('id', assignmentId);
+    if (error) {
+      console.error('[classroomStore] deleteAssignment failed:', error.message, error);
+      throw new Error(error.message || 'Could not delete the assignment. Please try again.');
+    }
+    assignmentsCache = (assignmentsCache ?? []).filter((a) => a.id !== assignmentId);
+    emit();
+    return;
+  }
+
+  write(ASSIGN_KEY, getAssignments().filter((a) => a.id !== assignmentId));
+}
+
 /** Toggle focus on one assignment; turning it on clears focus on its classmates. */
 export async function setAssignmentFocus(assignmentId, on) {
   const target = getAssignments().find((a) => a.id === assignmentId);

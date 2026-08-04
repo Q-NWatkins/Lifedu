@@ -17,6 +17,7 @@ import {
   getClassSkillAnalytics,
   addClass,
   deleteClass,
+  deleteAssignment,
   newJoinCode,
   setAssignmentFocus,
   getAccuracy,
@@ -67,6 +68,8 @@ export default function TeacherDashboard({ onExit }) {
   const [creating, setCreating] = useState(false);
   const [removeTarget, setRemoveTarget] = useState(null); // { student, className } pending unenroll
   const [removing, setRemoving] = useState(false);
+  const [assignmentDeleteTarget, setAssignmentDeleteTarget] = useState(null); // assignment pending delete
+  const [deletingAssignment, setDeletingAssignment] = useState(false);
   const [toast, setToast] = useState(''); // transient success message
 
   const cardCls = `rounded-2xl border-4 border-cyan-400/70 bg-indigo-950 text-cyan-50 shadow-[inset_0_0_24px_rgba(34,211,238,0.35),0_8px_0_rgba(0,0,0,0.4)]`;
@@ -106,6 +109,20 @@ export default function TeacherDashboard({ onExit }) {
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 3500);
+  };
+
+  const confirmDeleteAssignment = async () => {
+    if (!assignmentDeleteTarget || deletingAssignment) return;
+    setDeletingAssignment(true);
+    try {
+      await deleteAssignment(assignmentDeleteTarget.id);
+      showToast('Assignment deleted.');
+      setAssignmentDeleteTarget(null);
+    } catch (err) {
+      showToast(err?.message || 'Could not delete the assignment.');
+    } finally {
+      setDeletingAssignment(false);
+    }
   };
 
   const confirmRemove = async () => {
@@ -453,6 +470,14 @@ export default function TeacherDashboard({ onExit }) {
                                 }`}
                               />
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => setAssignmentDeleteTarget(a)}
+                              title="Delete assignment"
+                              className="rounded-lg border-2 border-black bg-red-400 px-2 py-1 text-xs font-black text-white hover:bg-red-500"
+                            >
+                              🗑️ Delete
+                            </button>
                           </div>
                         </li>
                       ))}
@@ -494,6 +519,44 @@ export default function TeacherDashboard({ onExit }) {
       {toast && (
         <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-xl border-4 border-black bg-green-400 px-4 py-2 text-sm font-black text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
           ✅ {toast}
+        </div>
+      )}
+
+      {assignmentDeleteTarget && (
+        <div
+          className="fixed inset-0 z-[190] flex items-center justify-center bg-black/70 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Confirm assignment deletion"
+        >
+          <div className="w-full max-w-md rounded-2xl border-4 border-black bg-white p-6 text-center text-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border-4 border-black bg-red-400 text-3xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              🗑️
+            </div>
+            <h2 className="mt-3 text-xl font-black">Delete Assignment?</h2>
+            <p className="mt-2 text-sm font-semibold text-black/70">
+              Are you sure you want to delete{' '}
+              <span className="font-black text-black">{assignmentDeleteTarget.title}</span>? Students
+              will no longer see it.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAssignmentDeleteTarget(null)}
+                className={`${neuBtn} bg-white px-4 py-2.5 text-sm text-black hover:bg-stone-100`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteAssignment}
+                disabled={deletingAssignment}
+                className={`${neuBtn} bg-red-500 px-4 py-2.5 text-sm text-white hover:bg-red-600 disabled:opacity-50`}
+              >
+                {deletingAssignment ? 'Deleting…' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

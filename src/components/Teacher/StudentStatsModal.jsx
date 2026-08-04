@@ -5,6 +5,64 @@ import { neuBtn } from '../../styles/neubrutalism.js';
 
 const SUBJECTS = ['math', 'science', 'reading', 'history'];
 
+/* Ink-friendly print layout: isolate the report, drop the dark theme, hide the
+   interactive chrome, and reveal the formal header + signature block. */
+const PRINT_CSS = `
+.print-only { display: none; }
+@media print {
+  @page { margin: 1.5cm; }
+  body * { visibility: hidden !important; }
+  #student-report-card, #student-report-card * { visibility: visible !important; }
+  #student-report-card {
+    position: absolute !important;
+    left: 0; top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  #student-report-card * {
+    color: #000 !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+  #student-report-card .no-print { display: none !important; }
+  #student-report-card .print-only { display: block !important; }
+  #student-report-card .report-print-header {
+    border-bottom: 3px solid #000;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+  }
+  #student-report-card .report-title {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+  #student-report-card .report-meta {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 18px;
+    margin-top: 8px;
+    font-size: 11px;
+  }
+  #student-report-card .print-signature {
+    margin-top: 24px;
+    border: 1px solid #000;
+    padding: 14px;
+    font-size: 12px;
+    line-height: 2.4;
+  }
+}
+`;
+
 function bandCls(pct) {
   if (pct == null) return 'bg-stone-400 text-white';
   if (pct >= 80) return 'bg-green-400 text-black';
@@ -67,9 +125,24 @@ export default function StudentStatsModal({ student, onClose }) {
       aria-modal="true"
       aria-label={`Progress report for ${student.name}`}
     >
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border-4 border-cyan-400/70 bg-indigo-950 p-6 text-cyan-50 shadow-[inset_0_0_24px_rgba(34,211,238,0.35),0_8px_0_rgba(0,0,0,0.4)]">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
+      <style>{PRINT_CSS}</style>
+      <div
+        id="student-report-card"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border-4 border-cyan-400/70 bg-indigo-950 p-6 text-cyan-50 shadow-[inset_0_0_24px_rgba(34,211,238,0.35),0_8px_0_rgba(0,0,0,0.4)]"
+      >
+        {/* Formal header — print only */}
+        <div className="print-only report-print-header">
+          <h1 className="report-title">LEARNQUEST — OFFICIAL STUDENT PROGRESS REPORT</h1>
+          <div className="report-meta">
+            <span><strong>Student:</strong> {student.name}</span>
+            <span><strong>Class Code:</strong> {student.classCode}</span>
+            <span><strong>Joined:</strong> {formatDate(student.joinedAt)}</span>
+            <span><strong>Printed:</strong> {formatDate(Date.now())}</span>
+          </div>
+        </div>
+
+        {/* Header (screen) */}
+        <div className="no-print flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-black">📊 Student Progress Report</h2>
             <p className="text-sm font-black text-white">{student.name}</p>
@@ -157,10 +230,16 @@ export default function StudentStatsModal({ student, onClose }) {
                 </li>
               ))}
             </ul>
+            {/* Teacher notes & signature — print only */}
+            <div className="print-only print-signature">
+              <p>Teacher Notes: ____________________________________________</p>
+              <p>____________________________________________________________</p>
+              <p>Parent Signature: _________________________ Date: _________</p>
+            </div>
           </>
         )}
 
-        <div className="mt-6 flex items-center gap-2">
+        <div className="no-print mt-6 flex items-center gap-2">
           <button
             type="button"
             onClick={() => window.print()}
