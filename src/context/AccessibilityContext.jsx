@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext.jsx';
 import { fetchStudentIep, useClassroomSupabase } from '../utils/classroomStore.js';
+import { duckAudio, restoreAudio } from './AudioContext.jsx';
 
 /**
  * Teacher-managed accessibility / accommodation engine.
@@ -52,12 +53,26 @@ export function saveAccommodations(studentId, settings) {
   return merged;
 }
 
-/** Speak text via the Web Speech API, at an elementary-friendly pace. */
+/**
+ * Speak text via the Web Speech API, at an elementary-friendly pace. Ducks the
+ * background music to 10% while reading, then restores it when speech ends.
+ */
 export function speakText(text) {
   if (!('speechSynthesis' in window) || !text) return;
   window.speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(String(text));
   utterance.rate = 0.85; // Slightly slower pacing for elementary students
+
+  let restored = false;
+  const restore = () => {
+    if (restored) return;
+    restored = true;
+    restoreAudio();
+  };
+  utterance.onend = restore;
+  utterance.onerror = restore;
+
+  duckAudio(); // lower BGM before speech begins
   window.speechSynthesis.speak(utterance);
 }
 
